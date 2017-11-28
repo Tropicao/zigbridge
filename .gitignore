@@ -1,0 +1,4 @@
+*.o
+*.un~
+tags
+builddir
