@@ -2,3 +2,4 @@
 *.un~
 tags
 builddir
+env.sh
