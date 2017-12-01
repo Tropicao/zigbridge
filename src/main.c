@@ -50,7 +50,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     loop = calloc(1, sizeof(uv_loop_t));
     if(!loop)
     {
-        dbg_print(PRINT_LEVEL_ERROR, "Cannot allocate memory for main loop structure\n");
+        dbg_print(PRINT_LEVEL_ERROR, "Cannot allocate memory for main loop structure");
         exit(1);
     }
     uv_loop_init(loop);
@@ -59,10 +59,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 	serialPortFd = rpcOpen(SERIAL_DEVICE, 0);
 	if (serialPortFd == -1)
 	{
-		dbg_print(PRINT_LEVEL_ERROR, "could not open serial port\n");
+		dbg_print(PRINT_LEVEL_ERROR, "could not open serial port");
 		exit(-1);
 	}
-    log_inf("Device %s opened\n", SERIAL_DEVICE);
+    log_inf("Device %s opened", SERIAL_DEVICE);
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
     pthread_create(&rpc_thread, NULL, rpc_task, NULL);
@@ -70,8 +70,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     log_dbg("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
-    log_inf("Quitting application\n");
+    log_inf("Quitting application");
     rpcClose();
-    dbg_print(PRINT_LEVEL_INFO, "Device %s closed\n", SERIAL_DEVICE);
+    dbg_print(PRINT_LEVEL_INFO, "Device %s closed", SERIAL_DEVICE);
     exit(0);
 }
