@@ -5,7 +5,9 @@ incdir = include_directories('/usr/local/include/libznp')
 
 cc = meson.get_compiler('c')
 cflags=['-Wall', '-Wextra', '-Werror']
-dep = cc.find_library('znp', dirs: ['/usr/local/lib', '/usr/lib'])
+znpdep = cc.find_library('znp', dirs: ['/usr/local/lib', '/usr/lib'])
+uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
+dep = [znpdep, uvdep]
 
 executable('zll_gateway',
     sources: src,
