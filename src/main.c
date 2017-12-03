@@ -5,6 +5,7 @@
 #include <dbgPrint.h>
 #include <pthread.h>
 #include <uv.h>
+#include "app.h"
 
 #define SERIAL_DEVICE   "/dev/ttyACM0"
 
@@ -29,19 +30,30 @@ static void signal_handler(uv_signal_t *handle __attribute__((unused)), int sign
 
 static void *rpc_task(void *arg __attribute__((unused)))
 {
-    log_dbg("Starting RPC task");
+    log_linf("Starting RPC task");
     rpcInitMq();
     while(quit == 0)
     {
         rpcProcess();
     }
-    log_dbg("End of RPC task");
+    rpcClose();
+    log_inf("Device %s closed", SERIAL_DEVICE);
+    log_linf("Stopping RPC task");
+    return NULL;
+}
+
+static void *app_task(void *arg __attribute__((unused)))
+{
+    log_linf("Starting main application task");
+    app_register_callbacks();
+    reset_dongle();
+    log_linf("Stopping main application task");
     return NULL;
 }
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
-    pthread_t rpc_thread;
+    pthread_t rpc_thread, app_thread;
     uv_signal_t sig_int;
     int serialPortFd = 0;
 
@@ -64,12 +76,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
     pthread_create(&rpc_thread, NULL, rpc_task, NULL);
-    reset_dongle();
-    log_dbg("Starting main loop");
+    pthread_create(&app_thread, NULL, app_task, NULL);
+    log_inf("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
     log_inf("Quitting application");
-    rpcClose();
-    log_inf("Device %s closed", SERIAL_DEVICE);
     exit(0);
 }
