@@ -20,8 +20,6 @@ static void reset_dongle (void)
     rpcWaitMqClientMsg(5000);
 }
 
-
-
 static void signal_handler(uv_signal_t *handle __attribute__((unused)), int signum __attribute__((unused)))
 {
     log_inf("Application received SIGINT");
@@ -50,7 +48,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     loop = calloc(1, sizeof(uv_loop_t));
     if(!loop)
     {
-        dbg_print(PRINT_LEVEL_ERROR, "Cannot allocate memory for main loop structure");
+        log_inf("Cannot allocate memory for main loop structure");
         exit(1);
     }
     uv_loop_init(loop);
@@ -59,7 +57,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 	serialPortFd = rpcOpen(SERIAL_DEVICE, 0);
 	if (serialPortFd == -1)
 	{
-		dbg_print(PRINT_LEVEL_ERROR, "could not open serial port");
+		log_inf("could not open serial port");
 		exit(-1);
 	}
     log_inf("Device %s opened", SERIAL_DEVICE);
@@ -72,6 +70,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     log_inf("Quitting application");
     rpcClose();
-    dbg_print(PRINT_LEVEL_INFO, "Device %s closed", SERIAL_DEVICE);
+    log_inf("Device %s closed", SERIAL_DEVICE);
     exit(0);
 }
