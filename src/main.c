@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <rpc.h>
-#include <mtSys.h>
 #include <dbgPrint.h>
 #include <pthread.h>
 #include <uv.h>
@@ -11,15 +10,6 @@
 
 int quit = 0;
 uv_loop_t *loop = NULL;
-
-static void reset_dongle (void)
-{
-    log_inf("Resetting ZNP");
-    ResetReqFormat_t resReq;
-    resReq.Type = 1;
-    sysResetReq(&resReq);
-    rpcWaitMqClientMsg(5000);
-}
 
 static void signal_handler(uv_signal_t *handle __attribute__((unused)), int signum __attribute__((unused)))
 {
@@ -42,18 +32,10 @@ static void *rpc_task(void *arg __attribute__((unused)))
     return NULL;
 }
 
-static void *app_task(void *arg __attribute__((unused)))
-{
-    log_linf("Starting main application task");
-    app_register_callbacks();
-    reset_dongle();
-    log_linf("Stopping main application task");
-    return NULL;
-}
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
-    pthread_t rpc_thread, app_thread;
+    pthread_t rpc_thread;
     uv_signal_t sig_int;
     int serialPortFd = 0;
 
@@ -76,7 +58,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
     pthread_create(&rpc_thread, NULL, rpc_task, NULL);
-    pthread_create(&app_thread, NULL, app_task, NULL);
+    uv_async_init(loop, &state_flag, state_machine_cb);
+
+    app_register_callbacks();
+    reset_dongle();
     log_inf("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 

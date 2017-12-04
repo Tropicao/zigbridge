@@ -2,6 +2,8 @@
 #include "mt_sys.h"
 #include "dbgPrint.h"
 #include "mtSys.h"
+#include "app.h"
+#include "uv.h"
 
 static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
 {
@@ -12,6 +14,7 @@ static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
     log_inf("Major version : %d", msg->MajorRel);
     log_inf("Minor version : %d", msg->MinorRel);
     log_inf("Hardware version : %d", msg->HwRev);
+    uv_async_send(&state_flag);
 
     return 0;
 }
@@ -32,6 +35,10 @@ static mtSysCb_t mt_sys_cb = {
     NULL,
     NULL,
 };
+
+/********************************
+ *          API                 *
+ *******************************/
 
 void mt_sys_register_callbacks(void)
 {
