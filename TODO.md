@@ -6,3 +6,4 @@
 * Redefine log levels : log_level_low_info is not usefull, if not
   misunderstanding. Moreover, order does not seemed to be respected in libznp
 (eg : byte debug at higher debug level)
+* implement UTIL function to get device state
