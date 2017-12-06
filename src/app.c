@@ -1,26 +1,9 @@
 #include "app.h"
 #include "mt_sys.h"
 #include "dbgPrint.h"
-#include "mtSys.h"
-#include <rpc.h>
 #include <stdlib.h>
 
 uv_async_t state_flag;
-
-void reset_dongle (void)
-{
-    log_inf("Resetting ZNP");
-    ResetReqFormat_t resReq;
-    resReq.Type = 1;
-    sysResetReq(&resReq);
-    rpcWaitMqClientMsg(5000);
-}
-
-void ping_dongle(void)
-{
-    log_inf("Ping dongle");
-    sysPing();
-}
 
 void app_register_callbacks()
 {
@@ -39,10 +22,10 @@ void state_machine_cb(uv_async_t *state_data)
     switch(current_state)
     {
         case APP_STATE_INIT:
-            reset_dongle();
+            mt_sys_reset_dongle();
             break;
         case APP_STATE_DONGLE_UP:
-            ping_dongle();
+            mt_sys_ping_dongle();
             break;
         case APP_STATE_DONGLE_PRESENT:
             log_inf("End of state machine");

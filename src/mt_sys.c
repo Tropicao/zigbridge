@@ -4,8 +4,13 @@
 #include "mtSys.h"
 #include "app.h"
 #include "uv.h"
+#include "rpc.h"
 
 AppState state;
+
+/********************************
+ *     MT SYS callbacks         *
+ *******************************/
 
 static uint8_t mt_sys_ping_srsp_cb(PingSrspFormat_t *msg)
 {
@@ -62,5 +67,20 @@ static mtSysCb_t mt_sys_cb = {
 void mt_sys_register_callbacks(void)
 {
     sysRegisterCallbacks(mt_sys_cb);
+}
+
+void mt_sys_reset_dongle (void)
+{
+    log_inf("Resetting ZNP");
+    ResetReqFormat_t resReq;
+    resReq.Type = 1;
+    sysResetReq(&resReq);
+    rpcWaitMqClientMsg(5000);
+}
+
+void mt_sys_ping_dongle(void)
+{
+    log_inf("Ping dongle");
+    sysPing();
 }
 
