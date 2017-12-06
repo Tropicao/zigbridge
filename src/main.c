@@ -61,7 +61,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     uv_async_init(loop, &state_flag, state_machine_cb);
 
     app_register_callbacks();
-    reset_dongle();
+    run_state_machine();
     log_inf("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
