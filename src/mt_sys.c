@@ -9,6 +9,22 @@
 AppState state;
 
 /********************************
+ *       Constant data          *
+ *******************************/
+
+#define MT_CAP_SYS      0x0001
+#define MT_CAP_MAC      0x0002
+#define MT_CAP_NWK      0x0004
+#define MT_CAP_AF       0x0008
+#define MT_CAP_ZDO      0x0010
+#define MT_CAP_SAPI     0x0020
+#define MT_CAP_UTIL     0x0040
+#define MT_CAP_DEBUG    0x0080
+#define MT_CAP_APP      0x0100
+#define MT_CAP_ZOAD     0x0200
+
+
+/********************************
  *     MT SYS callbacks         *
  *******************************/
 

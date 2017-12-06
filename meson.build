@@ -3,7 +3,8 @@ project('ZLL Gateway' , 'c')
 # Sources
 src = ['src/main.c',
         'src/app.c',
-        'src/mt_sys.c']
+        'src/mt_sys.c',
+        'src/mt_zdo.c']
 
 # Includes
 znpinc = include_directories('/usr/local/include/libznp')

@@ -1,5 +1,6 @@
 #include "app.h"
 #include "mt_sys.h"
+#include "mt_zdo.h"
 #include "dbgPrint.h"
 #include <stdlib.h>
 
@@ -8,6 +9,7 @@ uv_async_t state_flag;
 void app_register_callbacks()
 {
     mt_sys_register_callbacks();
+    mt_zdo_register_callbacks();
 }
 
 void state_machine_cb(uv_async_t *state_data)
@@ -28,6 +30,9 @@ void state_machine_cb(uv_async_t *state_data)
             mt_sys_ping_dongle();
             break;
         case APP_STATE_DONGLE_PRESENT:
+            mt_zdo_nwk_discovery_req();
+            break;
+        case APP_STATE_ZDO_DISCOVERY_SENT:
             log_inf("End of state machine");
             break;
         default:
