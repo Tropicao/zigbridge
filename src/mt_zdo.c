@@ -24,7 +24,7 @@ static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 
 static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
 {
-    log_inf("ZDO Network discovery status : %02d !!!!!!!!!!!!!!!!", msg->Status);
+    LOG_INF("ZDO Network discovery status : %02d !!!!!!!!!!!!!!!!", msg->Status);
     state = APP_STATE_ZDO_DISCOVERY_SENT;
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
@@ -82,13 +82,13 @@ void mt_zdo_nwk_discovery_req(void)
     NwkDiscoveryReqFormat_t req;
     uint8_t status;
 
-    log_inf("Sending ZDO network discover request");
+    LOG_INF("Sending ZDO network discover request");
     memcpy(req.ScanChannels, &scan_param, 4);
     req.ScanDuration = 5;
     status = zdoNwkDiscoveryReq(&req);
     if(status == MT_RPC_SUCCESS)
         rpcWaitMqClientMsg(MT_ZDO_NWK_DISCOVERY_TIMEOUT_MS);
     else
-        log_warn("Cannot send network discovery request");
+        LOG_ERR("Cannot send network discovery request");
 }
 

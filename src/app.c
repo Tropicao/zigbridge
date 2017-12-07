@@ -16,11 +16,11 @@ void state_machine_cb(uv_async_t *state_data)
 {
     if (!state_data)
     {
-        log_err("Cannot read current app state : state variable is empty");
+        LOG_CRI("Cannot read current app state : state variable is empty");
         return;
     }
     AppState current_state = *((AppState *)state_data->data);
-    log_inf("State machine has been woken up");
+    LOG_INF("State machine has been woken up");
     switch(current_state)
     {
         case APP_STATE_INIT:
@@ -33,10 +33,10 @@ void state_machine_cb(uv_async_t *state_data)
             mt_zdo_nwk_discovery_req();
             break;
         case APP_STATE_ZDO_DISCOVERY_SENT:
-            log_inf("End of state machine");
+            LOG_INF("End of state machine");
             break;
         default:
-            log_err("Received state is unknown (%02d)", current_state);
+            LOG_CRI("Received state is unknown (%02d)", current_state);
             break;
     }
 }

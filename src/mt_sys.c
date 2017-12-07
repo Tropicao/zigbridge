@@ -34,7 +34,7 @@ AppState state;
 static uint8_t mt_sys_ping_srsp_cb(PingSrspFormat_t *msg)
 {
     AppState *state = NULL;
-    log_inf("System ping SRSP received. Capabilities : %04X", msg->Capabilities);
+    LOG_INF("System ping SRSP received. Capabilities : %04X", msg->Capabilities);
     state = calloc(1, sizeof(AppState));
     if(state)
     {
@@ -48,13 +48,13 @@ static uint8_t mt_sys_ping_srsp_cb(PingSrspFormat_t *msg)
 
 static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
 {
-    log_inf("System reset ind. received. Reason : %s ",
+    LOG_INF("System reset ind. received. Reason : %s ",
             msg->Reason == 0 ? "power up":(msg->Reason == 1 ? "External":"Watchdog"));
-    log_inf("Transport version : %d", msg->TransportRev);
-    log_inf("Product ID : %d", msg->ProductId);
-    log_inf("Major version : %d", msg->MajorRel);
-    log_inf("Minor version : %d", msg->MinorRel);
-    log_inf("Hardware version : %d", msg->HwRev);
+    LOG_INF("Transport version : %d", msg->TransportRev);
+    LOG_INF("Product ID : %d", msg->ProductId);
+    LOG_INF("Major version : %d", msg->MajorRel);
+    LOG_INF("Minor version : %d", msg->MinorRel);
+    LOG_INF("Hardware version : %d", msg->HwRev);
     state = APP_STATE_DONGLE_UP;
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
@@ -90,7 +90,7 @@ void mt_sys_register_callbacks(void)
 
 void mt_sys_reset_dongle (void)
 {
-    log_inf("Resetting ZNP");
+    LOG_INF("Resetting ZNP");
     ResetReqFormat_t resReq;
     resReq.Type = 1;
     sysResetReq(&resReq);
@@ -99,7 +99,7 @@ void mt_sys_reset_dongle (void)
 
 void mt_sys_ping_dongle(void)
 {
-    log_inf("Ping dongle");
+    LOG_INF("Ping dongle");
     sysPing();
     rpcWaitMqClientMsg(MT_SYS_PING_TIMEOUT_MS);
 }
