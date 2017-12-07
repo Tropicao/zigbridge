@@ -12,6 +12,9 @@ AppState state;
  *       Constant data          *
  *******************************/
 
+#define MT_SYS_RESET_TIMEOUT_MS     5000
+#define MT_SYS_PING_TIMEOUT_MS      50
+
 #define MT_CAP_SYS      0x0001
 #define MT_CAP_MAC      0x0002
 #define MT_CAP_NWK      0x0004
@@ -91,12 +94,13 @@ void mt_sys_reset_dongle (void)
     ResetReqFormat_t resReq;
     resReq.Type = 1;
     sysResetReq(&resReq);
-    rpcWaitMqClientMsg(5000);
+    rpcWaitMqClientMsg(MT_SYS_RESET_TIMEOUT_MS);
 }
 
 void mt_sys_ping_dongle(void)
 {
     log_inf("Ping dongle");
     sysPing();
+    rpcWaitMqClientMsg(MT_SYS_PING_TIMEOUT_MS);
 }
 

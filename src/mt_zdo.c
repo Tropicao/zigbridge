@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 #include "mt_zdo.h"
 #include "dbgPrint.h"
 #include "mtZdo.h"
@@ -12,7 +13,10 @@ AppState state;
 /********************************
  *       Constant data          *
  *******************************/
-#define SCAN_ALL_CHANNELS_VALUE     0x07FFF800
+#define SCAN_ALL_CHANNELS_VALUE             0x07FFF800
+#define MT_ZDO_NWK_DISCOVERY_TIMEOUT_MS     50
+
+static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -20,7 +24,7 @@ AppState state;
 
 static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
 {
-    log_inf("ZDO Network discovery status : %02d", msg->Status);
+    log_inf("ZDO Network discovery status : %02d !!!!!!!!!!!!!!!!", msg->Status);
     state = APP_STATE_ZDO_DISCOVERY_SENT;
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
@@ -76,11 +80,15 @@ void mt_zdo_register_callbacks(void)
 void mt_zdo_nwk_discovery_req(void)
 {
     NwkDiscoveryReqFormat_t req;
-    int index = 0;
+    uint8_t status;
+
     log_inf("Sending ZDO network discover request");
-    for(index = 0; index<4; index++)
-        req.ScanChannels[index] = (SCAN_ALL_CHANNELS_VALUE & (0xFF<<(index*8))) >> (index*8);
+    memcpy(req.ScanChannels, &scan_param, 4);
     req.ScanDuration = 5;
-    zdoNwkDiscoveryReq(&req);
+    status = zdoNwkDiscoveryReq(&req);
+    if(status == MT_RPC_SUCCESS)
+        rpcWaitMqClientMsg(MT_ZDO_NWK_DISCOVERY_TIMEOUT_MS);
+    else
+        log_warn("Cannot send network discovery request");
 }
 
