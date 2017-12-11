@@ -53,9 +53,7 @@ static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
             msg->Reason == 0 ? "power up":(msg->Reason == 1 ? "External":"Watchdog"));
     LOG_INF("Transport version : %d", msg->TransportRev);
     LOG_INF("Product ID : %d", msg->ProductId);
-    LOG_INF("Major version : %d", msg->MajorRel);
-    LOG_INF("Minor version : %d", msg->MinorRel);
-    LOG_INF("Hardware version : %d", msg->HwRev);
+    LOG_INF("ZNP version : %d.%d.%d", msg->MajorRel, msg->MinorRel, msg->HwRev);
     state = APP_STATE_DONGLE_UP;
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
