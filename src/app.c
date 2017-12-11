@@ -22,7 +22,7 @@ void state_machine_cb(uv_async_t *state_data)
         return;
     }
     AppState current_state = *((AppState *)state_data->data);
-    LOG_INF("State machine has been woken up");
+    LOG_DBG("State machine has been woken up");
     switch(current_state)
     {
         case APP_STATE_INIT:
@@ -38,7 +38,7 @@ void state_machine_cb(uv_async_t *state_data)
             mt_zdo_nwk_discovery_req();
             break;
         case APP_STATE_ZDO_DISCOVERY_SENT:
-            LOG_INF("End of state machine");
+            LOG_DBG("End of state machine");
             break;
         default:
             LOG_CRI("Received state is unknown (%02d)", current_state);
