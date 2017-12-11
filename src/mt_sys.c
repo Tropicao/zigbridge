@@ -5,6 +5,7 @@
 #include "app.h"
 #include "uv.h"
 #include "rpc.h"
+#include <string.h>
 
 AppState state;
 
@@ -62,6 +63,17 @@ static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
     return 0;
 }
 
+static uint8_t mt_sys_osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
+{
+    LOG_INF("NV clear flag write status : %02X", msg->Status);
+    state = APP_STATE_NV_CLEAR_FLAG_WRITTEN;
+    state_flag.data = (void *)&state;
+    uv_async_send(&state_flag);
+
+    return 0;
+}
+
+
 static mtSysCb_t mt_sys_cb = {
     mt_sys_ping_srsp_cb,
     NULL,
@@ -69,6 +81,7 @@ static mtSysCb_t mt_sys_cb = {
     mt_sys_reset_ind_cb,
     NULL,
     NULL,
+    mt_sys_osal_nv_write_srsp_cb,
     NULL,
     NULL,
     NULL,
@@ -94,13 +107,26 @@ void mt_sys_reset_dongle (void)
     ResetReqFormat_t resReq;
     resReq.Type = 1;
     sysResetReq(&resReq);
-    rpcWaitMqClientMsg(MT_SYS_RESET_TIMEOUT_MS);
 }
 
 void mt_sys_ping_dongle(void)
 {
     LOG_INF("Ping dongle");
     sysPing();
-    rpcWaitMqClientMsg(MT_SYS_PING_TIMEOUT_MS);
 }
+
+void mt_sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint8_t *data)
+{
+    if(!data)
+        return;
+
+    LOG_INF("Setting clear NV option at boot");
+    OsalNvWriteFormat_t req;
+    req.Id = id;
+    req.Offset = offset;
+    req.Len = length;
+    memcpy(req.Value, data, length);
+    sysOsalNvWrite(&req);
+}
+
 
