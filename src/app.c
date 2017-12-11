@@ -6,8 +6,6 @@
 
 uv_async_t state_flag;
 
-static uint8_t nv_data[] = {3};
-
 void app_register_callbacks()
 {
     mt_sys_register_callbacks();
@@ -26,12 +24,15 @@ void state_machine_cb(uv_async_t *state_data)
     switch(current_state)
     {
         case APP_STATE_INIT:
-            mt_sys_osal_nv_write(3, 0, 1, nv_data);
+            mt_sys_nv_write_clear_flag();
             break;
         case APP_STATE_NV_CLEAR_FLAG_WRITTEN:
             mt_sys_reset_dongle();
             break;
         case APP_STATE_DONGLE_UP:
+            mt_sys_nv_write_coord_flag();
+            break;
+        case APP_STATE_NV_COORD_FLAG_WRITTEN:
             mt_sys_ping_dongle();
             break;
         case APP_STATE_DONGLE_PRESENT:

@@ -8,6 +8,9 @@
 #include <string.h>
 
 AppState state;
+static uint8_t nv_clear_data[] = {3};
+static uint8_t nv_coord_data[] = {0};
+
 
 /********************************
  *       Constant data          *
@@ -63,8 +66,7 @@ static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
 
 static uint8_t mt_sys_osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
 {
-    LOG_INF("NV clear flag write status : %02X", msg->Status);
-    state = APP_STATE_NV_CLEAR_FLAG_WRITTEN;
+    LOG_INF("NV write status : %02X", msg->Status);
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
 
@@ -90,6 +92,19 @@ static mtSysCb_t mt_sys_cb = {
     NULL,
 };
 
+static void mt_sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint8_t *data)
+{
+    if(!data)
+        return;
+
+    OsalNvWriteFormat_t req;
+    req.Id = id;
+    req.Offset = offset;
+    req.Len = length;
+    memcpy(req.Value, data, length);
+    sysOsalNvWrite(&req);
+}
+
 /********************************
  *          API                 *
  *******************************/
@@ -113,18 +128,17 @@ void mt_sys_ping_dongle(void)
     sysPing();
 }
 
-void mt_sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint8_t *data)
+void mt_sys_nv_write_clear_flag()
 {
-    if(!data)
-        return;
-
-    LOG_INF("Setting clear NV option at boot");
-    OsalNvWriteFormat_t req;
-    req.Id = id;
-    req.Offset = offset;
-    req.Len = length;
-    memcpy(req.Value, data, length);
-    sysOsalNvWrite(&req);
+    LOG_INF("Writing NV clear flag");
+    state = APP_STATE_NV_CLEAR_FLAG_WRITTEN;
+    mt_sys_osal_nv_write(3, 0, 1, nv_clear_data);
 }
 
+void mt_sys_nv_write_coord_flag()
+{
+    LOG_INF("Setting device as coordinator");
+    state = APP_STATE_NV_COORD_FLAG_WRITTEN;
+    mt_sys_osal_nv_write(0x87, 0, 1, nv_coord_data);
+}
 

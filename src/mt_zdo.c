@@ -32,6 +32,23 @@ static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
     return 0;
 }
 
+static uint8_t mt_zdo_beacon_notify_ind_cb(BeaconNotifyIndFormat_t *msg)
+{
+    uint8_t index = 0;
+    if(!msg)
+        LOG_WARN("Beacon notification received without data");
+    for(index = 0; index < msg->BeaconCount; index ++)
+    {
+        LOG_INF("=== New visible device in range ===");
+        LOG_INF("Addr : 0x%04X - PAN : 0x%04X - Channel : 0x%02X",
+                msg->BeaconList[index].SrcAddr, msg->BeaconList[index].PanId, msg->BeaconList[index].LogicalChannel);
+        LOG_INF("===================================");
+    }
+    return 0;
+}
+
+
+
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
@@ -57,7 +74,7 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    mt_zdo_beacon_notify_ind_cb,
     NULL,
     mt_zdo_nwk_discovery_srsp_cb,
     NULL,
