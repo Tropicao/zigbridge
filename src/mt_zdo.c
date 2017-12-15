@@ -22,6 +22,19 @@ static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
  *     MT ZDO callbacks         *
  *******************************/
 
+static uint8_t mt_zdo_state_change_ind_cb(uint8_t zdoState)
+{
+    LOG_INF("New ZDO state : 0x%02X", zdoState);
+    if(zdoState == 0x09)
+    {
+        state = APP_STATE_ZDO_STARTED;
+        state_flag.data = (void *)&state;
+        uv_async_send(&state_flag);
+    }
+
+    return 0;
+}
+
 static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
 {
     LOG_INF("ZDO Nwk discovery SRSP status : %02X", msg->Status);
@@ -71,12 +84,13 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    mt_zdo_state_change_ind_cb,
     NULL,
     NULL,
     mt_zdo_beacon_notify_ind_cb,
     NULL,
     mt_zdo_nwk_discovery_srsp_cb,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -105,5 +119,13 @@ void mt_zdo_nwk_discovery_req(void)
     status = zdoNwkDiscoveryReq(&req);
     if (status != MT_RPC_SUCCESS)
         LOG_ERR("Cannot start ZDO network discovery");
+}
+
+void mt_zdo_startup_from_app(void)
+{
+    LOG_INF("Starting ZDO stack");
+    StartupFromAppFormat_t req;
+    req.StartDelay = 0;
+    zdoStartupFromApp(&req);
 }
 

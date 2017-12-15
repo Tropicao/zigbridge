@@ -4,6 +4,7 @@
 
 void mt_zdo_register_callbacks(void);
 void mt_zdo_nwk_discovery_req(void);
+void mt_zdo_startup_from_app(void);
 
 #endif
 
