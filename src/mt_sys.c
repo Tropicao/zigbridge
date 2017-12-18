@@ -10,6 +10,8 @@
 AppState state;
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
+static uint8_t nv_disable_sec_data[] = {0};
+static uint8_t nv_set_pan_id[] = {LOW_PAN_ID, HIGH_PAN_ID};
 
 
 /********************************
@@ -66,7 +68,10 @@ static uint8_t mt_sys_reset_ind_cb(ResetIndFormat_t *msg)
 
 static uint8_t mt_sys_osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
 {
-    LOG_INF("NV write status : %02X", msg->Status);
+    if(msg->Status == 0)
+        LOG_INF("NV write status : %02X", msg->Status);
+    else
+        LOG_ERR("NV write status : %02X", msg->Status);
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
 
@@ -140,5 +145,19 @@ void mt_sys_nv_write_coord_flag()
     LOG_INF("Setting device as coordinator");
     state = APP_STATE_NV_COORD_FLAG_WRITTEN;
     mt_sys_osal_nv_write(0x87, 0, 1, nv_coord_data);
+}
+
+void mt_sys_nv_write_disable_security(void)
+{
+    LOG_INF("Disabling NWK security");
+    state = APP_STATE_NV_DISABLE_SEC;
+    mt_sys_osal_nv_write(0x64, 0, 1, nv_disable_sec_data);
+}
+
+void mt_sys_nv_set_pan_id(void)
+{
+    LOG_INF("Setting PAN ID");
+    state = APP_STATE_NV_SET_PAN_ID;
+    mt_sys_osal_nv_write(0x83, 0, 2, nv_set_pan_id);
 }
 

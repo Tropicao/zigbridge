@@ -8,6 +8,8 @@ void mt_sys_reset_dongle(void);
 void mt_sys_ping_dongle(void);
 void mt_sys_nv_write_clear_flag();
 void mt_sys_nv_write_coord_flag();
+void mt_sys_nv_write_disable_security(void);
+void mt_sys_nv_set_pan_id(void);
 
 #endif
 

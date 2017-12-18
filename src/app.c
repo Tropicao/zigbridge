@@ -35,6 +35,12 @@ void state_machine_cb(uv_async_t *state_data)
             mt_sys_nv_write_coord_flag();
             break;
         case APP_STATE_NV_COORD_FLAG_WRITTEN:
+            mt_sys_nv_write_disable_security();
+            break;
+        case APP_STATE_NV_DISABLE_SEC:
+            mt_sys_nv_set_pan_id();
+            break;
+        case APP_STATE_NV_SET_PAN_ID:
             mt_sys_ping_dongle();
             break;
         case APP_STATE_DONGLE_PRESENT:
@@ -44,6 +50,9 @@ void state_machine_cb(uv_async_t *state_data)
             mt_zdo_startup_from_app();
             break;
         case APP_STATE_ZDO_STARTED:
+            mt_af_set_inter_pan_endpoint();
+            break;
+        case APP_STATE_INTER_PAN_CTL_SENT:
             mt_af_send_zll_scan_request();
             break;
         case APP_STATE_ZLL_SCAN_REQUEST_SENT:
