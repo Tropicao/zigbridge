@@ -33,7 +33,7 @@ AppState state;
 #define ZLL_LEN                 9
 
 #define ZLL_SET_INTERPAN        0x1
-static uint8_t zll_scan_data[] ={   0x11,   // Frame control
+static uint8_t zll_scan_data[] = {  0x11,   // Frame control
                                     0x2C,   // Transaction Sequence Number
                                     0x00,   // Command ID
                                     0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
@@ -41,7 +41,26 @@ static uint8_t zll_scan_data[] ={   0x11,   // Frame control
                                     0xB9,
                                     0xE2,
                                     0x05,   // 0x1+0x4 : Router + Rx On when Idle
-                                    0x12 }; // Touchlink data
+                                    0x12 }; // Touchlink data - payload end
+
+static uint8_t zll_identify_data[] = {  0x11,   // Frame control
+                                        0x2C,   // Transaction Sequence Number
+                                        0x06,   // Command ID
+                                        0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
+                                        0xAD,
+                                        0xB9,
+                                        0xE2,
+                                        0x05,   // 0xffff : identify for a time known by device
+                                        0x00 }; // Payload end
+
+static uint8_t zll_factory_reset_data[] = {  0x11,   // Frame control
+                                        0x2C,   // Transaction Sequence Number
+                                        0x07,   // Command ID
+                                        0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
+                                        0xAD,
+                                        0xB9,
+                                        0xE2};
+
 
 static uint8_t zll_inter_pan_channel[] = {0xB};
 
@@ -62,8 +81,10 @@ static uint8_t mt_af_register_srsp_cb(RegisterSrspFormat_t *msg)
 
 static uint8_t mt_af_data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 {
-    LOG_INF("AF request status status : %02X", msg->Status);
-    state = APP_STATE_ZLL_SCAN_REQUEST_SENT;
+    if(msg->Status != 0)
+        LOG_WARN("AF request status status : %02X", msg->Status);
+    else
+        LOG_INF("AF request status status : %02X", msg->Status);
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
 
@@ -76,7 +97,6 @@ static uint8_t mt_af_data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
         LOG_WARN("AF request status status : %02X", msg->Status);
     else
         LOG_INF("AF request status status : %02X", msg->Status);
-    state = APP_STATE_ZLL_SCAN_REQUEST_SENT;
     state_flag.data = (void *)&state;
     uv_async_send(&state_flag);
 
@@ -147,7 +167,7 @@ void mt_af_set_inter_pan_endpoint(void)
 
 void mt_af_send_zll_scan_request()
 {
-    LOG_INF("sending zll scan request");
+    LOG_INF("Sending zll scan request");
     DataRequestExtFormat_t req;
     req.DstAddrMode =0x2;
     memset(req.DstAddr, 0, 8);
@@ -162,6 +182,49 @@ void mt_af_send_zll_scan_request()
     req.Radius = ZLL_RADIUS;
     req.Len = ZLL_LEN;
     memcpy(req.Data, zll_scan_data, ZLL_LEN);
+    state = APP_STATE_ZLL_SCAN_REQUEST_SENT;
+    afDataRequestExt(&req);
+}
+
+void mt_af_send_zll_identify_request(void)
+{
+    LOG_INF("Sending zll identify request");
+    DataRequestExtFormat_t req;
+    req.DstAddrMode =0x2;
+    memset(req.DstAddr, 0, 8);
+    req.DstAddr[0] = 0xFF;
+    req.DstAddr[1] = 0xFF;
+    req.DstEndpoint = 0xFE;
+    req.DstPanID = 0xFFFF;
+    req.SrcEndpoint = ZLL_SRC_ENDPOINT;
+    req.ClusterId = ZLL_CLUSTER_ID;
+    req.TransId = ZLL_TRANS_ID;
+    req.Options = ZLL_OPTIONS;
+    req.Radius = ZLL_RADIUS;
+    req.Len = ZLL_LEN;
+    memcpy(req.Data, zll_identify_data, ZLL_LEN);
+    state = APP_STATE_ZLL_IDENTIFY_REQUEST_SENT;
+    afDataRequestExt(&req);
+}
+
+void mt_af_send_zll_factory_reset_request(void)
+{
+    LOG_INF("Sending zll factory reset request");
+    DataRequestExtFormat_t req;
+    req.DstAddrMode =0x2;
+    memset(req.DstAddr, 0, 8);
+    req.DstAddr[0] = 0xFF;
+    req.DstAddr[1] = 0xFF;
+    req.DstEndpoint = 0xFE;
+    req.DstPanID = 0xFFFF;
+    req.SrcEndpoint = ZLL_SRC_ENDPOINT;
+    req.ClusterId = ZLL_CLUSTER_ID;
+    req.TransId = ZLL_TRANS_ID;
+    req.Options = ZLL_OPTIONS;
+    req.Radius = ZLL_RADIUS;
+    req.Len = ZLL_LEN-2;
+    memcpy(req.Data, zll_factory_reset_data, ZLL_LEN-2);
+    state = APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT;
     afDataRequestExt(&req);
 }
 

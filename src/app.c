@@ -4,6 +4,7 @@
 #include "mt_zdo.h"
 #include "dbgPrint.h"
 #include <stdlib.h>
+#include <unistd.h>
 
 uv_async_t state_flag;
 
@@ -56,6 +57,13 @@ void state_machine_cb(uv_async_t *state_data)
             mt_af_send_zll_scan_request();
             break;
         case APP_STATE_ZLL_SCAN_REQUEST_SENT:
+            sleep(2);
+            mt_af_send_zll_identify_request();
+            break;
+        case APP_STATE_ZLL_IDENTIFY_REQUEST_SENT:
+            mt_af_send_zll_factory_reset_request();
+            break;
+        case APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT:
             LOG_DBG("End of state machine");
             break;
         default:
