@@ -47,12 +47,12 @@ void state_machine_cb(uv_async_t *state_data)
             mt_af_register_zll_endpoint();
             break;
         case APP_STATE_ZLL_REGISTERED:
-            mt_zdo_startup_from_app();
-            break;
-        case APP_STATE_ZDO_STARTED:
             mt_af_set_inter_pan_endpoint();
             break;
         case APP_STATE_INTER_PAN_CTL_SENT:
+            mt_zdo_startup_from_app();
+            break;
+        case APP_STATE_ZDO_STARTED:
             mt_af_send_zll_scan_request();
             break;
         case APP_STATE_ZLL_SCAN_REQUEST_SENT:
