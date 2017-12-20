@@ -3,3 +3,6 @@
 tags
 builddir
 env.sh
+*.pyc
+__pycache__
+username.txt
