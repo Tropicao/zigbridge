@@ -14,7 +14,9 @@ incdir = [znpinc, localinc]
 
 # Libraries
 cc = meson.get_compiler('c')
-znpdep = cc.find_library('znp', dirs: ['/usr/local/lib', '/usr/lib'])
+znpdep = cc.find_library('znp', dirs: ['/usr/local/lib',
+                                        '/usr/lib',
+                                        '/usr/local/lib/x86_64-linux-gnu/'])
 uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
 ptdep = dependency('threads')
 dep = [znpdep, uvdep, ptdep]
