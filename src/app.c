@@ -46,24 +46,23 @@ void state_machine_cb(uv_async_t *state_data)
             mt_sys_ping_dongle(NULL);
             break;
         case APP_STATE_DONGLE_PRESENT:
-            mt_af_register_zll_endpoint();
+            mt_af_register_zll_endpoint(NULL);
             break;
         case APP_STATE_ZLL_REGISTERED:
-            mt_af_set_inter_pan_endpoint();
+            mt_af_set_inter_pan_endpoint(NULL);
             break;
         case APP_STATE_INTER_PAN_CTL_SENT:
             mt_zdo_startup_from_app();
             break;
         case APP_STATE_ZDO_STARTED:
-            mt_af_send_zll_scan_request();
+            mt_af_send_zll_scan_request(NULL);
             break;
         case APP_STATE_ZLL_SCAN_REQUEST_SENT:
             sleep(2);
-            mt_af_send_zll_identify_request();
+            mt_af_send_zll_identify_request(NULL);
             break;
         case APP_STATE_ZLL_IDENTIFY_REQUEST_SENT:
-            sleep(3);
-            mt_af_send_zll_factory_reset_request();
+            mt_af_send_zll_factory_reset_request(NULL);
             break;
         case APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT:
             LOG_DBG("End of state machine");

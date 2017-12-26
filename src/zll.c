@@ -24,7 +24,9 @@ static ZgSmState _init_states[] = {
     {mt_sys_nv_write_coord_flag, _general_init_cb},
     {mt_sys_nv_write_disable_security, _general_init_cb},
     {mt_sys_nv_set_pan_id, _general_init_cb},
-    {mt_sys_ping_dongle, _general_init_cb}
+    {mt_sys_ping_dongle, _general_init_cb},
+    {mt_af_register_zll_endpoint, _general_init_cb},
+    {mt_af_set_inter_pan_endpoint, _general_init_cb}
 };
 static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
 

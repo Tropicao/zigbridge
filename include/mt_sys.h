@@ -2,8 +2,7 @@
 #define ZG_MT_SYS_H
 
 #include <stdint.h>
-
-typedef void (*SyncActionCb)(void);
+#include "types.h"
 
 void mt_sys_register_callbacks(void);
 void mt_sys_reset_dongle(SyncActionCb cb);

@@ -7,8 +7,8 @@
 #include "rpc.h"
 #include <string.h>
 
-AppState state;
-static zll_cb zll_data_cb;
+static ZgZllCb zll_data_cb;
+static SyncActionCb sync_action_cb = NULL;
 
 /********************************
  *       Constant data          *
@@ -73,9 +73,8 @@ static uint8_t zll_inter_pan_channel[] = {0xB};
 static uint8_t mt_af_register_srsp_cb(RegisterSrspFormat_t *msg)
 {
     LOG_INF("AF register status status : %02X", msg->Status);
-    state = APP_STATE_ZLL_REGISTERED;
-    state_flag.data = (void *)&state;
-    uv_async_send(&state_flag);
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -86,8 +85,8 @@ static uint8_t mt_af_data_request_srsp_cb(DataRequestSrspFormat_t *msg)
         LOG_WARN("AF request status status : %02X", msg->Status);
     else
         LOG_INF("AF request status status : %02X", msg->Status);
-    state_flag.data = (void *)&state;
-    uv_async_send(&state_flag);
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -98,8 +97,8 @@ static uint8_t mt_af_data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
         LOG_WARN("AF request status status : %02X", msg->Status);
     else
         LOG_INF("AF request status status : %02X", msg->Status);
-    state_flag.data = (void *)&state;
-    uv_async_send(&state_flag);
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -110,9 +109,8 @@ static uint8_t mt_af_inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
         LOG_WARN("AF request status status : %02X", msg->Status);
     else
         LOG_INF("AF request status status : %02X", msg->Status);
-    state = APP_STATE_INTER_PAN_CTL_SENT;
-    state_flag.data = (void *)&state;
-    uv_async_send(&state_flag);
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -139,11 +137,13 @@ void mt_af_register_callbacks(void)
     afRegisterCallbacks(mt_af_cb);
 }
 
-void mt_af_register_zll_endpoint()
+void mt_af_register_zll_endpoint(SyncActionCb cb)
 {
     RegisterFormat_t req;
 
     LOG_INF("Registering ZLL endpoint");
+    if(cb)
+        sync_action_cb = cb;
     req.EndPoint = ZLL_ENDPOINT;
     req.AppProfId = ZLL_PROFIL_ID;
     req.AppDeviceId = ZLL_DEVICE_ID;
@@ -156,19 +156,23 @@ void mt_af_register_zll_endpoint()
     afRegister(&req);
 }
 
-void mt_af_set_inter_pan_endpoint(void)
+void mt_af_set_inter_pan_endpoint(SyncActionCb cb)
 {
     InterPanCtlFormat_t req;
 
     LOG_INF("Setting inter-pan messages mode");
+    if(cb)
+        sync_action_cb = cb;
     req.Command = ZLL_SET_INTERPAN;
     memcpy(req.Data, zll_inter_pan_channel, 0x1);
     afInterPanCtl(&req);
 }
 
-void mt_af_send_zll_scan_request()
+void mt_af_send_zll_scan_request(SyncActionCb cb)
 {
     LOG_INF("Sending zll scan request");
+    if(cb)
+        sync_action_cb = cb;
     DataRequestExtFormat_t req;
     req.DstAddrMode =0x2;
     memset(req.DstAddr, 0, 8);
@@ -183,13 +187,14 @@ void mt_af_send_zll_scan_request()
     req.Radius = ZLL_RADIUS;
     req.Len = ZLL_LEN;
     memcpy(req.Data, zll_scan_data, ZLL_LEN);
-    state = APP_STATE_ZLL_SCAN_REQUEST_SENT;
     afDataRequestExt(&req);
 }
 
-void mt_af_send_zll_identify_request(void)
+void mt_af_send_zll_identify_request(SyncActionCb cb)
 {
     LOG_INF("Sending zll identify request");
+    if(cb)
+        sync_action_cb = cb;
     DataRequestExtFormat_t req;
     req.DstAddrMode =0x2;
     memset(req.DstAddr, 0, 8);
@@ -204,13 +209,14 @@ void mt_af_send_zll_identify_request(void)
     req.Radius = ZLL_RADIUS;
     req.Len = ZLL_LEN;
     memcpy(req.Data, zll_identify_data, ZLL_LEN);
-    state = APP_STATE_ZLL_IDENTIFY_REQUEST_SENT;
     afDataRequestExt(&req);
 }
 
-void mt_af_send_zll_factory_reset_request(void)
+void mt_af_send_zll_factory_reset_request(SyncActionCb cb)
 {
     LOG_INF("Sending zll factory reset request");
+    if(cb)
+        sync_action_cb = cb;
     DataRequestExtFormat_t req;
     req.DstAddrMode =0x2;
     memset(req.DstAddr, 0, 8);
@@ -225,11 +231,10 @@ void mt_af_send_zll_factory_reset_request(void)
     req.Radius = ZLL_RADIUS;
     req.Len = ZLL_LEN-2;
     memcpy(req.Data, zll_factory_reset_data, ZLL_LEN-2);
-    state = APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT;
     afDataRequestExt(&req);
 }
 
-void mt_af_register_zll_callback(zll_cb cb)
+void mt_af_register_zll_callback(ZgZllCb cb)
 {
     zll_data_cb = cb;
 }
