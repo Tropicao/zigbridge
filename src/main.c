@@ -32,6 +32,11 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
     }
 }
 
+static void _init_complete_cb(void)
+{
+    zg_zll_start_touchlink();
+}
+
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
@@ -75,7 +80,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    zg_zll_init();
+    zg_zll_init(_init_complete_cb);
     LOG_INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
