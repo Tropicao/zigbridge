@@ -2,7 +2,6 @@
 #include "mt_sys.h"
 #include "dbgPrint.h"
 #include "mtSys.h"
-#include "app.h"
 #include "uv.h"
 #include "rpc.h"
 #include <string.h>
@@ -10,7 +9,7 @@
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
 static uint8_t nv_disable_sec_data[] = {0};
-static uint8_t nv_set_pan_id[] = {LOW_PAN_ID, HIGH_PAN_ID};
+static uint8_t nv_set_pan_id[] = {0xFE, 0xCA};
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;

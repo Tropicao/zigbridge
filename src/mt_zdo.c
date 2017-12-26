@@ -3,7 +3,6 @@
 #include "mt_zdo.h"
 #include "dbgPrint.h"
 #include "mtZdo.h"
-#include "app.h"
 #include "uv.h"
 #include "rpc.h"
 

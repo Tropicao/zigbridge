@@ -2,7 +2,6 @@
 #include "mt_af.h"
 #include "dbgPrint.h"
 #include "mtAf.h"
-#include "app.h"
 #include "uv.h"
 #include "rpc.h"
 #include <string.h>

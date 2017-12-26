@@ -3,7 +3,6 @@
 #include <dbgPrint.h>
 #include <uv.h>
 #include <znp.h>
-#include "app.h"
 #include "zll.h"
 
 #define SERIAL_DEVICE   "/dev/ttyACM0"
@@ -76,7 +75,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
 
     uv_signal_init(loop, &sig_int);
-    uv_async_init(loop, &state_flag, state_machine_cb);
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
