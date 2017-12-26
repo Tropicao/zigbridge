@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include "mt_zdo.h"
@@ -8,8 +7,6 @@
 #include "uv.h"
 #include "rpc.h"
 
-AppState state;
-
 /********************************
  *       Constant data          *
  *******************************/
@@ -17,6 +14,7 @@ AppState state;
 #define MT_ZDO_NWK_DISCOVERY_TIMEOUT_MS     50
 
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
+static SyncActionCb sync_action_cb = NULL;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -25,12 +23,8 @@ static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static uint8_t mt_zdo_state_change_ind_cb(uint8_t zdoState)
 {
     LOG_INF("New ZDO state : 0x%02X", zdoState);
-    if(zdoState == 0x09)
-    {
-        state = APP_STATE_ZDO_STARTED;
-        state_flag.data = (void *)&state;
-        uv_async_send(&state_flag);
-    }
+    if(zdoState == 0x09 && sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -38,9 +32,8 @@ static uint8_t mt_zdo_state_change_ind_cb(uint8_t zdoState)
 static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
 {
     LOG_INF("ZDO Nwk discovery SRSP status : %02X", msg->Status);
-    state = APP_STATE_ZDO_DISCOVERY_SENT;
-    state_flag.data = (void *)&state;
-    uv_async_send(&state_flag);
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
@@ -108,12 +101,14 @@ void mt_zdo_register_callbacks(void)
     zdoRegisterCallbacks(mt_zdo_cb);
 }
 
-void mt_zdo_nwk_discovery_req(void)
+void mt_zdo_nwk_discovery_req(SyncActionCb cb)
 {
     NwkDiscoveryReqFormat_t req;
     uint8_t status;
 
     LOG_INF("Sending ZDO network discover request");
+    if(cb)
+        sync_action_cb = cb;
     memcpy(req.ScanChannels, &scan_param, 4);
     req.ScanDuration = 5;
     status = zdoNwkDiscoveryReq(&req);
@@ -121,9 +116,11 @@ void mt_zdo_nwk_discovery_req(void)
         LOG_ERR("Cannot start ZDO network discovery");
 }
 
-void mt_zdo_startup_from_app(void)
+void mt_zdo_startup_from_app(SyncActionCb cb)
 {
     LOG_INF("Starting ZDO stack");
+    if(cb)
+        sync_action_cb = cb;
     StartupFromAppFormat_t req;
     req.StartDelay = 0;
     zdoStartupFromApp(&req);
