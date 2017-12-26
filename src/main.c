@@ -4,6 +4,7 @@
 #include <uv.h>
 #include <znp.h>
 #include "app.h"
+#include "zll.h"
 
 #define SERIAL_DEVICE   "/dev/ttyACM0"
 
@@ -74,8 +75,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    app_register_callbacks();
-    run_state_machine();
+    zg_zll_init();
     LOG_INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 

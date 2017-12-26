@@ -5,11 +5,13 @@ src = ['src/main.c',
         'src/app.c',
         'src/mt_af.c',
         'src/mt_sys.c',
-        'src/mt_zdo.c']
+        'src/mt_zdo.c',
+        'src/zll.c',
+        'src/utils/sm.c']
 
 # Includes
 znpinc = include_directories('/usr/local/include/libznp')
-localinc = include_directories('include')
+localinc = include_directories('include', 'include/utils')
 incdir = [znpinc, localinc]
 
 # Libraries

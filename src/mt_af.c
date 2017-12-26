@@ -8,6 +8,7 @@
 #include <string.h>
 
 AppState state;
+static zll_cb zll_data_cb;
 
 /********************************
  *       Constant data          *
@@ -226,5 +227,10 @@ void mt_af_send_zll_factory_reset_request(void)
     memcpy(req.Data, zll_factory_reset_data, ZLL_LEN-2);
     state = APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT;
     afDataRequestExt(&req);
+}
+
+void mt_af_register_zll_callback(zll_cb cb)
+{
+    zll_data_cb = cb;
 }
 

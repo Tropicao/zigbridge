@@ -5,6 +5,7 @@
 #include "dbgPrint.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include "zll.h"
 
 uv_async_t state_flag;
 
@@ -27,22 +28,22 @@ void state_machine_cb(uv_async_t *state_data)
     switch(current_state)
     {
         case APP_STATE_INIT:
-            mt_sys_nv_write_clear_flag();
+            mt_sys_nv_write_clear_flag(NULL);
             break;
         case APP_STATE_NV_CLEAR_FLAG_WRITTEN:
-            mt_sys_reset_dongle();
+            mt_sys_reset_dongle(NULL);
             break;
         case APP_STATE_DONGLE_UP:
-            mt_sys_nv_write_coord_flag();
+            mt_sys_nv_write_coord_flag(NULL);
             break;
         case APP_STATE_NV_COORD_FLAG_WRITTEN:
-            mt_sys_nv_write_disable_security();
+            mt_sys_nv_write_disable_security(NULL);
             break;
         case APP_STATE_NV_DISABLE_SEC:
-            mt_sys_nv_set_pan_id();
+            mt_sys_nv_set_pan_id(NULL);
             break;
         case APP_STATE_NV_SET_PAN_ID:
-            mt_sys_ping_dongle();
+            mt_sys_ping_dongle(NULL);
             break;
         case APP_STATE_DONGLE_PRESENT:
             mt_af_register_zll_endpoint();
