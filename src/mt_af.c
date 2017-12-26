@@ -50,7 +50,7 @@ static uint8_t zll_identify_data[] = {  0x11,   // Frame control
                                         0xAD,
                                         0xB9,
                                         0xE2,
-                                        0x05,   // 0xffff : identify for a time known by device
+                                        0x03,   // 0xffff : identify for a time known by device
                                         0x00 }; // Payload end
 
 static uint8_t zll_factory_reset_data[] = {  0x11,   // Frame control

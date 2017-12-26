@@ -61,7 +61,7 @@ void state_machine_cb(uv_async_t *state_data)
             mt_af_send_zll_identify_request();
             break;
         case APP_STATE_ZLL_IDENTIFY_REQUEST_SENT:
-            sleep(5);
+            sleep(3);
             mt_af_send_zll_factory_reset_request();
             break;
         case APP_STATE_ZLL_FACTORY_RESET_REQUEST_SENT:
