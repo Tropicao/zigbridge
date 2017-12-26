@@ -11,3 +11,4 @@
     * option to set log level
 * Define coding rules : eg zl_ as public functions prefix
 * Doc : explain layers, callbacks, and state machines
+* libznp : generate a single header to include
