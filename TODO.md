@@ -10,3 +10,4 @@
     * option to set log support
     * option to set log level
 * Define coding rules : eg zl_ as public functions prefix
+* Doc : explain layers, callbacks, and state machines
