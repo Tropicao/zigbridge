@@ -1,5 +1,5 @@
-#ifndef APP_H
-#define APP_H
+#ifndef ZG_APP_H
+#define ZG_APP_H
 
 #include "uv.h"
 

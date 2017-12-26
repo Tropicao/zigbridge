@@ -1,5 +1,5 @@
-#ifndef MT_SYS_H
-#define MT_SYS_H
+#ifndef ZG_MT_SYS_H
+#define ZG_MT_SYS_H
 
 #include <stdint.h>
 

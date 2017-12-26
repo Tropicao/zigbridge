@@ -1,6 +1,5 @@
-
-#ifndef MT_ZDO_H
-#define MT_ZDO_H
+#ifndef ZG_MT_ZDO_H
+#define ZG_MT_ZDO_H
 
 void mt_zdo_register_callbacks(void);
 void mt_zdo_nwk_discovery_req(void);

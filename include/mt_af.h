@@ -1,6 +1,5 @@
-
-#ifndef MT_AF_H
-#define MT_AF_H
+#ifndef ZG_MT_AF_H
+#define ZG_MT_AF_H
 
 #include <stdint.h>
 
