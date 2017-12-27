@@ -12,3 +12,4 @@
 * Define coding rules : eg zl_ as public functions prefix
 * Doc : explain layers, callbacks, and state machines
 * libznp : generate a single header to include
+* NV IDs : they are already defined in znp lib, in mtSys.h
