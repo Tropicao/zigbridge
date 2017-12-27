@@ -5,6 +5,7 @@
 #include "mt_af.h"
 #include "mt_sys.h"
 #include "mt_zdo.h"
+#include "mt_util.h"
 #include <stdlib.h>
 
 /********************************
@@ -35,6 +36,8 @@ static ZgSmState _init_states[] = {
     {mt_sys_ping_dongle, _general_init_cb},
     {mt_af_register_zll_endpoint, _general_init_cb},
     {mt_af_set_inter_pan_endpoint, _general_init_cb},
+    {mt_af_set_inter_pan_channel, _general_init_cb},
+    {mt_util_af_subscribe_cmd, _general_init_cb},
     {mt_zdo_startup_from_app, _general_init_cb}
 };
 static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
@@ -80,6 +83,7 @@ void zg_zll_init(InitCompleteCb cb)
     mt_af_register_callbacks();
     mt_sys_register_callbacks();
     mt_zdo_register_callbacks();
+    mt_util_register_callbacks();
     mt_af_register_zll_callback(_zll_message_cb);
     zg_sm_continue(_init_sm);
 }

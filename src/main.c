@@ -4,6 +4,7 @@
 #include <uv.h>
 #include <znp.h>
 #include "zll.h"
+#include <unistd.h>
 
 #define SERIAL_DEVICE   "/dev/ttyACM0"
 

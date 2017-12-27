@@ -10,6 +10,7 @@ void mt_af_register_callbacks(void);
 void mt_af_register_zll_endpoint(SyncActionCb cb);
 void mt_af_send_zll_scan_request(SyncActionCb cb);
 void mt_af_set_inter_pan_endpoint(SyncActionCb cb);
+void mt_af_set_inter_pan_channel(SyncActionCb cb);
 void mt_af_send_zll_identify_request(SyncActionCb cb);
 void mt_af_send_zll_factory_reset_request(SyncActionCb cb);
 void mt_af_register_zll_callback(ZgZllCb cb);

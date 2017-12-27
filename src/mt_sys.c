@@ -9,7 +9,7 @@
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
 static uint8_t nv_disable_sec_data[] = {0};
-static uint8_t nv_set_pan_id[] = {0xFE, 0xCA};
+static uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;

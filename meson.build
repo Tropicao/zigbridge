@@ -5,6 +5,7 @@ src = ['src/main.c',
         'src/mt_af.c',
         'src/mt_sys.c',
         'src/mt_zdo.c',
+        'src/mt_util.c',
         'src/zll.c',
         'src/utils/sm.c']
 

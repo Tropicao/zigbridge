@@ -32,7 +32,6 @@ static SyncActionCb sync_action_cb = NULL;
 #define ZLL_RADIUS              0x5
 #define ZLL_LEN                 9
 
-#define ZLL_SET_INTERPAN        0x1
 static uint8_t zll_scan_data[] = {  0x11,   // Frame control
                                     0x2C,   // Transaction Sequence Number
                                     0x00,   // Command ID
@@ -62,8 +61,11 @@ static uint8_t zll_factory_reset_data[] = {  0x11,   // Frame control
                                         0xE2};
 
 
-static uint8_t zll_inter_pan_channel[] = {0xB};
+#define ZLL_INTERPAN_CMD                0x1
+static uint8_t zll_inter_pan_data[] =   {0xB};
 
+#define ZLL_INTERPAN_CMD_2              0x2
+static uint8_t zll_inter_pan_data_2[] = {0x1};
 
 /********************************
  *      MT AF callbacks         *
@@ -105,9 +107,9 @@ static uint8_t mt_af_data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
 static uint8_t mt_af_inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
 {
     if(msg->Status != 0)
-        LOG_WARN("AF request status status : %02X", msg->Status);
+        LOG_WARN("AF interpan ctl status status : %02X", msg->Status);
     else
-        LOG_INF("AF request status status : %02X", msg->Status);
+        LOG_INF("AF interpan ctl status : %02X", msg->Status);
     if(sync_action_cb)
         sync_action_cb();
 
@@ -159,11 +161,23 @@ void mt_af_set_inter_pan_endpoint(SyncActionCb cb)
 {
     InterPanCtlFormat_t req;
 
-    LOG_INF("Setting inter-pan messages mode");
+    LOG_INF("Setting inter-pan endpoint");
     if(cb)
         sync_action_cb = cb;
-    req.Command = ZLL_SET_INTERPAN;
-    memcpy(req.Data, zll_inter_pan_channel, 0x1);
+    req.Command = ZLL_INTERPAN_CMD_2;
+    memcpy(req.Data, zll_inter_pan_data_2, sizeof(zll_inter_pan_data_2)/sizeof(uint8_t));
+    afInterPanCtl(&req);
+}
+
+void mt_af_set_inter_pan_channel(SyncActionCb cb)
+{
+    InterPanCtlFormat_t req;
+
+    LOG_INF("Setting inter-pan channel");
+    if(cb)
+        sync_action_cb = cb;
+    req.Command = ZLL_INTERPAN_CMD;
+    memcpy(req.Data, zll_inter_pan_data, sizeof(zll_inter_pan_data)/sizeof(uint8_t));
     afInterPanCtl(&req);
 }
 
