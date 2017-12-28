@@ -48,14 +48,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     if(znp_init() != 0)
     {
         LOG_CRI("Cannot initialize ZNP library");
-        free(loop);
         return 1;
     }
     znp_fd = znp_socket_get();
     if(znp_fd < 0)
     {
         LOG_CRI("Cannot get ZNP socket descriptor");
-        free(loop);
         return 1;
     }
     status = uv_poll_init(loop, &znp_poll, znp_fd);
@@ -63,7 +61,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     {
         LOG_ERR("Cannot add ZNP socket descriptor (%d) to main event loop : %s (%s)",
                 znp_fd, uv_err_name(status), uv_strerror(status));
-        free(loop);
         return 1;
     }
 
