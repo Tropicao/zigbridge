@@ -5,6 +5,7 @@
 #include "uv.h"
 #include "rpc.h"
 #include <string.h>
+#include "conf.h"
 
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
@@ -162,5 +163,14 @@ void mt_sys_nv_set_pan_id(SyncActionCb cb)
     if(cb)
         sync_action_cb = cb;
     mt_sys_osal_nv_write(0x83, 0, 2, nv_set_pan_id);
+}
+
+void mt_sys_nv_write_nwk_key(SyncActionCb cb)
+{
+    LOG_INF("Setting network key");
+
+    if(cb)
+        sync_action_cb = cb;
+    mt_sys_osal_nv_write(0x62, 0, zg_conf_network_key_size_get(), zg_conf_network_key_get());
 }
 
