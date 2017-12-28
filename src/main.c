@@ -44,13 +44,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     int znp_fd = -1;
     int status = -1;
 
-    loop = calloc(1, sizeof(uv_loop_t));
-    if(!loop)
-    {
-        LOG_INF("Cannot allocate memory for main loop structure");
-        exit(1);
-    }
-    uv_loop_init(loop);
+    loop = uv_default_loop();
     if(znp_init() != 0)
     {
         LOG_CRI("Cannot initialize ZNP library");
@@ -87,6 +81,5 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     LOG_INF("Quitting application");
     uv_poll_stop(&znp_poll);
     znp_shutdown();
-    free(loop);
     exit(0);
 }

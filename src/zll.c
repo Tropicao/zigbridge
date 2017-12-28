@@ -7,6 +7,7 @@
 #include "mt_zdo.h"
 #include "mt_util.h"
 #include <stdlib.h>
+#include <uv.h>
 
 /********************************
  *          Constants           *
@@ -25,6 +26,15 @@
 #define COMMAND_NETWORK_JOIN_ROUTER_REQUEST     0x12
 #define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST 0x14
 #define COMMAND_NETWORK_UPDATE_REQUEST          0x16
+
+#define SCAN_TIMEOUT                            0.25
+
+
+/********************************
+ *          Local variables     *
+ *******************************/
+static uv_timer_t _scan_timeout_timer;
+static uint8_t _stop_scan = 0;
 
 /********************************
  * Initialization state machine *
@@ -63,18 +73,36 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
 /********************************
  *    Touchlink state machine   *
  *******************************/
+static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)));
 
-static ZgSm *_touchlink_sm = NULL;
-static void _touchlink_cb(void)
+static void _scan_request_sent(void)
 {
-    if(zg_sm_continue(_init_sm) != 0)
-        LOG_INF("Touchlink procedure ended");
+    if(_stop_scan !=1)
+        uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, 250, 0);
 }
 
-static ZgSmState _touchlink_states[] = {
-    {mt_af_send_zll_scan_request, _touchlink_cb},
-};
-static int _touchlink_nb_states = sizeof(_touchlink_states)/sizeof(ZgSmState);
+static void _send_single_scan_request()
+{
+    mt_af_send_zll_scan_request(_scan_request_sent);
+}
+
+static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
+{
+    static int scan_counter = 0;
+
+    scan_counter++;
+    if(scan_counter < 5 && !_stop_scan)
+        _send_single_scan_request();
+    else
+        uv_unref((uv_handle_t *) &_scan_timeout_timer);
+}
+
+static void _send_five_scan_requests()
+{
+    _stop_scan = 0;
+    uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
+    _send_single_scan_request();
+}
 
 /********************************
  *   ZLL messages callbacks     *
@@ -83,6 +111,7 @@ static int _touchlink_nb_states = sizeof(_touchlink_states)/sizeof(ZgSmState);
 static uint8_t _processScanResponse(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
     LOG_INF("A device is ready to install");
+    _stop_scan = 1;
     mt_af_send_zll_factory_reset_request(NULL);
     return 0;
 }
@@ -151,10 +180,9 @@ void zg_zll_send_join_router_request(void)
 
 void zg_zll_start_touchlink(void)
 {
-    LOG_INF("Starting touchlink procedure");
     zg_sm_destroy(_init_sm);
-    _touchlink_sm = zg_sm_create(_touchlink_states, _touchlink_nb_states);
-    zg_sm_continue(_touchlink_sm);
+    LOG_INF("Starting touchlink procedure");
+    _send_five_scan_requests();
 }
 
 
