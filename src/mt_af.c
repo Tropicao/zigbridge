@@ -71,7 +71,7 @@ static uint8_t zll_inter_pan_data_2[] = {0x1};
  *      MT AF callbacks         *
  *******************************/
 
-static uint8_t mt_af_register_srsp_cb(RegisterSrspFormat_t *msg)
+static uint8_t _register_srsp_cb(RegisterSrspFormat_t *msg)
 {
     LOG_INF("AF register status status : %02X", msg->Status);
     if(sync_action_cb)
@@ -80,7 +80,7 @@ static uint8_t mt_af_register_srsp_cb(RegisterSrspFormat_t *msg)
     return 0;
 }
 
-static uint8_t mt_af_data_request_srsp_cb(DataRequestSrspFormat_t *msg)
+static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 {
     if(msg->Status != 0)
         LOG_WARN("AF request status status : %02X", msg->Status);
@@ -92,7 +92,7 @@ static uint8_t mt_af_data_request_srsp_cb(DataRequestSrspFormat_t *msg)
     return 0;
 }
 
-static uint8_t mt_af_data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
+static uint8_t _data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
 {
     if(msg->Status != 0)
         LOG_WARN("AF request status status : %02X", msg->Status);
@@ -104,7 +104,7 @@ static uint8_t mt_af_data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
     return 0;
 }
 
-static uint8_t mt_af_inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
+static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
 {
     if(msg->Status != 0)
         LOG_WARN("AF interpan ctl status status : %02X", msg->Status);
@@ -116,17 +116,16 @@ static uint8_t mt_af_inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
     return 0;
 }
 
-
 static mtAfCb_t mt_af_cb = {
-    mt_af_register_srsp_cb,
-    mt_af_data_request_srsp_cb,
-    mt_af_data_request_ext_srsp_cb,
+    _register_srsp_cb,
+    _data_request_srsp_cb,
+    _data_request_ext_srsp_cb,
     NULL,
     NULL,
     NULL,
     NULL,
     NULL,
-    mt_af_inter_pan_ctl_srsp_cb,
+    _inter_pan_ctl_srsp_cb,
 };
 
 /********************************
