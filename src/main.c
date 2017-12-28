@@ -6,8 +6,6 @@
 #include "zll.h"
 #include <unistd.h>
 
-#define SERIAL_DEVICE   "/dev/ttyACM0"
-
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
 
