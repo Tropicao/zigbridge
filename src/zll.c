@@ -34,6 +34,7 @@
  *          Local variables     *
  *******************************/
 static uv_timer_t _scan_timeout_timer;
+static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
 
 /********************************
@@ -108,11 +109,19 @@ static void _send_five_scan_requests()
  *   ZLL messages callbacks     *
  *******************************/
 
+static void _identify_delay_timeout_cb(uv_timer_t *t)
+{
+    uv_unref((uv_handle_t *)t);
+    mt_af_send_zll_factory_reset_request(NULL);
+}
+
 static uint8_t _processScanResponse(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
     LOG_INF("A device is ready to install");
     _stop_scan = 1;
-    mt_af_send_zll_factory_reset_request(NULL);
+    mt_af_send_zll_identify_request(NULL);
+    uv_timer_init(uv_default_loop(), &_identify_timer);
+    uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, 3000, 0);
     return 0;
 }
 
