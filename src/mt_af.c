@@ -6,7 +6,7 @@
 #include "rpc.h"
 #include <string.h>
 
-static ZgZllCb zll_data_cb;
+static ZgZllCb _zll_data_cb;
 static SyncActionCb sync_action_cb = NULL;
 
 /********************************
@@ -116,13 +116,50 @@ static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
     return 0;
 }
 
+static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
+{
+    uint8_t *buffer = NULL;
+    int index = 0;
+    LOG_INF("Extended AF message received");
+    LOG_INF("Group id : 0x%04X", msg->GroupId);
+    LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
+    LOG_INF("Source addr mode : 0x%02X", msg->SrcAddrMode);
+    LOG_INF("Source addr : 0x%016X", msg->SrcAddr);
+    LOG_INF("Source Endpoint : 0x%02X", msg->SrcEndpoint);
+    LOG_INF("Source PAN id : 0x%04X", msg->SrcPanId);
+    LOG_INF("Dest Endpoint : 0x%02X", msg->DstEndpoint);
+    LOG_INF("Was Broadcast : 0x%02X", msg->WasBroadcast);
+    LOG_INF("Link Quality : 0x%02X", msg->LinkQuality);
+    LOG_INF("Security Use : 0x%02X", msg->SecurityUse);
+    LOG_INF("Timestamp : 0x%08X", msg->TimeStamp);
+    LOG_INF("Transaction sequence num : 0x%02X", msg->TransSeqNum);
+    LOG_INF("Length : %d", msg->Len);
+    if(     msg->DstEndpoint == ZLL_ENDPOINT &&
+            msg->ClusterId == ZLL_CLUSTER_ID &&
+            _zll_data_cb)
+    {
+        LOG_INF("Received message is a ZLL commissioning message");
+        buffer = calloc(msg->Len, sizeof(uint8_t));
+        /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
+         */
+        for (index = 0; index<msg->Len; index ++)
+            buffer[index] = msg->Data[index];
+
+        _zll_data_cb(buffer, msg->Len);
+        free(buffer);
+    }
+
+    return 0;
+}
+
+
 static mtAfCb_t mt_af_cb = {
     _register_srsp_cb,
     _data_request_srsp_cb,
     _data_request_ext_srsp_cb,
     NULL,
     NULL,
-    NULL,
+    _incoming_msg_ext_cb,
     NULL,
     NULL,
     _inter_pan_ctl_srsp_cb,
@@ -248,6 +285,6 @@ void mt_af_send_zll_factory_reset_request(SyncActionCb cb)
 
 void mt_af_register_zll_callback(ZgZllCb cb)
 {
-    zll_data_cb = cb;
+    _zll_data_cb = cb;
 }
 

@@ -9,6 +9,24 @@
 #include <stdlib.h>
 
 /********************************
+ *          Constants           *
+ *******************************/
+
+#define INDEX_FCS               0x0
+#define INDEX_TRANS_SEQ_NUM     0x1
+#define INDEX_COMMAND           0x2
+
+#define COMMAND_SCAN_REQUEST                    0x00
+#define COMMAND_SCAN_RESPONSE                   0x01
+#define COMMAND_DEVICE_INFORMATION_REQUEST      0x02
+#define COMMAND_IDENTIFY_REQUEST                0x06
+#define COMMAND_FACTORY_NEW_REQUEST             0x07
+#define COMMAND_NETWORK_START_REQUEST           0x10
+#define COMMAND_NETWORK_JOIN_ROUTER_REQUEST     0x12
+#define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST 0x14
+#define COMMAND_NETWORK_UPDATE_REQUEST          0x16
+
+/********************************
  * Initialization state machine *
  *******************************/
 
@@ -62,12 +80,30 @@ static int _touchlink_nb_states = sizeof(_touchlink_states)/sizeof(ZgSmState);
  *   ZLL messages callbacks     *
  *******************************/
 
+static uint8_t _processScanResponse(void *data __attribute__((unused)), int len __attribute__((unused)))
+{
+    LOG_INF("A device is ready to install");
+    mt_af_send_zll_factory_reset_request(NULL);
+    return 0;
+}
+
 static void _zll_message_cb(void *data, int len)
 {
-    if(!data || len == 0)
+    uint8_t *buffer = data;
+    if(!buffer || len < INDEX_COMMAND+1)
         return;
 
     LOG_DBG("Received ZLL data (%d bytes)", len);
+    switch(buffer[INDEX_COMMAND])
+    {
+        case COMMAND_SCAN_RESPONSE:
+            LOG_INF("Received scan response");
+            _processScanResponse(buffer, len);
+            break;
+        default:
+            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[INDEX_COMMAND]);
+            break;
+    }
 }
 
 /********************************
