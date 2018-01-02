@@ -1,5 +1,6 @@
 #Todo
 
+* Find funny name for project
 * Find a proper architecture for general application state machine
 * implement UTIL function to get device state
 * add variable to make CC2531 dev file dynamic, and as a program argument
@@ -14,3 +15,4 @@
 * libznp : generate a single header to include
 * NV IDs : they are already defined in znp lib, in mtSys.h
 * ZNP build : list and document any used build flag
+* Add config file to set pathes (eg : network key)
