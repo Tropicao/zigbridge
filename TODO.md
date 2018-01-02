@@ -16,3 +16,4 @@
 * NV IDs : they are already defined in znp lib, in mtSys.h
 * ZNP build : list and document any used build flag
 * Add config file to set pathes (eg : network key)
+* Implement ZDO_TC_DEV_IND and add persistent list of joined device
