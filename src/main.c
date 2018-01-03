@@ -8,6 +8,7 @@
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
+uv_poll_t user_poll;
 
 static void signal_handler(uv_signal_t *handle __attribute__((unused)), int signum __attribute__((unused)))
 {
@@ -30,6 +31,24 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
     }
 }
 
+static void _user_poll_cb(uv_poll_t *handler __attribute__((unused)), int status, int events)
+{
+    uint8_t buffer[16];
+    if(status < 0)
+    {
+        LOG_ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
+        return;
+    }
+
+    if(events & UV_READABLE)
+    {
+        LOG_DBG("User has pressed enter");
+        do {} while(read(0, buffer, 16) > 0);
+        zg_zll_switch_bulb_state();
+    }
+}
+
+
 static void _init_complete_cb(void)
 {
     zg_zll_start_touchlink();
@@ -39,7 +58,7 @@ static void _init_complete_cb(void)
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
     uv_signal_t sig_int;
-    int znp_fd = -1;
+    int znp_fd = -1, user_fd =0;
     int status = -1;
 
     loop = uv_default_loop();
@@ -61,8 +80,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
                 znp_fd, uv_err_name(status), uv_strerror(status));
         return 1;
     }
+    status = uv_poll_init(loop, &user_poll, user_fd);
 
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
+    uv_poll_start(&user_poll, UV_READABLE, _user_poll_cb);
 
     uv_signal_init(loop, &sig_int);
 

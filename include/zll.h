@@ -10,6 +10,7 @@ void zg_zll_send_identify_request(void);
 void zg_zll_send_factory_reset_request(void);
 void zg_zll_send_join_router_request(void);
 void zg_zll_start_touchlink(void);
+void zg_zll_switch_bulb_state(void);
 
 #endif
 

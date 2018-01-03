@@ -10,6 +10,7 @@
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
 static uint8_t nv_disable_sec_data[] = {0};
+static uint8_t nv_enable_sec_data[] = {1};
 static uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
@@ -155,6 +156,14 @@ void mt_sys_nv_write_disable_security(SyncActionCb cb)
     if(cb)
         sync_action_cb = cb;
     mt_sys_osal_nv_write(0x64, 0, 1, nv_disable_sec_data);
+}
+
+void mt_sys_nv_write_enable_security(SyncActionCb cb)
+{
+    LOG_INF("Enabling NWK security");
+    if(cb)
+        sync_action_cb = cb;
+    mt_sys_osal_nv_write(0x64, 0, 1, nv_enable_sec_data);
 }
 
 void mt_sys_nv_set_pan_id(SyncActionCb cb)

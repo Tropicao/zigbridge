@@ -15,13 +15,23 @@ static SyncActionCb sync_action_cb = NULL;
 
 #define ZLL_ENDPOINT            0x1     /* Endpoint 1 */
 #define ZLL_PROFIL_ID           0xC05E  /* ZLL */
-#define ZLL_DEVICE_ID           0X0210  /*Extended color light */
+#define ZLL_DEVICE_ID           0X0210  /* Extended color light */
 #define ZLL_DEVICE_VERSION      0x2     /* Version 2 */
 #define ZLL_LATENCY             0x00    /* No latency */
 #define ZLL_NUM_IN_CLUSTERS     0x1     /* Only one input cluster defined */
 #define ZLL_IN_CLUSTERS_ID      0x1000  /* Commissionning cluster */
 #define ZLL_NUM_OUT_CLUSTERS    0x1     /* Only one output cluster */
 #define ZLL_OUT_CLUSTERS_ID     0x1000  /* Commissioning cluster */
+
+#define ZHA_ENDPOINT            0x2     /* Endpoint 2 */
+#define ZHA_PROFIL_ID           0x0104  /* ZHA */
+#define ZHA_DEVICE_ID           0X0050  /* Home gateway */
+#define ZHA_DEVICE_VERSION      0x2     /* Version 2 */
+#define ZHA_LATENCY             0x00    /* No latency */
+#define ZHA_NUM_IN_CLUSTERS     0x1     /* Only one input cluster defined */
+#define ZHA_IN_CLUSTERS_ID      0x0006  /* On/Off cluster */
+#define ZHA_NUM_OUT_CLUSTERS    0x1     /* Only one output cluster */
+#define ZHA_OUT_CLUSTERS_ID     0x0006  /* On/Off cluster */
 
 #define ZLL_DEVICE_ADDR         0xFFFF
 #define ZLL_DST_ENDPOINT        0x01
@@ -31,6 +41,13 @@ static SyncActionCb sync_action_cb = NULL;
 #define ZLL_OPTIONS             0x00
 #define ZLL_RADIUS              0x5
 #define ZLL_LEN                 9
+
+#define ZHA_DST_ENDPOINT        0x0B
+#define ZHA_SRC_ENDPOINT        0x02
+#define ZHA_CLUSTER_ID          0x0006
+#define ZHA_TRANS_ID            180
+#define ZHA_OPTIONS             0x00
+#define ZHA_RADIUS              0x5
 
 static uint8_t zll_scan_data[] = {  0x11,   // Frame control
                                     0x2C,   // Transaction Sequence Number
@@ -59,6 +76,14 @@ static uint8_t zll_factory_reset_data[] = {  0x11,   // Frame control
                                         0xAD,
                                         0xB9,
                                         0xE2};
+
+static uint8_t zha_on_off_with_effect_data[] = { 0x11,  // Frame control
+                                                0x59,   // Transac number
+                                                0x40,   // Command
+                                                0x00,   // Command : Off
+                                                0x00 };
+static uint8_t zha_on_off_with_effect_data_size = sizeof(zha_on_off_with_effect_data);
+
 
 
 #define ZLL_INTERPAN_CMD                0x1
@@ -152,12 +177,23 @@ static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
     return 0;
 }
 
+static uint8_t _data_confirm_cb(DataConfirmFormat_t *msg)
+{
+    if(msg->Status != 0)
+        LOG_WARN("AF data request status : %02X", msg->Status);
+    else
+        LOG_INF("AF data request status : %02X", msg->Status);
+
+    return 0;
+}
+
+
 
 static mtAfCb_t mt_af_cb = {
     _register_srsp_cb,
     _data_request_srsp_cb,
     _data_request_ext_srsp_cb,
-    NULL,
+    _data_confirm_cb,
     NULL,
     _incoming_msg_ext_cb,
     NULL,
@@ -190,6 +226,25 @@ void mt_af_register_zll_endpoint(SyncActionCb cb)
     req.AppInClusterList[0] = ZLL_IN_CLUSTERS_ID;
     req.AppNumOutClusters = ZLL_NUM_OUT_CLUSTERS;
     req.AppOutClusterList[0] = ZLL_OUT_CLUSTERS_ID;
+    afRegister(&req);
+}
+
+void mt_af_register_zha_endpoint(SyncActionCb cb)
+{
+    RegisterFormat_t req;
+
+    LOG_INF("Registering ZHA endpoint");
+    if(cb)
+        sync_action_cb = cb;
+    req.EndPoint = ZHA_ENDPOINT;
+    req.AppProfId = ZHA_PROFIL_ID;
+    req.AppDeviceId = ZHA_DEVICE_ID;
+    req.AppDevVer = ZHA_DEVICE_VERSION;
+    req.LatencyReq = ZHA_LATENCY;
+    req.AppNumInClusters = ZHA_NUM_IN_CLUSTERS;
+    req.AppInClusterList[0] = ZHA_IN_CLUSTERS_ID;
+    req.AppNumOutClusters = ZHA_NUM_OUT_CLUSTERS;
+    req.AppOutClusterList[0] = ZHA_OUT_CLUSTERS_ID;
     afRegister(&req);
 }
 
@@ -288,3 +343,35 @@ void mt_af_register_zll_callback(ZgZllCb cb)
     _zll_data_cb = cb;
 }
 
+void mt_af_switch_bulb_state(uint16_t addr, uint8_t state)
+{
+    int len = zha_on_off_with_effect_data_size;
+    LOG_INF("Sending zha %s request to 0x%04X", state ? "ON":"OFF", addr);
+    DataRequestExtFormat_t req;
+    req.DstAddrMode =0x2;
+    memset(req.DstAddr, 0, 8);
+    req.DstAddr[0] = addr & 0xFF;
+    req.DstAddr[1] = (addr >> 8) & 0xFF;
+    LOG_INF("Dst addr : 0x%02X%02X", req.DstAddr[1], req.DstAddr[0]);
+    req.DstEndpoint = 0x0B;
+    req.DstPanID = 0xABCD;
+    req.SrcEndpoint = ZHA_SRC_ENDPOINT;
+    req.ClusterId = ZHA_CLUSTER_ID;
+    req.TransId = ZHA_TRANS_ID;
+    req.Options = ZHA_OPTIONS;
+    req.Radius = ZHA_RADIUS;
+    if(state)
+    {
+        zha_on_off_with_effect_data[2] = 0x1;
+        len = zha_on_off_with_effect_data_size-2;
+    }
+    else
+    {
+        zha_on_off_with_effect_data[2] = 0x40;
+        len = zha_on_off_with_effect_data_size;
+    }
+    req.Len = len;
+
+    memcpy(req.Data, zha_on_off_with_effect_data, len);
+    afDataRequestExt(&req);
+}

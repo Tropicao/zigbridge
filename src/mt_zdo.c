@@ -14,6 +14,7 @@
 
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
+static void (*_zdo_tc_dev_ind_cb)(uint16_t addr);
 
 /********************************
  *     MT ZDO callbacks         *
@@ -52,7 +53,18 @@ static uint8_t mt_zdo_beacon_notify_ind_cb(BeaconNotifyIndFormat_t *msg)
     return 0;
 }
 
-
+static uint8_t mt_zdo_tc_dev_ind_cb(TcDevIndFormat_t *msg)
+{
+    if(!msg)
+        LOG_WARN("Device indication received without data");
+    LOG_INF("============== Device indication ============");
+    LOG_INF("Addr : 0x%04X - ExtAddr : 0x%016X - Parent : 0x%04X",
+            msg->SrcNwkAddr, msg->ExtAddr, msg->ParentNwkAddr);
+    LOG_INF("=============================================");
+    if(_zdo_tc_dev_ind_cb)
+        _zdo_tc_dev_ind_cb(msg->SrcNwkAddr);
+    return 0;
+}
 
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
@@ -84,6 +96,7 @@ static mtZdoCb_t mt_zdo_cb = {
     mt_zdo_nwk_discovery_srsp_cb,
     NULL,
     NULL,
+    mt_zdo_tc_dev_ind_cb,
     NULL,
     NULL,
     NULL,
@@ -125,3 +138,7 @@ void mt_zdo_startup_from_app(SyncActionCb cb)
     zdoStartupFromApp(&req);
 }
 
+void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr))
+{
+    _zdo_tc_dev_ind_cb = cb;
+}
