@@ -102,7 +102,6 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
-    NULL,
 };
 
 /********************************
