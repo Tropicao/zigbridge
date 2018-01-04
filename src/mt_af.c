@@ -1,10 +1,8 @@
 #include <stdlib.h>
-#include "mt_af.h"
-#include "dbgPrint.h"
-#include "mtAf.h"
-#include "uv.h"
-#include "rpc.h"
 #include <string.h>
+#include <znp.h>
+#include "mt_af.h"
+#include "uv.h"
 
 static ZgZllCb _zll_data_cb;
 static SyncActionCb sync_action_cb = NULL;

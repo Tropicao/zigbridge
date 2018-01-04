@@ -1,7 +1,7 @@
 #include "conf.h"
 #include <stdlib.h>
 #include <unistd.h>
-#include "dbgPrint.h"
+#include "znp.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

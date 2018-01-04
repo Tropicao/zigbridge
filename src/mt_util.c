@@ -1,10 +1,9 @@
 #include <stdlib.h>
+#include <string.h>
+#include <znp.h>
 #include "mt_util.h"
-#include "dbgPrint.h"
-#include "mtUtil.h"
 #include "uv.h"
 #include "rpc.h"
-#include <string.h>
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;
