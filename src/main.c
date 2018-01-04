@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <uv.h>
 #include <znp.h>
 #include "zll.h"
-#include <unistd.h>
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;

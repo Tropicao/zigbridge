@@ -1,6 +1,6 @@
-#include "sm.h"
-#include "dbgPrint.h"
 #include <stdlib.h>
+#include <znp.h>
+#include "sm.h"
 
 ZgSm *zg_sm_create(ZgSmState *states, int nb_states)
 {

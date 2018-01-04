@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <uv.h>
 #include <znp.h>
 #include "mt_util.h"
-#include "uv.h"
 #include "rpc.h"
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */

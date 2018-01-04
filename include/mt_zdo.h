@@ -1,8 +1,8 @@
 #ifndef ZG_MT_ZDO_H
 #define ZG_MT_ZDO_H
 
-#include "types.h"
 #include <stdint.h>
+#include "types.h"
 
 void mt_zdo_register_callbacks(void);
 void mt_zdo_nwk_discovery_req(SyncActionCb cb);

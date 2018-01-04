@@ -1,10 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <uv.h>
+#include <znp.h>
 #include "mt_zdo.h"
-#include "dbgPrint.h"
-#include "mtZdo.h"
-#include "uv.h"
-#include "rpc.h"
 
 /********************************
  *       Constant data          *
@@ -124,7 +122,7 @@ void mt_zdo_nwk_discovery_req(SyncActionCb cb)
     memcpy(req.ScanChannels, &scan_param, 4);
     req.ScanDuration = 5;
     status = zdoNwkDiscoveryReq(&req);
-    if (status != MT_RPC_SUCCESS)
+    if (status != 0)
         LOG_ERR("Cannot start ZDO network discovery");
 }
 

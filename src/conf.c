@@ -1,13 +1,13 @@
-#include "conf.h"
 #include <stdlib.h>
-#include <unistd.h>
-#include "znp.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include "errno.h"
+#include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include <uv.h>
+#include <znp.h>
+#include "conf.h"
+#include "errno.h"
 
 #define NETWORK_KEY_FILE        "/etc/zll-gateway/network.key"
 #define NETWORK_KEY_SIZE        16

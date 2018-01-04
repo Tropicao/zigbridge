@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <uv.h>
 #include <znp.h>
 #include "mt_sys.h"
-#include "uv.h"
 #include "conf.h"
 
 static uint8_t nv_clear_data[] = {3};

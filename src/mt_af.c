@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <uv.h>
 #include <znp.h>
 #include "mt_af.h"
-#include "uv.h"
 
 static ZgZllCb _zll_data_cb;
 static SyncActionCb sync_action_cb = NULL;
