@@ -10,6 +10,7 @@ void mt_sys_ping_dongle(SyncActionCb cb);
 void mt_sys_nv_write_clear_flag(SyncActionCb cb);
 void mt_sys_nv_write_coord_flag(SyncActionCb cb);
 void mt_sys_nv_write_disable_security(SyncActionCb cb);
+void mt_sys_nv_write_enable_security(SyncActionCb cb);
 void mt_sys_nv_set_pan_id(SyncActionCb cb);
 void mt_sys_nv_write_nwk_key(SyncActionCb cb);
 

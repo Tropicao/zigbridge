@@ -36,6 +36,8 @@
 static uv_timer_t _scan_timeout_timer;
 static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
+static uint16_t _demo_bulb_addr = 0xFFFD;
+static uint8_t _demo_bulb_state = 0x1;
 
 /********************************
  * Initialization state machine *
@@ -66,6 +68,7 @@ static ZgSmState _init_states[] = {
     {mt_sys_nv_set_pan_id, _general_init_cb},
     {mt_sys_ping_dongle, _general_init_cb},
     {mt_af_register_zll_endpoint, _general_init_cb},
+    {mt_af_register_zha_endpoint, _general_init_cb},
     {mt_af_set_inter_pan_endpoint, _general_init_cb},
     {mt_af_set_inter_pan_channel, _general_init_cb},
     {mt_util_af_subscribe_cmd, _general_init_cb},
@@ -146,6 +149,12 @@ static void _zll_message_cb(void *data, int len)
     }
 }
 
+void _zll_visible_device_cb(uint16_t addr)
+{
+    LOG_INF("Demo bulb registered with address 0x%04X !", addr);
+    _demo_bulb_addr = addr;
+}
+
 /********************************
  *          ZLL API             *
  *******************************/
@@ -161,6 +170,7 @@ void zg_zll_init(InitCompleteCb cb)
     mt_zdo_register_callbacks();
     mt_util_register_callbacks();
     mt_af_register_zll_callback(_zll_message_cb);
+    mt_zdo_register_visible_device_cb(_zll_visible_device_cb);
     zg_sm_continue(_init_sm);
 }
 
@@ -194,6 +204,24 @@ void zg_zll_start_touchlink(void)
     zg_sm_destroy(_init_sm);
     LOG_INF("Starting touchlink procedure");
     _send_five_scan_requests();
+}
+
+void zg_zll_switch_bulb_state(void)
+{
+    static int sec_enabled = 0;
+
+    if(!sec_enabled)
+    {
+        mt_sys_nv_write_enable_security(NULL);
+        sec_enabled = 1;
+    }
+
+    if(_demo_bulb_addr != 0xFFFD)
+    {
+        LOG_INF("Switch : Bulb 0x%4X - State %s", _demo_bulb_addr, _demo_bulb_state ? "ON":"OFF");
+        _demo_bulb_state = !_demo_bulb_state;
+        mt_af_switch_bulb_state(_demo_bulb_addr, _demo_bulb_state);
+    }
 }
 
 
