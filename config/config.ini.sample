@@ -1,0 +1,4 @@
+; Zigbee Gateway configuration
+
+[Security]
+    network_key_path=/etc/zll-gateway/network.key
