@@ -6,3 +6,4 @@ env.sh
 *.pyc
 __pycache__
 username.txt
+config/config.ini
