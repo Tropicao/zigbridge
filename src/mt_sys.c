@@ -3,7 +3,7 @@
 #include <uv.h>
 #include <znp.h>
 #include "mt_sys.h"
-#include "conf.h"
+#include "keys.h"
 
 static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
@@ -178,6 +178,6 @@ void mt_sys_nv_write_nwk_key(SyncActionCb cb)
 
     if(cb)
         sync_action_cb = cb;
-    mt_sys_osal_nv_write(0x62, 0, zg_conf_network_key_size_get(), zg_conf_network_key_get());
+    mt_sys_osal_nv_write(0x62, 0, zg_keys_network_key_size_get(), zg_keys_network_key_get());
 }
 
