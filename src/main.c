@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <uv.h>
 #include <znp.h>
 #include "zll.h"
 #include "conf.h"
+#include "types.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
@@ -60,8 +62,32 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     uv_signal_t sig_int;
     int znp_fd = -1, user_fd =0;
     int status = -1;
+    char config_file_path[PATH_STRING_MAX_SIZE] = {0};
+    int c = 0;
 
-    zg_conf_load(NULL);
+    while ((c = getopt (argc, argv, "c:")) != -1)
+    {
+        switch (c)
+        {
+            case 'c':
+                strncpy(config_file_path,optarg, PATH_STRING_MAX_SIZE);
+                break;
+            case '?':
+                if (optopt == 'c')
+                    LOG_ERR("Option -%c requires an argument", optopt);
+                else
+                    LOG_ERR("Unknown option character `\\x%x'", optopt);
+                return 1;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if(config_file_path[0] != 0)
+        zg_conf_load(config_file_path);
+    else
+        zg_conf_load(NULL);
 
     loop = uv_default_loop();
     if(znp_init() != 0)
