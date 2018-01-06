@@ -4,6 +4,7 @@
 #include <uv.h>
 #include <znp.h>
 #include "zll.h"
+#include "conf.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
@@ -60,6 +61,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     int znp_fd = -1, user_fd =0;
     int status = -1;
 
+    zg_conf_load(NULL);
+
     loop = uv_default_loop();
     if(znp_init() != 0)
     {
@@ -96,5 +99,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     LOG_INF("Quitting application");
     uv_poll_stop(&znp_poll);
     znp_shutdown();
+    zg_conf_free();
     exit(0);
 }

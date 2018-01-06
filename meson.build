@@ -3,6 +3,7 @@ project('ZLL Gateway' , 'c')
 # Sources
 src = ['src/main.c',
         'src/conf.c',
+        'src/keys.c',
         'src/mt_af.c',
         'src/mt_sys.c',
         'src/mt_zdo.c',
@@ -22,7 +23,8 @@ znpdep = cc.find_library('znp', dirs: ['/usr/local/lib',
                                         '/usr/local/lib/x86_64-linux-gnu/'])
 uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
 ptdep = dependency('threads')
-dep = [znpdep, uvdep, ptdep]
+iniparserdep = cc.find_library('iniparser')
+dep = [znpdep, uvdep, ptdep, iniparserdep]
 
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']
