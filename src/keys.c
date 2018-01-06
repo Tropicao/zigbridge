@@ -7,9 +7,9 @@
 #include <uv.h>
 #include <znp.h>
 #include "keys.h"
+#include "conf.h"
 #include "errno.h"
 
-#define NETWORK_KEY_FILE        "/etc/zll-gateway/network.key"
 #define NETWORK_KEY_SIZE        16
 
 static uint8_t *nwk_key = NULL;
@@ -24,7 +24,7 @@ void _store_network_key()
         return;
     }
 
-    fd = open(NETWORK_KEY_FILE, O_WRONLY|O_CREAT);
+    fd = open(zg_conf_get_network_key_path(), O_WRONLY|O_CREAT);
     if(fd < 0)
     {
         LOG_WARN("Network key file cannot be opened to store key");
@@ -74,7 +74,7 @@ void _load_network_key(void)
     if(nwk_key)
         free(nwk_key);
 
-    fd = open(NETWORK_KEY_FILE, O_RDONLY);
+    fd = open(zg_conf_get_network_key_path(), O_RDONLY);
     if(fd < 0)
     {
         LOG_WARN("Network key file cannot be opened, generating a new one");
