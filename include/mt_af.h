@@ -17,8 +17,8 @@ void mt_af_register_endpoint(   uint8_t endpoint,
                                 uint16_t *out_clusters_list,
                                 SyncActionCb cb);
 void mt_af_register_zha_endpoint(SyncActionCb cb);
-void mt_af_set_inter_pan_endpoint(SyncActionCb cb);
-void mt_af_set_inter_pan_channel(SyncActionCb cb);
+void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb);
+void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb);
 void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb);
 void mt_af_switch_bulb_state(uint16_t addr, uint8_t state);
 

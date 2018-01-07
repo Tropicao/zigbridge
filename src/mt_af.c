@@ -27,11 +27,11 @@ typedef enum
 #define DATA_REQUEST_DEFAULT_RADIUS         0x5
 #define DEFAULT_LATENCY                     0
 
-#define ZLL_INTERPAN_CMD                0x1
-static uint8_t zll_inter_pan_data[] =   {0xB};
-
-#define ZLL_INTERPAN_CMD_2              0x2
-static uint8_t zll_inter_pan_data_2[] = {0x1};
+/* Inter-Pan commands */
+#define INTER_PAN_CLEAR                     0x00
+#define INTER_PAN_SET                       0x01
+#define INTER_PAN_REGISTER                  0x02
+#define INTER_PAN_CHK                       0x03
 
 /********************************
  *      MT AF callbacks         *
@@ -180,27 +180,27 @@ void mt_af_register_endpoint(   uint8_t endpoint,
     afRegister(&req);
 }
 
-void mt_af_set_inter_pan_endpoint(SyncActionCb cb)
+void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
 {
     InterPanCtlFormat_t req;
 
-    LOG_INF("Setting inter-pan endpoint");
+    LOG_INF("Setting inter-pan endpoint 0x%02X", endpoint);
     if(cb)
         sync_action_cb = cb;
-    req.Command = ZLL_INTERPAN_CMD_2;
-    memcpy(req.Data, zll_inter_pan_data_2, sizeof(zll_inter_pan_data_2)/sizeof(uint8_t));
+    req.Command = INTER_PAN_REGISTER;
+    memcpy(req.Data, &endpoint, sizeof(endpoint));
     afInterPanCtl(&req);
 }
 
-void mt_af_set_inter_pan_channel(SyncActionCb cb)
+void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
 {
     InterPanCtlFormat_t req;
 
-    LOG_INF("Setting inter-pan channel");
+    LOG_INF("Setting inter-pan channel 0x%02X", channel);
     if(cb)
         sync_action_cb = cb;
-    req.Command = ZLL_INTERPAN_CMD;
-    memcpy(req.Data, zll_inter_pan_data, sizeof(zll_inter_pan_data)/sizeof(uint8_t));
+    req.Command = INTER_PAN_SET;
+    memcpy(req.Data, &channel, sizeof(channel));
     afInterPanCtl(&req);
 }
 

@@ -226,4 +226,3 @@ void zg_aps_send_data(  uint16_t dst_addr,
     free(aps_data);
 }
 
-
