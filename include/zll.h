@@ -3,9 +3,6 @@
 
 #include "types.h"
 
-
-typedef void (*InitCompleteCb)(void);
-
 void zg_zll_init(InitCompleteCb cb);
 void zg_zll_register_endpoint(SyncActionCb cb);
 void zg_zll_send_scan_request(SyncActionCb cb);

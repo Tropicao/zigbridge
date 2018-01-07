@@ -4,6 +4,8 @@
 #define PATH_STRING_MAX_SIZE            256
 
 typedef void (*SyncActionCb)(void);
+typedef void (*InitCompleteCb)(void);
+
 
 #endif
 

@@ -5,6 +5,7 @@
 #include <uv.h>
 #include <znp.h>
 #include "zll.h"
+#include "zha.h"
 #include "conf.h"
 #include "types.h"
 
@@ -46,7 +47,7 @@ static void _user_poll_cb(uv_poll_t *handler __attribute__((unused)), int status
     {
         LOG_DBG("User has pressed enter");
         do {} while(read(0, buffer, 16) > 0);
-        zg_zll_switch_bulb_state();
+        zg_zha_switch_bulb_state();
     }
 }
 

@@ -3,6 +3,7 @@
 #include <uv.h>
 #include <string.h>
 #include "zll.h"
+#include "zha.h"
 #include "aps.h"
 #include "zcl.h"
 #include "mt_af.h"
@@ -15,6 +16,10 @@
 /********************************
  *          Constants           *
  *******************************/
+
+#define ZLL_ENDPOINT                            0x1
+
+/********** Format **********/
 
 /* ZLL command list */
 #define COMMAND_SCAN_REQUEST                    0x00
@@ -37,16 +42,10 @@
 #define LEN_IDENTIFY_REQUEST                    6
 #define INDEX_IDENTIFY_DURATION                 4
 
-/* Factory reset equest frame format */
+/* Factory reset request frame format */
 #define LEN_FACTORY_RESET_REQUEST               4
 
-#define ZLL_ENDPOINT                            0x1
-#define ZLL_BROADCAST_ADDR                      0xFFFF
-#define ZLL_BROADCAST_DST_ENDPOINT              0xFE
-#define ZLL_INTER_PAN_DST                       0xFFFF
-#define ZLL_INFORMATION_FIELD                   0x12
-
-/* Data */
+/********** Application data **********/
 
 /* Scan request */
 #define DEVICE_TYPE_COORDINATOR                 0x0
@@ -63,10 +62,10 @@
 
 /* App data */
 #define SCAN_TIMEOUT                            0.25
-#define ZLL_ENDPOINT                        0x1     /* Endpoint 1 */
-#define ZLL_PROFIL_ID                       0xC05E  /* ZLL */
-#define ZLL_DEVICE_ID                       0X0210  /* Extended color light */
-#define ZLL_DEVICE_VERSION                  0x2     /* Version 2 */
+#define ZLL_PROFIL_ID                           0xC05E  /* ZLL */
+#define ZLL_DEVICE_ID                           0X0210  /* Extended color light */
+#define ZLL_DEVICE_VERSION                      0x2     /* Version 2 */
+#define ZLL_INFORMATION_FIELD                   0x12
 
 /********************************
  *          Local variables     *
@@ -75,17 +74,15 @@
 static uv_timer_t _scan_timeout_timer;
 static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
-static uint16_t _demo_bulb_addr = 0xFFFD;
-static uint8_t _demo_bulb_state = 0x1;
 
 static uint32_t _interpan_transaction_identifier = 0;
 
 static uint16_t _zll_in_clusters[] = {
-    ZCL_TOUCHLINK_COMMISSIONING};
+    ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
 static uint8_t _zll_in_clusters_num = sizeof(_zll_in_clusters)/sizeof(uint8_t);
 
 static uint16_t _zll_out_clusters[] = {
-    ZCL_TOUCHLINK_COMMISSIONING};
+    ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
 static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t);
 
 /********************************
@@ -95,13 +92,13 @@ static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t)
 static ZgSm *_init_sm = NULL;
 
 /* Callback triggered when ZLL initialization is complete */
-InitCompleteCb _init_complete_cb = NULL;
+static InitCompleteCb _init_complete_cb = NULL;
 
 static void _general_init_cb(void)
 {
     if(zg_sm_continue(_init_sm) != 0)
     {
-        LOG_INF("ZLL Gateway is initialized");
+        LOG_INF("ZLL application is initialized");
         if(_init_complete_cb)
             _init_complete_cb();
     }
@@ -117,7 +114,7 @@ static ZgSmState _init_states[] = {
     {mt_sys_nv_set_pan_id, _general_init_cb},
     {mt_sys_ping_dongle, _general_init_cb},
     {zg_zll_register_endpoint, _general_init_cb},
-    {mt_af_register_zha_endpoint, _general_init_cb},
+    {zg_zha_init, _general_init_cb},
     {mt_af_set_inter_pan_endpoint, _general_init_cb},
     {mt_af_set_inter_pan_channel, _general_init_cb},
     {mt_util_af_subscribe_cmd, _general_init_cb},
@@ -213,12 +210,6 @@ static void _zll_message_cb(void *data, int len)
     }
 }
 
-void _zll_visible_device_cb(uint16_t addr)
-{
-    LOG_INF("Demo bulb registered with address 0x%04X !", addr);
-    _demo_bulb_addr = addr;
-}
-
 /********************************
  *          ZLL API             *
  *******************************/
@@ -233,7 +224,6 @@ void zg_zll_init(InitCompleteCb cb)
     mt_sys_register_callbacks();
     mt_zdo_register_callbacks();
     mt_util_register_callbacks();
-    mt_zdo_register_visible_device_cb(_zll_visible_device_cb);
     zg_aps_init();
     zg_sm_continue(_init_sm);
 }
@@ -264,11 +254,11 @@ void zg_zll_send_scan_request(SyncActionCb cb)
     zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
     zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
 
-    zg_aps_send_data(ZLL_BROADCAST_ADDR,
-            ZLL_INTER_PAN_DST,
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
-            ZLL_BROADCAST_DST_ENDPOINT,
-            ZCL_TOUCHLINK_COMMISSIONING,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
             COMMAND_SCAN_REQUEST,
             zll_data,
             LEN_SCAN_REQUEST,
@@ -285,11 +275,11 @@ void zg_zll_send_identify_request(SyncActionCb cb)
             sizeof(_interpan_transaction_identifier));
     memcpy(zll_data + INDEX_IDENTIFY_DURATION, &identify_duration, 2);
 
-    zg_aps_send_data(ZLL_BROADCAST_ADDR,
-            ZLL_INTER_PAN_DST,
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
-            ZLL_BROADCAST_DST_ENDPOINT,
-            ZCL_TOUCHLINK_COMMISSIONING,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
             COMMAND_IDENTIFY_REQUEST,
             zll_data,
             LEN_IDENTIFY_REQUEST,
@@ -309,11 +299,11 @@ void zg_zll_send_factory_reset_request(SyncActionCb cb)
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
 
-    zg_aps_send_data(ZLL_BROADCAST_ADDR,
-            ZLL_INTER_PAN_DST,
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
-            ZLL_BROADCAST_DST_ENDPOINT,
-            ZCL_TOUCHLINK_COMMISSIONING,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
             COMMAND_FACTORY_NEW_REQUEST,
             zll_data,
             LEN_FACTORY_RESET_REQUEST,
@@ -328,24 +318,3 @@ void zg_zll_start_touchlink(void)
     _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
     _send_five_scan_requests();
 }
-
-void zg_zll_switch_bulb_state(void)
-{
-    static int sec_enabled = 0;
-
-    if(!sec_enabled)
-    {
-        mt_sys_nv_write_enable_security(NULL);
-        sec_enabled = 1;
-    }
-
-    if(_demo_bulb_addr != 0xFFFD)
-    {
-        LOG_INF("Switch : Bulb 0x%4X - State %s", _demo_bulb_addr, _demo_bulb_state ? "ON":"OFF");
-        _demo_bulb_state = !_demo_bulb_state;
-        mt_af_switch_bulb_state(_demo_bulb_addr, _demo_bulb_state);
-    }
-}
-
-
-
