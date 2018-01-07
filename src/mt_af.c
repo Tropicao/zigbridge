@@ -6,56 +6,61 @@
 
 static ZgZllCb _zll_data_cb;
 static SyncActionCb sync_action_cb = NULL;
+static uint8_t _transaction_id = 0;
+
+/********************************
+ *          Data Types          *
+ *******************************/
+
+typedef enum
+{
+    SHORT_ADDR_MODE = 2,
+    EXT_ADDR_MODE = 3,
+}DstAddrMode;
+
 
 /********************************
  *       Constant data          *
  *******************************/
 
-#define ZLL_ENDPOINT            0x1     /* Endpoint 1 */
-#define ZLL_PROFIL_ID           0xC05E  /* ZLL */
-#define ZLL_DEVICE_ID           0X0210  /* Extended color light */
-#define ZLL_DEVICE_VERSION      0x2     /* Version 2 */
-#define ZLL_LATENCY             0x00    /* No latency */
-#define ZLL_NUM_IN_CLUSTERS     0x1     /* Only one input cluster defined */
-#define ZLL_IN_CLUSTERS_ID      0x1000  /* Commissionning cluster */
-#define ZLL_NUM_OUT_CLUSTERS    0x1     /* Only one output cluster */
-#define ZLL_OUT_CLUSTERS_ID     0x1000  /* Commissioning cluster */
+#define DATA_REQUEST_DEFAULT_OPTIONS        0x00
+#define DATA_REQUEST_DEFAULT_RADIUS         0x5
 
-#define ZHA_ENDPOINT            0x2     /* Endpoint 2 */
-#define ZHA_PROFIL_ID           0x0104  /* ZHA */
-#define ZHA_DEVICE_ID           0X0050  /* Home gateway */
-#define ZHA_DEVICE_VERSION      0x2     /* Version 2 */
-#define ZHA_LATENCY             0x00    /* No latency */
-#define ZHA_NUM_IN_CLUSTERS     0x1     /* Only one input cluster defined */
-#define ZHA_IN_CLUSTERS_ID      0x0006  /* On/Off cluster */
-#define ZHA_NUM_OUT_CLUSTERS    0x1     /* Only one output cluster */
-#define ZHA_OUT_CLUSTERS_ID     0x0006  /* On/Off cluster */
+#define ZLL_ENDPOINT                        0x1     /* Endpoint 1 */
+#define ZLL_PROFIL_ID                       0xC05E  /* ZLL */
+#define ZLL_DEVICE_ID                       0X0210  /* Extended color light */
+#define ZLL_DEVICE_VERSION                  0x2     /* Version 2 */
+#define ZLL_LATENCY                         0x00    /* No latency */
+#define ZLL_NUM_IN_CLUSTERS                 0x1     /* Only one input cluster defined */
+#define ZLL_IN_CLUSTERS_ID                  0x1000  /* Commissionning cluster */
+#define ZLL_NUM_OUT_CLUSTERS                0x1     /* Only one output cluster */
+#define ZLL_OUT_CLUSTERS_ID                 0x1000  /* Commissioning cluster */
 
-#define ZLL_DEVICE_ADDR         0xFFFF
-#define ZLL_DST_ENDPOINT        0x01
-#define ZLL_SRC_ENDPOINT        0x01
-#define ZLL_CLUSTER_ID          0x1000
-#define ZLL_TRANS_ID            180
-#define ZLL_OPTIONS             0x00
-#define ZLL_RADIUS              0x5
-#define ZLL_LEN                 9
+#define ZHA_ENDPOINT                        0x2     /* Endpoint 2 */
+#define ZHA_PROFIL_ID                       0x0104  /* ZHA */
+#define ZHA_DEVICE_ID                       0X0050  /* Home gateway */
+#define ZHA_DEVICE_VERSION                  0x2     /* Version 2 */
+#define ZHA_LATENCY                         0x00    /* No latency */
+#define ZHA_NUM_IN_CLUSTERS                 0x1     /* Only one input cluster defined */
+#define ZHA_IN_CLUSTERS_ID                  0x0006  /* On/Off cluster */
+#define ZHA_NUM_OUT_CLUSTERS                0x1     /* Only one output cluster */
+#define ZHA_OUT_CLUSTERS_ID                 0x0006  /* On/Off cluster */
 
-#define ZHA_DST_ENDPOINT        0x0B
-#define ZHA_SRC_ENDPOINT        0x02
-#define ZHA_CLUSTER_ID          0x0006
-#define ZHA_TRANS_ID            180
-#define ZHA_OPTIONS             0x00
-#define ZHA_RADIUS              0x5
+#define ZLL_DEVICE_ADDR                     0xFFFF
+#define ZLL_DST_ENDPOINT                    0x01
+#define ZLL_SRC_ENDPOINT                    0x01
+#define ZLL_CLUSTER_ID                      0x1000
+#define ZLL_TRANS_ID                        180
+#define ZLL_OPTIONS                         0x00
+#define ZLL_RADIUS                          0x5
+#define ZLL_LEN                             9
 
-static uint8_t zll_scan_data[] = {  0x11,   // Frame control
-                                    0x2C,   // Transaction Sequence Number
-                                    0x00,   // Command ID
-                                    0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
-                                    0xAD,
-                                    0xB9,
-                                    0xE2,
-                                    0x05,   // 0x1+0x4 : Router + Rx On when Idle
-                                    0x12 }; // Touchlink data - payload end
+#define ZHA_DST_ENDPOINT                    0x0B
+#define ZHA_SRC_ENDPOINT                    0x02
+#define ZHA_CLUSTER_ID                      0x0006
+#define ZHA_TRANS_ID                        180
+#define ZHA_OPTIONS                         0x00
+#define ZHA_RADIUS                          0x5
 
 static uint8_t zll_identify_data[] = {  0x11,   // Frame control
                                         0x2C,   // Transaction Sequence Number
@@ -106,9 +111,14 @@ static uint8_t _register_srsp_cb(RegisterSrspFormat_t *msg)
 static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 {
     if(msg->Status != 0)
-        LOG_WARN("AF request status status : %02X", msg->Status);
+    {
+        LOG_WARN("AF data request status : %02X", msg->Status);
+    }
     else
-        LOG_INF("AF request status status : %02X", msg->Status);
+    {
+        LOG_INF("AF data request status : %02X", msg->Status);
+        _transaction_id++;
+    }
     if(sync_action_cb)
         sync_action_cb();
 
@@ -118,9 +128,14 @@ static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 static uint8_t _data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
 {
     if(msg->Status != 0)
-        LOG_WARN("AF request status status : %02X", msg->Status);
+    {
+        LOG_WARN("AF data request ext status : %02X", msg->Status);
+    }
     else
-        LOG_INF("AF request status status : %02X", msg->Status);
+    {
+        LOG_INF("AF data request ext status : %02X", msg->Status);
+        _transaction_id++;
+    }
     if(sync_action_cb)
         sync_action_cb();
 
@@ -270,28 +285,6 @@ void mt_af_set_inter_pan_channel(SyncActionCb cb)
     afInterPanCtl(&req);
 }
 
-void mt_af_send_zll_scan_request(SyncActionCb cb)
-{
-    LOG_INF("Sending zll scan request");
-    if(cb)
-        sync_action_cb = cb;
-    DataRequestExtFormat_t req;
-    req.DstAddrMode =0x2;
-    memset(req.DstAddr, 0, 8);
-    req.DstAddr[0] = 0xFF;
-    req.DstAddr[1] = 0xFF;
-    req.DstEndpoint = 0xFE;
-    req.DstPanID = 0xFFFF;
-    req.SrcEndpoint = ZLL_SRC_ENDPOINT;
-    req.ClusterId = ZLL_CLUSTER_ID;
-    req.TransId = ZLL_TRANS_ID;
-    req.Options = ZLL_OPTIONS;
-    req.Radius = ZLL_RADIUS;
-    req.Len = ZLL_LEN;
-    memcpy(req.Data, zll_scan_data, ZLL_LEN);
-    afDataRequestExt(&req);
-}
-
 void mt_af_send_zll_identify_request(SyncActionCb cb)
 {
     LOG_INF("Sending zll identify request");
@@ -371,5 +364,41 @@ void mt_af_switch_bulb_state(uint16_t addr, uint8_t state)
     req.Len = len;
 
     memcpy(req.Data, zha_on_off_with_effect_data, len);
+    afDataRequestExt(&req);
+}
+
+void mt_af_send_data_request_ext(   uint16_t addr,
+                                    uint8_t dst_endpoint,
+                                    uint16_t dst_pan,
+                                    uint8_t src_endpoint,
+                                    uint16_t cluster,
+                                    uint16_t len,
+                                    void *data,
+                                    SyncActionCb cb)
+{
+
+    if(len == 0 || !data)
+    {
+        LOG_ERR("Cannot send AF_DATA_REQUEST_EXT (%s)", data ? "length is invalid":"no data provided");
+        return;
+    }
+
+    LOG_DBG("Sending AF_DATA_REQUEST_EXT");
+    if(cb)
+        sync_action_cb = cb;
+    DataRequestExtFormat_t req;
+    req.DstAddrMode = SHORT_ADDR_MODE;
+    memset(req.DstAddr, 0, sizeof(req.DstAddr));
+    req.DstAddr[0] = addr & 0xFF;
+    req.DstAddr[1] = (addr >> 8) & 0xFF;
+    req.DstEndpoint = dst_endpoint;
+    req.DstPanID = dst_pan;
+    req.SrcEndpoint = src_endpoint;
+    req.ClusterId = cluster;
+    req.TransId = _transaction_id;
+    req.Options = DATA_REQUEST_DEFAULT_OPTIONS;
+    req.Radius = DATA_REQUEST_DEFAULT_RADIUS;
+    req.Len = len;
+    memcpy(req.Data, data, len);
     afDataRequestExt(&req);
 }

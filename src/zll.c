@@ -1,6 +1,7 @@
 #include <znp.h>
 #include <stdlib.h>
 #include <uv.h>
+#include <string.h>
 #include "zll.h"
 #include "mt_af.h"
 #include "sm.h"
@@ -27,8 +28,25 @@
 #define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST 0x14
 #define COMMAND_NETWORK_UPDATE_REQUEST          0x16
 
+#define LEN_SCAN_REQUEST                        9
+
 #define SCAN_TIMEOUT                            0.25
 
+#define ZLL_DEFAULT_FRAME_CONTROL               0x11
+
+#define ZLL_ENDPOINT                            0x1
+#define ZLL_BROADCAST_ADDR                      0xFFFF
+#define ZLL_BROADCAST_DST_ENDPOINT              0xFE
+#define ZLL_INTER_PAN_DST                       0xFFFF
+#define ZLL_COMMISSIONING_CLUSTER               0x1000
+#define ZLL_INFORMATION_FIELD                   0x12
+
+#define DEVICE_TYPE_COORDINATOR                 0x0
+#define DEVICE_TYPE_ROUTER                      0x1
+#define DEVICE_TYPE_END_DEVICE                  0x2
+
+#define RX_ON_WHEN_IDLE                         (0x1<<2)
+#define RX_OFF_WHEN_IDLE                        (0x0<<2)
 
 /********************************
  *          Local variables     *
@@ -38,6 +56,9 @@ static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
 static uint16_t _demo_bulb_addr = 0xFFFD;
 static uint8_t _demo_bulb_state = 0x1;
+
+static uint8_t _transaction_sequence_number = 0;
+static uint32_t _interpan_transaction_identifier = 0;
 
 /********************************
  * Initialization state machine *
@@ -89,7 +110,7 @@ static void _scan_request_sent(void)
 
 static void _send_single_scan_request()
 {
-    mt_af_send_zll_scan_request(_scan_request_sent);
+    zg_zll_send_scan_request(_scan_request_sent);
 }
 
 static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
@@ -108,6 +129,19 @@ static void _send_five_scan_requests()
     _stop_scan = 0;
     uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
     _send_single_scan_request();
+}
+/********************************
+ *          Internal            *
+ *******************************/
+
+uint8_t _build_frame_control()
+{
+    return ZLL_DEFAULT_FRAME_CONTROL;
+}
+
+uint8_t _generate_new_interpan_transaction_identifier()
+{
+    return (uint32_t)rand();
 }
 
 /********************************
@@ -174,9 +208,28 @@ void zg_zll_init(InitCompleteCb cb)
     zg_sm_continue(_init_sm);
 }
 
-void zg_zll_send_scan_request(void)
+void zg_zll_send_scan_request(SyncActionCb cb)
 {
+    char data[LEN_SCAN_REQUEST] = {0};
 
+    /* Header */
+    data[0] = _build_frame_control();
+    data[1] = _transaction_sequence_number;
+    data[2] = COMMAND_SCAN_REQUEST;
+    /* Payload */
+    memcpy(data+3, &_interpan_transaction_identifier, sizeof(_interpan_transaction_identifier));
+    data[7] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
+    data[8] = ZLL_INFORMATION_FIELD ;
+
+
+    mt_af_send_data_request_ext(ZLL_BROADCAST_ADDR,
+            ZLL_BROADCAST_DST_ENDPOINT,
+            ZLL_INTER_PAN_DST,
+            ZLL_ENDPOINT,
+            ZLL_COMMISSIONING_CLUSTER,
+            LEN_SCAN_REQUEST,
+            data,
+            cb);
 }
 
 void zg_zll_register_scan_response_callback(void)
@@ -203,6 +256,7 @@ void zg_zll_start_touchlink(void)
 {
     zg_sm_destroy(_init_sm);
     LOG_INF("Starting touchlink procedure");
+    _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
     _send_five_scan_requests();
 }
 

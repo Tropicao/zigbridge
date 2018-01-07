@@ -84,6 +84,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
     }
 
+    srand(time(NULL));
     if(config_file_path[0] != 0)
         status = zg_conf_load(config_file_path);
     else

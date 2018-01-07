@@ -17,5 +17,14 @@ void mt_af_send_zll_factory_reset_request(SyncActionCb cb);
 void mt_af_register_zll_callback(ZgZllCb cb);
 void mt_af_switch_bulb_state(uint16_t addr, uint8_t state);
 
+void mt_af_send_data_request_ext(   uint16_t addr,
+                                    uint8_t dst_endpoint,
+                                    uint16_t dst_pan,
+                                    uint8_t src_endpoint,
+                                    uint16_t cluster,
+                                    uint16_t len,
+                                    void *data,
+                                    SyncActionCb cb);
+
 #endif
 
