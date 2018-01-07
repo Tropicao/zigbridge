@@ -85,9 +85,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
 
     if(config_file_path[0] != 0)
-        zg_conf_load(config_file_path);
+        status = zg_conf_load(config_file_path);
     else
-        zg_conf_load(NULL);
+        status = zg_conf_load(NULL);
+
+    if(status != 0)
+        return 1;
 
     loop = uv_default_loop();
     if(znp_init() != 0)
