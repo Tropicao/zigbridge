@@ -62,24 +62,6 @@ typedef enum
 #define ZHA_OPTIONS                         0x00
 #define ZHA_RADIUS                          0x5
 
-static uint8_t zll_identify_data[] = {  0x11,   // Frame control
-                                        0x2C,   // Transaction Sequence Number
-                                        0x06,   // Command ID
-                                        0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
-                                        0xAD,
-                                        0xB9,
-                                        0xE2,
-                                        0x03,   // 0xffff : identify for a time known by device
-                                        0x00 }; // Payload end
-
-static uint8_t zll_factory_reset_data[] = {  0x11,   // Frame control
-                                        0x2C,   // Transaction Sequence Number
-                                        0x07,   // Command ID
-                                        0x4C,   // Payload start : Interpan Transaction ID, 4 bytes
-                                        0xAD,
-                                        0xB9,
-                                        0xE2};
-
 static uint8_t zha_on_off_with_effect_data[] = { 0x11,  // Frame control
                                                 0x59,   // Transac number
                                                 0x40,   // Command
@@ -285,50 +267,6 @@ void mt_af_set_inter_pan_channel(SyncActionCb cb)
     afInterPanCtl(&req);
 }
 
-void mt_af_send_zll_identify_request(SyncActionCb cb)
-{
-    LOG_INF("Sending zll identify request");
-    if(cb)
-        sync_action_cb = cb;
-    DataRequestExtFormat_t req;
-    req.DstAddrMode =0x2;
-    memset(req.DstAddr, 0, 8);
-    req.DstAddr[0] = 0xFF;
-    req.DstAddr[1] = 0xFF;
-    req.DstEndpoint = 0xFE;
-    req.DstPanID = 0xFFFF;
-    req.SrcEndpoint = ZLL_SRC_ENDPOINT;
-    req.ClusterId = ZLL_CLUSTER_ID;
-    req.TransId = ZLL_TRANS_ID;
-    req.Options = ZLL_OPTIONS;
-    req.Radius = ZLL_RADIUS;
-    req.Len = ZLL_LEN;
-    memcpy(req.Data, zll_identify_data, ZLL_LEN);
-    afDataRequestExt(&req);
-}
-
-void mt_af_send_zll_factory_reset_request(SyncActionCb cb)
-{
-    LOG_INF("Sending zll factory reset request");
-    if(cb)
-        sync_action_cb = cb;
-    DataRequestExtFormat_t req;
-    req.DstAddrMode =0x2;
-    memset(req.DstAddr, 0, 8);
-    req.DstAddr[0] = 0xFF;
-    req.DstAddr[1] = 0xFF;
-    req.DstEndpoint = 0xFE;
-    req.DstPanID = 0xFFFF;
-    req.SrcEndpoint = ZLL_SRC_ENDPOINT;
-    req.ClusterId = ZLL_CLUSTER_ID;
-    req.TransId = ZLL_TRANS_ID;
-    req.Options = ZLL_OPTIONS;
-    req.Radius = ZLL_RADIUS;
-    req.Len = ZLL_LEN-2;
-    memcpy(req.Data, zll_factory_reset_data, ZLL_LEN-2);
-    afDataRequestExt(&req);
-}
-
 void mt_af_register_zll_callback(ZgZllCb cb)
 {
     _zll_data_cb = cb;
@@ -367,10 +305,10 @@ void mt_af_switch_bulb_state(uint16_t addr, uint8_t state)
     afDataRequestExt(&req);
 }
 
-void mt_af_send_data_request_ext(   uint16_t addr,
-                                    uint8_t dst_endpoint,
+void mt_af_send_data_request_ext(   uint16_t dst_addr,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
+                                    uint8_t dst_endpoint,
                                     uint16_t cluster,
                                     uint16_t len,
                                     void *data,
@@ -389,8 +327,8 @@ void mt_af_send_data_request_ext(   uint16_t addr,
     DataRequestExtFormat_t req;
     req.DstAddrMode = SHORT_ADDR_MODE;
     memset(req.DstAddr, 0, sizeof(req.DstAddr));
-    req.DstAddr[0] = addr & 0xFF;
-    req.DstAddr[1] = (addr >> 8) & 0xFF;
+    req.DstAddr[0] = dst_addr & 0xFF;
+    req.DstAddr[1] = (dst_addr >> 8) & 0xFF;
     req.DstEndpoint = dst_endpoint;
     req.DstPanID = dst_pan;
     req.SrcEndpoint = src_endpoint;

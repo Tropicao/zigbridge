@@ -3,6 +3,7 @@
 #include <uv.h>
 #include <string.h>
 #include "zll.h"
+#include "aps.h"
 #include "mt_af.h"
 #include "sm.h"
 #include "mt_af.h"
@@ -14,10 +15,6 @@
  *          Constants           *
  *******************************/
 
-#define INDEX_FCS               0x0
-#define INDEX_TRANS_SEQ_NUM     0x1
-#define INDEX_COMMAND           0x2
-
 #define COMMAND_SCAN_REQUEST                    0x00
 #define COMMAND_SCAN_RESPONSE                   0x01
 #define COMMAND_DEVICE_INFORMATION_REQUEST      0x02
@@ -28,11 +25,18 @@
 #define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST 0x14
 #define COMMAND_NETWORK_UPDATE_REQUEST          0x16
 
-#define LEN_SCAN_REQUEST                        9
+/* Scan Request frame format */
+#define LEN_SCAN_REQUEST                        6
+#define INDEX_INTERPAN_TRANSACTION_IDENTIFIER   0
+#define INDEX_ZIGBEE_INFORMATION                4
+#define INDEX_ZLL_INFORMATION                   5
 
-#define SCAN_TIMEOUT                            0.25
+/* Identify Request frame format */
+#define LEN_IDENTIFY_REQUEST                    6
+#define INDEX_IDENTIFY_DURATION                 4
 
-#define ZLL_DEFAULT_FRAME_CONTROL               0x11
+/* Factory reset equest frame format */
+#define LEN_FACTORY_RESET_REQUEST               4
 
 #define ZLL_ENDPOINT                            0x1
 #define ZLL_BROADCAST_ADDR                      0xFFFF
@@ -41,6 +45,9 @@
 #define ZLL_COMMISSIONING_CLUSTER               0x1000
 #define ZLL_INFORMATION_FIELD                   0x12
 
+/* Data */
+
+/* Scan request */
 #define DEVICE_TYPE_COORDINATOR                 0x0
 #define DEVICE_TYPE_ROUTER                      0x1
 #define DEVICE_TYPE_END_DEVICE                  0x2
@@ -48,16 +55,22 @@
 #define RX_ON_WHEN_IDLE                         (0x1<<2)
 #define RX_OFF_WHEN_IDLE                        (0x0<<2)
 
+/* Identify Request */
+#define EXIT_IDENTIFY                           0x0000
+#define DEFAULT_IDENTIFY_DURATION               0xFFFF
+
+#define SCAN_TIMEOUT                            0.25
+
 /********************************
  *          Local variables     *
  *******************************/
+
 static uv_timer_t _scan_timeout_timer;
 static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
 static uint16_t _demo_bulb_addr = 0xFFFD;
 static uint8_t _demo_bulb_state = 0x1;
 
-static uint8_t _transaction_sequence_number = 0;
 static uint32_t _interpan_transaction_identifier = 0;
 
 /********************************
@@ -130,18 +143,20 @@ static void _send_five_scan_requests()
     uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
     _send_single_scan_request();
 }
+
 /********************************
  *          Internal            *
  *******************************/
 
-uint8_t _build_frame_control()
+uint32_t _generate_new_interpan_transaction_identifier()
 {
-    return ZLL_DEFAULT_FRAME_CONTROL;
-}
+    uint32_t result = 0;
+    result = rand() & 0xFF;
+    result |= (rand() & 0xFF) << 8;
+    result |= (rand() & 0xFF) << 16;
+    result |= (rand() & 0xFF) << 24;
 
-uint8_t _generate_new_interpan_transaction_identifier()
-{
-    return (uint32_t)rand();
+    return result;
 }
 
 /********************************
@@ -151,14 +166,14 @@ uint8_t _generate_new_interpan_transaction_identifier()
 static void _identify_delay_timeout_cb(uv_timer_t *t)
 {
     uv_unref((uv_handle_t *)t);
-    mt_af_send_zll_factory_reset_request(NULL);
+    zg_zll_send_factory_reset_request(NULL);
 }
 
 static uint8_t _processScanResponse(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
     LOG_INF("A device is ready to install");
     _stop_scan = 1;
-    mt_af_send_zll_identify_request(NULL);
+    zg_zll_send_identify_request(NULL);
     uv_timer_init(uv_default_loop(), &_identify_timer);
     uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, 3000, 0);
     return 0;
@@ -167,18 +182,18 @@ static uint8_t _processScanResponse(void *data __attribute__((unused)), int len 
 static void _zll_message_cb(void *data, int len)
 {
     uint8_t *buffer = data;
-    if(!buffer || len < INDEX_COMMAND+1)
+    if(!buffer || len <= 0)
         return;
 
     LOG_DBG("Received ZLL data (%d bytes)", len);
-    switch(buffer[INDEX_COMMAND])
+    switch(buffer[2])
     {
         case COMMAND_SCAN_RESPONSE:
             LOG_INF("Received scan response");
             _processScanResponse(buffer, len);
             break;
         default:
-            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[INDEX_COMMAND]);
+            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[2]);
             break;
     }
 }
@@ -210,25 +225,43 @@ void zg_zll_init(InitCompleteCb cb)
 
 void zg_zll_send_scan_request(SyncActionCb cb)
 {
-    char data[LEN_SCAN_REQUEST] = {0};
+    char zll_data[LEN_SCAN_REQUEST] = {0};
 
-    /* Header */
-    data[0] = _build_frame_control();
-    data[1] = _transaction_sequence_number;
-    data[2] = COMMAND_SCAN_REQUEST;
-    /* Payload */
-    memcpy(data+3, &_interpan_transaction_identifier, sizeof(_interpan_transaction_identifier));
-    data[7] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
-    data[8] = ZLL_INFORMATION_FIELD ;
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
+    zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
+    zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
 
-
-    mt_af_send_data_request_ext(ZLL_BROADCAST_ADDR,
-            ZLL_BROADCAST_DST_ENDPOINT,
+    zg_aps_send_data(ZLL_BROADCAST_ADDR,
             ZLL_INTER_PAN_DST,
             ZLL_ENDPOINT,
+            ZLL_BROADCAST_DST_ENDPOINT,
             ZLL_COMMISSIONING_CLUSTER,
+            COMMAND_SCAN_REQUEST,
+            zll_data,
             LEN_SCAN_REQUEST,
-            data,
+            cb);
+}
+
+void zg_zll_send_identify_request(SyncActionCb cb)
+{
+    char zll_data[LEN_IDENTIFY_REQUEST] = {0};
+    uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
+
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
+    memcpy(zll_data + INDEX_IDENTIFY_DURATION, &identify_duration, 2);
+
+    zg_aps_send_data(ZLL_BROADCAST_ADDR,
+            ZLL_INTER_PAN_DST,
+            ZLL_ENDPOINT,
+            ZLL_BROADCAST_DST_ENDPOINT,
+            ZLL_COMMISSIONING_CLUSTER,
+            COMMAND_IDENTIFY_REQUEST,
+            zll_data,
+            LEN_IDENTIFY_REQUEST,
             cb);
 }
 
@@ -237,13 +270,23 @@ void zg_zll_register_scan_response_callback(void)
 
 }
 
-void zg_zll_send_identify_request(void)
+void zg_zll_send_factory_reset_request(SyncActionCb cb)
 {
+    char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
 
-}
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
 
-void zg_zll_send_factory_reset_request(void)
-{
+    zg_aps_send_data(ZLL_BROADCAST_ADDR,
+            ZLL_INTER_PAN_DST,
+            ZLL_ENDPOINT,
+            ZLL_BROADCAST_DST_ENDPOINT,
+            ZLL_COMMISSIONING_CLUSTER,
+            COMMAND_FACTORY_NEW_REQUEST,
+            zll_data,
+            LEN_FACTORY_RESET_REQUEST,
+            cb);
 
 }
 
