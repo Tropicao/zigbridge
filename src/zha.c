@@ -193,5 +193,9 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
             NULL);
 }
 
+uint8_t zg_zha_device_is_installed(void)
+{
+    return (_demo_bulb_addr != 0xFFFD);
+}
 
 

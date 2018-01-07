@@ -9,12 +9,14 @@
 #include "mt_sys.h"
 #include "mt_zdo.h"
 #include "mt_util.h"
+#include "ipc.h"
 
 /********************************
  * Initialization state machine *
  *******************************/
 
 static ZgSm *_init_sm = NULL;
+static uint8_t _initialized = 0;
 
 /* Callback triggered when core initialization is complete */
 
@@ -23,8 +25,7 @@ static void _general_init_cb(void)
     if(zg_sm_continue(_init_sm) != 0)
     {
         LOG_INF("Core application is initialized");
-        LOG_INF("Demo : executing touchlink commissioning");
-        zg_zll_start_touchlink();
+        _initialized = 1;
     }
 }
 static ZgSmState _init_states[] = {
@@ -45,6 +46,40 @@ static ZgSmState _init_states[] = {
 static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
 
 /********************************
+ *     Commands processing      *
+ *******************************/
+
+static void _process_user_command(IpcCommand cmd)
+{
+    switch(cmd)
+    {
+        case ZG_IPC_COMMAND_TOUCHLINK:
+            if(_initialized)
+                zg_zll_start_touchlink();
+            else
+                LOG_WARN("Core application has not finished initializing, cannot start touchlink");
+            break;
+        case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
+            if(_initialized)
+            {
+                if(zg_zha_device_is_installed())
+                    zg_zha_switch_bulb_state();
+                else
+                    LOG_WARN("Device is not installed, cannot switch light");
+            }
+            else
+            {
+                LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+            }
+            break;
+        default:
+            LOG_WARN("Unsupported command");
+            break;
+    }
+}
+
+
+/********************************
  *             API              *
  *******************************/
 
@@ -56,6 +91,7 @@ void zg_core_init(void)
     mt_zdo_register_callbacks();
     mt_util_register_callbacks();
     zg_aps_init();
+    zg_ipc_register_command_cb(_process_user_command);
 
     _init_sm = zg_sm_create(_init_states, _init_nb_states);
     zg_sm_continue(_init_sm);

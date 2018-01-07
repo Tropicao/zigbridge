@@ -6,8 +6,10 @@ This specific version of zll-gateway intends to show capabilities. It uses :
 * Hue Go Lamp
 
 To execute the demo :
-* set the lamp on
-* start app
-* lamp should blink to identify : it has been factory reset and is now
-  commissioned
-* type Enter : the lap should go off. Typing Enter again, it should switch on.
+* Set the lamp on
+* Start app
+* You can type enter key to trigger a light switch request. It should be refused
+  by gateway since bulb is not installed.
+* Type "touchlink" in console : the lamp should blink. It means that it has been
+  seen and installed by the gateway
+* Press Enter key again : this time the key press should toggle lamp state
