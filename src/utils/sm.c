@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <znp.h>
+#include "utils.h"
 #include "sm.h"
 
 ZgSm *zg_sm_create(ZgSmState *states, int nb_states)
@@ -23,8 +24,7 @@ ZgSm *zg_sm_create(ZgSmState *states, int nb_states)
 
 void zg_sm_destroy(ZgSm *sm)
 {
-    if(sm)
-        free(sm);
+    ZG_VAR_FREE(sm);
 }
 
 int zg_sm_continue(ZgSm *sm)

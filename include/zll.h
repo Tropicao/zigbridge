@@ -4,7 +4,7 @@
 #include "types.h"
 
 void zg_zll_init(InitCompleteCb cb);
-void zg_zll_register_endpoint(SyncActionCb cb);
+void zg_zll_shutdown(void);
 void zg_zll_send_scan_request(SyncActionCb cb);
 void zg_zll_send_identify_request(SyncActionCb cb);
 void zg_zll_send_factory_reset_request(SyncActionCb cb);

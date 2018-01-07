@@ -3,15 +3,10 @@
 #include <uv.h>
 #include <string.h>
 #include "zll.h"
-#include "zha.h"
 #include "aps.h"
 #include "zcl.h"
-#include "mt_af.h"
 #include "sm.h"
 #include "mt_af.h"
-#include "mt_sys.h"
-#include "mt_zdo.h"
-#include "mt_util.h"
 
 /********************************
  *          Constants           *
@@ -87,6 +82,45 @@ static uint16_t _zll_out_clusters[] = {
 static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t);
 
 /********************************
+ *   ZLL messages callbacks     *
+ *******************************/
+
+static void _identify_delay_timeout_cb(uv_timer_t *t)
+{
+    uv_unref((uv_handle_t *)t);
+    zg_zll_send_factory_reset_request(NULL);
+}
+
+static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
+{
+    LOG_INF("A device is ready to install");
+    _stop_scan = 1;
+    zg_zll_send_identify_request(NULL);
+    uv_timer_init(uv_default_loop(), &_identify_timer);
+    uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, 3000, 0);
+    return 0;
+}
+
+static void _zll_message_cb(void *data, int len)
+{
+    uint8_t *buffer = data;
+    if(!buffer || len <= 0)
+        return;
+
+    LOG_DBG("Received ZLL data (%d bytes)", len);
+    switch(buffer[2])
+    {
+        case COMMAND_SCAN_RESPONSE:
+            LOG_INF("Received scan response");
+            _process_scan_response(buffer, len);
+            break;
+        default:
+            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[2]);
+            break;
+    }
+}
+
+/********************************
  * Initialization state machine *
  *******************************/
 
@@ -101,7 +135,10 @@ static void _general_init_cb(void)
     {
         LOG_INF("ZLL application is initialized");
         if(_init_complete_cb)
+        {
+            zg_sm_destroy(_init_sm);
             _init_complete_cb();
+        }
     }
 }
 
@@ -115,28 +152,33 @@ static void _set_inter_pan_channel(SyncActionCb cb)
     mt_af_set_inter_pan_channel(ZLL_CHANNEL, cb);
 }
 
+void _register_zll_endpoint(SyncActionCb cb)
+{
+    zg_aps_register_endpoint(   ZLL_ENDPOINT,
+                                ZLL_PROFIL_ID,
+                                ZLL_DEVICE_ID,
+                                ZLL_DEVICE_VERSION,
+                                _zll_in_clusters_num,
+                                _zll_in_clusters,
+                                _zll_out_clusters_num,
+                                _zll_out_clusters,
+                                _zll_message_cb,
+                                cb);
+}
+
+
 
 static ZgSmState _init_states[] = {
-    {mt_sys_nv_write_clear_flag, _general_init_cb},
-    {mt_sys_reset_dongle, _general_init_cb},
-    {mt_sys_nv_write_nwk_key, _general_init_cb},
-    {mt_sys_reset_dongle, _general_init_cb},
-    {mt_sys_nv_write_coord_flag, _general_init_cb},
-    {mt_sys_nv_write_disable_security, _general_init_cb},
-    {mt_sys_nv_set_pan_id, _general_init_cb},
-    {mt_sys_ping_dongle, _general_init_cb},
-    {zg_zll_register_endpoint, _general_init_cb},
-    {zg_zha_init, _general_init_cb},
+    {_register_zll_endpoint, _general_init_cb},
     {_set_inter_pan_endpoint, _general_init_cb},
-    {_set_inter_pan_channel, _general_init_cb},
-    {mt_util_af_subscribe_cmd, _general_init_cb},
-    {mt_zdo_startup_from_app, _general_init_cb}
+    {_set_inter_pan_channel, _general_init_cb}
 };
 static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
 
 /********************************
  *    Touchlink state machine   *
  *******************************/
+
 static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)));
 
 static void _scan_request_sent(void)
@@ -184,45 +226,6 @@ uint32_t _generate_new_interpan_transaction_identifier()
 }
 
 /********************************
- *   ZLL messages callbacks     *
- *******************************/
-
-static void _identify_delay_timeout_cb(uv_timer_t *t)
-{
-    uv_unref((uv_handle_t *)t);
-    zg_zll_send_factory_reset_request(NULL);
-}
-
-static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
-{
-    LOG_INF("A device is ready to install");
-    _stop_scan = 1;
-    zg_zll_send_identify_request(NULL);
-    uv_timer_init(uv_default_loop(), &_identify_timer);
-    uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, 3000, 0);
-    return 0;
-}
-
-static void _zll_message_cb(void *data, int len)
-{
-    uint8_t *buffer = data;
-    if(!buffer || len <= 0)
-        return;
-
-    LOG_DBG("Received ZLL data (%d bytes)", len);
-    switch(buffer[2])
-    {
-        case COMMAND_SCAN_RESPONSE:
-            LOG_INF("Received scan response");
-            _process_scan_response(buffer, len);
-            break;
-        default:
-            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[2]);
-            break;
-    }
-}
-
-/********************************
  *          ZLL API             *
  *******************************/
 
@@ -232,29 +235,14 @@ void zg_zll_init(InitCompleteCb cb)
     if(cb)
         _init_complete_cb = cb;
     _init_sm = zg_sm_create(_init_states, _init_nb_states);
-    mt_af_register_callbacks();
-    mt_sys_register_callbacks();
-    mt_zdo_register_callbacks();
-    mt_util_register_callbacks();
-    zg_aps_init();
     zg_sm_continue(_init_sm);
 }
 
-void zg_zll_register_endpoint(SyncActionCb cb)
+void zg_zll_shutdown(void)
 {
-    zg_aps_register_endpoint(   ZLL_ENDPOINT,
-                                ZLL_PROFIL_ID,
-                                ZLL_DEVICE_ID,
-                                ZLL_DEVICE_VERSION,
-                                _zll_in_clusters_num,
-                                _zll_in_clusters,
-                                _zll_out_clusters_num,
-                                _zll_out_clusters,
-                                _zll_message_cb,
-                                cb);
+    _stop_scan = 1;
+    zg_sm_destroy(_init_sm);
 }
-
-
 
 void zg_zll_send_scan_request(SyncActionCb cb)
 {
@@ -298,11 +286,6 @@ void zg_zll_send_identify_request(SyncActionCb cb)
             cb);
 }
 
-void zg_zll_register_scan_response_callback(void)
-{
-
-}
-
 void zg_zll_send_factory_reset_request(SyncActionCb cb)
 {
     char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
@@ -325,7 +308,6 @@ void zg_zll_send_factory_reset_request(SyncActionCb cb)
 
 void zg_zll_start_touchlink(void)
 {
-    zg_sm_destroy(_init_sm);
     LOG_INF("Starting touchlink procedure");
     _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
     _send_five_scan_requests();

@@ -2,6 +2,8 @@ project('ZLL Gateway' , 'c')
 
 # Sources
 src = ['src/main.c',
+        'src/core.c',
+        'src/ipc.c',
         'src/aps.c',
         'src/conf.c',
         'src/keys.c',

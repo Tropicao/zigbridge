@@ -70,29 +70,6 @@ static uint16_t _zha_out_clusters[] = {
 static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t);
 
 /********************************
- * Initialization state machine *
- *******************************/
-
-static ZgSm *_init_sm = NULL;
-
-/* Callback triggered when ZHA initialization is complete */
-static InitCompleteCb _init_complete_cb = NULL;
-
-static void _general_init_cb(void)
-{
-    if(zg_sm_continue(_init_sm) != 0)
-    {
-        LOG_INF("ZHA application is initialized");
-        if(_init_complete_cb)
-            _init_complete_cb();
-    }
-}
-
-static ZgSmState _init_states[] = {
-    {zg_zha_register_endpoint, _general_init_cb}
-};
-static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
-/********************************
  *   ZHA messages callbacks     *
  *******************************/
 
@@ -123,6 +100,45 @@ static void _security_disabled_cb(void)
 }
 
 /********************************
+ * Initialization state machine *
+ *******************************/
+
+static ZgSm *_init_sm = NULL;
+
+/* Callback triggered when ZHA initialization is complete */
+static InitCompleteCb _init_complete_cb = NULL;
+
+static void _general_init_cb(void)
+{
+    if(zg_sm_continue(_init_sm) != 0)
+    {
+        LOG_INF("ZHA application is initialized");
+        if(_init_complete_cb)
+            _init_complete_cb();
+    }
+}
+
+void _register_zha_endpoint(SyncActionCb cb)
+{
+    zg_aps_register_endpoint(   ZHA_ENDPOINT,
+                                ZHA_PROFIL_ID,
+                                ZHA_DEVICE_ID,
+                                ZHA_DEVICE_VERSION,
+                                _zha_in_clusters_num,
+                                _zha_in_clusters,
+                                _zha_out_clusters_num,
+                                _zha_out_clusters,
+                                _zha_message_cb,
+                                cb);
+}
+
+
+static ZgSmState _init_states[] = {
+    {_register_zha_endpoint, _general_init_cb}
+};
+static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
+
+/********************************
  *          ZLL API             *
  *******************************/
 
@@ -137,18 +153,9 @@ void zg_zha_init(InitCompleteCb cb)
     zg_sm_continue(_init_sm);
 }
 
-void zg_zha_register_endpoint(SyncActionCb cb)
+void zg_zha_shutdown(void)
 {
-    zg_aps_register_endpoint(   ZHA_ENDPOINT,
-                                ZHA_PROFIL_ID,
-                                ZHA_DEVICE_ID,
-                                ZHA_DEVICE_VERSION,
-                                _zha_in_clusters_num,
-                                _zha_in_clusters,
-                                _zha_out_clusters_num,
-                                _zha_out_clusters,
-                                _zha_message_cb,
-                                cb);
+    zg_sm_destroy(_init_sm);
 }
 
 void zg_zha_switch_bulb_state(void)

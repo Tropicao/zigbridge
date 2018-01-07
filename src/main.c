@@ -4,10 +4,10 @@
 #include <string.h>
 #include <uv.h>
 #include <znp.h>
-#include "zll.h"
-#include "zha.h"
+#include "core.h"
 #include "conf.h"
 #include "types.h"
+#include "ipc.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
@@ -33,30 +33,6 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
         znp_loop_read();
     }
 }
-
-static void _user_poll_cb(uv_poll_t *handler __attribute__((unused)), int status, int events)
-{
-    uint8_t buffer[16];
-    if(status < 0)
-    {
-        LOG_ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
-        return;
-    }
-
-    if(events & UV_READABLE)
-    {
-        LOG_DBG("User has pressed enter");
-        do {} while(read(0, buffer, 16) > 0);
-        zg_zha_switch_bulb_state();
-    }
-}
-
-
-static void _init_complete_cb(void)
-{
-    zg_zll_start_touchlink();
-}
-
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
@@ -116,18 +92,19 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     status = uv_poll_init(loop, &user_poll, user_fd);
 
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
-    uv_poll_start(&user_poll, UV_READABLE, _user_poll_cb);
+    uv_poll_start(&user_poll, UV_READABLE, zg_ipc_get_ipc_main_callback());
 
     uv_signal_init(loop, &sig_int);
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    zg_zll_init(_init_complete_cb);
+    zg_core_init();
     LOG_INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
 
     LOG_INF("Quitting application");
+    zg_core_shutdown();
     uv_poll_stop(&znp_poll);
     znp_shutdown();
     zg_conf_free();
