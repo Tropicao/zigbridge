@@ -24,7 +24,7 @@ void _store_network_key()
         return;
     }
 
-    fd = open(zg_conf_get_network_key_path(), O_WRONLY|O_CREAT);
+    fd = open(zg_conf_get_network_key_path(), O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR);
     if(fd < 0)
     {
         LOG_WARN("Network key file cannot be opened to store key");
