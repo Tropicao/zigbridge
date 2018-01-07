@@ -4,7 +4,7 @@
 #include <znp.h>
 #include "mt_af.h"
 
-static ZgZllCb _zll_data_cb;
+static AfIncomingMessageCb _af_incoming_msg_cb = NULL;
 static SyncActionCb sync_action_cb = NULL;
 static uint8_t _transaction_id = 0;
 
@@ -25,16 +25,7 @@ typedef enum
 
 #define DATA_REQUEST_DEFAULT_OPTIONS        0x00
 #define DATA_REQUEST_DEFAULT_RADIUS         0x5
-
-#define ZLL_ENDPOINT                        0x1     /* Endpoint 1 */
-#define ZLL_PROFIL_ID                       0xC05E  /* ZLL */
-#define ZLL_DEVICE_ID                       0X0210  /* Extended color light */
-#define ZLL_DEVICE_VERSION                  0x2     /* Version 2 */
-#define ZLL_LATENCY                         0x00    /* No latency */
-#define ZLL_NUM_IN_CLUSTERS                 0x1     /* Only one input cluster defined */
-#define ZLL_IN_CLUSTERS_ID                  0x1000  /* Commissionning cluster */
-#define ZLL_NUM_OUT_CLUSTERS                0x1     /* Only one output cluster */
-#define ZLL_OUT_CLUSTERS_ID                 0x1000  /* Commissioning cluster */
+#define DEFAULT_LATENCY                     0
 
 #define ZHA_ENDPOINT                        0x2     /* Endpoint 2 */
 #define ZHA_PROFIL_ID                       0x0104  /* ZHA */
@@ -45,15 +36,6 @@ typedef enum
 #define ZHA_IN_CLUSTERS_ID                  0x0006  /* On/Off cluster */
 #define ZHA_NUM_OUT_CLUSTERS                0x1     /* Only one output cluster */
 #define ZHA_OUT_CLUSTERS_ID                 0x0006  /* On/Off cluster */
-
-#define ZLL_DEVICE_ADDR                     0xFFFF
-#define ZLL_DST_ENDPOINT                    0x01
-#define ZLL_SRC_ENDPOINT                    0x01
-#define ZLL_CLUSTER_ID                      0x1000
-#define ZLL_TRANS_ID                        180
-#define ZLL_OPTIONS                         0x00
-#define ZLL_RADIUS                          0x5
-#define ZLL_LEN                             9
 
 #define ZHA_DST_ENDPOINT                    0x0B
 #define ZHA_SRC_ENDPOINT                    0x02
@@ -138,8 +120,6 @@ static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
 
 static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
 {
-    uint8_t *buffer = NULL;
-    int index = 0;
     LOG_INF("Extended AF message received");
     LOG_INF("Group id : 0x%04X", msg->GroupId);
     LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
@@ -154,20 +134,11 @@ static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
     LOG_INF("Timestamp : 0x%08X", msg->TimeStamp);
     LOG_INF("Transaction sequence num : 0x%02X", msg->TransSeqNum);
     LOG_INF("Length : %d", msg->Len);
-    if(     msg->DstEndpoint == ZLL_ENDPOINT &&
-            msg->ClusterId == ZLL_CLUSTER_ID &&
-            _zll_data_cb)
-    {
-        LOG_INF("Received message is a ZLL commissioning message");
-        buffer = calloc(msg->Len, sizeof(uint8_t));
-        /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
-         */
-        for (index = 0; index<msg->Len; index ++)
-            buffer[index] = msg->Data[index];
 
-        _zll_data_cb(buffer, msg->Len);
-        free(buffer);
-    }
+    /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
+    */
+    if(_af_incoming_msg_cb)
+        _af_incoming_msg_cb(msg->DstEndpoint, msg->Data, msg->Len);
 
     return 0;
 }
@@ -205,22 +176,33 @@ void mt_af_register_callbacks(void)
     afRegisterCallbacks(mt_af_cb);
 }
 
-void mt_af_register_zll_endpoint(SyncActionCb cb)
+void mt_af_register_endpoint(   uint8_t endpoint,
+                                uint16_t profile,
+                                uint16_t device_id,
+                                uint8_t device_ver,
+                                uint8_t in_clusters_num,
+                                uint16_t *in_clusters_list,
+                                uint8_t out_clusters_num,
+                                uint16_t *out_clusters_list,
+                                SyncActionCb cb)
 {
     RegisterFormat_t req;
+    uint8_t index;
 
-    LOG_INF("Registering ZLL endpoint");
+    LOG_INF("Registering new endpoint with profile 0x%4X", profile);
     if(cb)
         sync_action_cb = cb;
-    req.EndPoint = ZLL_ENDPOINT;
-    req.AppProfId = ZLL_PROFIL_ID;
-    req.AppDeviceId = ZLL_DEVICE_ID;
-    req.AppDevVer = ZLL_DEVICE_VERSION;
-    req.LatencyReq = ZLL_LATENCY;
-    req.AppNumInClusters = ZLL_NUM_IN_CLUSTERS;
-    req.AppInClusterList[0] = ZLL_IN_CLUSTERS_ID;
-    req.AppNumOutClusters = ZLL_NUM_OUT_CLUSTERS;
-    req.AppOutClusterList[0] = ZLL_OUT_CLUSTERS_ID;
+    req.EndPoint = endpoint;
+    req.AppProfId = profile;
+    req.AppDeviceId = device_id;
+    req.AppDevVer = device_ver;
+    req.LatencyReq = DEFAULT_LATENCY;
+    req.AppNumInClusters = in_clusters_num;
+    for(index = 0; index < in_clusters_num; index++)
+        req.AppInClusterList[index] = in_clusters_list[index];
+    req.AppNumOutClusters = out_clusters_num;
+    for(index = 0; index < out_clusters_num; index++)
+        req.AppOutClusterList[index] = out_clusters_list[index];
     afRegister(&req);
 }
 
@@ -267,9 +249,9 @@ void mt_af_set_inter_pan_channel(SyncActionCb cb)
     afInterPanCtl(&req);
 }
 
-void mt_af_register_zll_callback(ZgZllCb cb)
+void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
 {
-    _zll_data_cb = cb;
+    _af_incoming_msg_cb = cb;
 }
 
 void mt_af_switch_bulb_state(uint16_t addr, uint8_t state)
