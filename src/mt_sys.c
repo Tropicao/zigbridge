@@ -5,7 +5,6 @@
 #include "mt_sys.h"
 #include "keys.h"
 
-static uint8_t nv_clear_data[] = {3};
 static uint8_t nv_coord_data[] = {0};
 static uint8_t nv_disable_sec_data[] = {0};
 static uint8_t nv_enable_sec_data[] = {1};
@@ -130,14 +129,6 @@ void mt_sys_ping_dongle(SyncActionCb cb)
     if(cb)
         sync_action_cb = cb;
     sysPing();
-}
-
-void mt_sys_nv_write_clear_flag(SyncActionCb cb)
-{
-    LOG_INF("Writing NV clear flag");
-    if(cb)
-        sync_action_cb = cb;
-    mt_sys_osal_nv_write(3, 0, 1, nv_clear_data);
 }
 
 void mt_sys_nv_write_coord_flag(SyncActionCb cb)
