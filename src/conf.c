@@ -9,7 +9,9 @@
 #define DEFAULT_CONFIG_PATH         "/etc/zll-gateway/config.ini"
 
 #define SECTION_SECURITY            "security"
-#define KEY_NETWORK_KEY_PATH        "network_key_path"
+#define KEY_NETWORK_KEY_PATH            "network_key_path"
+#define SECTION_DEVICES             "devices"
+#define KEY_DEVICE_LIST_PATH            "device_list_path"
 
 #define PRINT_STRING_VALUE(section, key, val)   {LOG_INF("%s/%s : %s", section, key, val?val:"NULL");}
 
@@ -18,7 +20,8 @@
  *
  * Adding a new configuration field require the following steps :
  * * Adding a field in the Configuration structure
- * * Define Section and key used to retrieve the value
+ * * Define Section and key used to retrieve the value, use it in zg_conf_load
+ * with _load_value
  * * Add a getter API to allow other modules to retrieve the new configuration
  * * Add print of retrieve value in the print function
  * * If new field is a string, add proper free in _free_configuration
@@ -31,6 +34,7 @@
 typedef struct
 {
     char *network_key_path;
+    char *device_list_path;
 } Configuration;
 
 typedef enum
@@ -99,6 +103,7 @@ static void _load_value(dictionary *ini, char *section, char *key, void *var, Va
 static void _print_configuration()
 {
     PRINT_STRING_VALUE(SECTION_SECURITY, KEY_NETWORK_KEY_PATH, _configuration.network_key_path);
+    PRINT_STRING_VALUE(SECTION_DEVICES, KEY_DEVICE_LIST_PATH, _configuration.device_list_path);
 }
 /****************************************
  *                  API                 *
@@ -120,6 +125,7 @@ int zg_conf_load(char *conf_path)
     else
     {
         _load_value(dict, SECTION_SECURITY, KEY_NETWORK_KEY_PATH, &(_configuration.network_key_path), CONF_VAL_STRING);
+        _load_value(dict, SECTION_DEVICES, KEY_DEVICE_LIST_PATH, &(_configuration.device_list_path), CONF_VAL_STRING);
         iniparser_freedict(dict);
     }
     _print_configuration();
@@ -129,6 +135,7 @@ int zg_conf_load(char *conf_path)
 void zg_conf_free()
 {
     ZG_VAR_FREE(_configuration.network_key_path);
+    ZG_VAR_FREE(_configuration.device_list_path);
     memset(&_configuration, 0, sizeof(_configuration));
 }
 
@@ -136,5 +143,10 @@ void zg_conf_free()
 const char *zg_conf_get_network_key_path()
 {
     return _configuration.network_key_path;
+}
+
+const char *zg_conf_get_device_list_path()
+{
+    return _configuration.device_list_path;
 }
 
