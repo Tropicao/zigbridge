@@ -114,9 +114,81 @@ static void _add_device_to_list(DeviceData *data)
  *          Internal            *
  *******************************/
 
+static void _print_device_list(void)
+{
+    Eina_List *l = NULL;
+    DeviceData *data = NULL;
+
+    LOG_DBG(" =============== Device list ===============");
+    EINA_LIST_FOREACH(_device_list, l, data)
+        LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X");
+    LOG_DBG("============================================");
+
+}
+
 void _load_device_list()
 {
+    json_t *root = NULL, *array = NULL;
+    json_error_t error;
+    const char *device_path = zg_conf_get_device_list_path();
+    size_t index;
+    json_t *value;
+    DeviceData *data;
 
+    /* Saved data */
+    json_t *id = NULL;
+    json_t *short_addr = NULL;
+    json_t *ext_addr = NULL;
+
+
+
+    eina_list_free(_device_list);
+    root = json_load_file(zg_conf_get_device_list_path(), 0, &error);
+    if(!root)
+    {
+        LOG_WARN("Cannot load devices list from file %s : [%s] l.%d c.%d : %s",
+            device_path, error.source, error.line, error.column, error.text);
+        return;
+    }
+    array = json_object_get(root, "devices");
+    if(!array)
+    {
+        LOG_ERR("Cannot get device array from devices file");
+        goto end_load_device;
+    }
+
+    json_array_foreach(array, index, value)
+    {
+        id = json_object_get(value, "id");
+        if(id)
+        {
+            short_addr = json_object_get(value, "short_addr");
+            ext_addr = json_object_get(value, "ext_addr");
+            data = _create_device_data( json_integer_value(id),
+                                        json_integer_value(short_addr),
+                                        json_integer_value(ext_addr));
+            if(data)
+                _add_device_to_list(data);
+            else
+                LOG_WARN("Cannot create device data from retrieved device data in file");
+
+            json_decref(id);
+            json_decref(short_addr);
+            json_decref(ext_addr);
+        }
+        else
+        {
+            LOG_ERR("Cannot load device : id is not properly formatted");
+        }
+    }
+
+    _print_device_list();
+
+end_load_device:
+    if(array)
+        json_decref(array);
+    if(root)
+        json_decref(root);
 }
 
 void _free_device_list()
@@ -194,7 +266,7 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
         data = _create_device_data((DeviceId)tmp_id, short_addr, ext_addr);
         if(data)
         {
-            LOG_INF("Saving new device with id %d", tmp_id);  
+            LOG_INF("Saving new device with id %d", tmp_id);
             _add_device_to_list(data);
             _save_device_list();
         }
