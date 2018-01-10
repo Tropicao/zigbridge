@@ -5,11 +5,14 @@
 #include <stdint.h>
 #include "types.h"
 
+typedef void (*NewDeviceJoinedCb)(uint16_t short_addr, uint64_t ext_addr);
+
 void zg_zha_init(InitCompleteCb cb);
 void zg_zha_shutdown(void);
 void zg_zha_switch_bulb_state(void);
 void zg_zha_set_bulb_state(uint16_t addr, uint8_t state);
 uint8_t zg_zha_device_is_installed(void);
+void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb);
 
 #endif
 

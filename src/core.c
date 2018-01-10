@@ -10,6 +10,7 @@
 #include "mt_zdo.h"
 #include "mt_util.h"
 #include "ipc.h"
+#include "device.h"
 
 /********************************
  * Initialization state machine *
@@ -47,29 +48,48 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
 /********************************
  *     Commands processing      *
  *******************************/
+static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
+{
+    zg_add_device(short_addr, ext_addr);
+}
+
+/********************************
+ *     Commands processing      *
+ *******************************/
+
+static void _process_command_touchlink()
+{
+    if(_initialized)
+        zg_zll_start_touchlink();
+    else
+        LOG_WARN("Core application has not finished initializing, cannot start touchlink");
+}
+
+static void _process_command_switch_light()
+{
+    if(_initialized)
+    {
+        if(zg_zha_device_is_installed())
+            zg_zha_switch_bulb_state();
+        else
+            LOG_WARN("Device is not installed, cannot switch light");
+    }
+    else
+    {
+        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+    }
+
+}
 
 static void _process_user_command(IpcCommand cmd)
 {
     switch(cmd)
     {
         case ZG_IPC_COMMAND_TOUCHLINK:
-            if(_initialized)
-                zg_zll_start_touchlink();
-            else
-                LOG_WARN("Core application has not finished initializing, cannot start touchlink");
+            _process_command_touchlink();
             break;
         case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
-            if(_initialized)
-            {
-                if(zg_zha_device_is_installed())
-                    zg_zha_switch_bulb_state();
-                else
-                    LOG_WARN("Device is not installed, cannot switch light");
-            }
-            else
-            {
-                LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
-            }
+            _process_command_switch_light();
             break;
         default:
             LOG_WARN("Unsupported command");
@@ -91,6 +111,8 @@ void zg_core_init(void)
     mt_util_register_callbacks();
     zg_aps_init();
     zg_ipc_register_command_cb(_process_user_command);
+    zg_zha_register_new_device_joined_callback(_new_device_cb);
+    zg_device_init();
 
     _init_sm = zg_sm_create(_init_states, _init_nb_states);
     zg_sm_continue(_init_sm);

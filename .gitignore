@@ -9,3 +9,4 @@ username.txt
 config/config.ini
 *.key
 config.ini
+*.json

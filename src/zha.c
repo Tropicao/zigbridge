@@ -60,6 +60,7 @@
 
 static uint16_t _demo_bulb_addr = 0xFFFD;
 static uint8_t _demo_bulb_state = 0x1;
+static NewDeviceJoinedCb _new_device_joined_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
     ZCL_CLUSTER_ON_OFF};
@@ -88,10 +89,12 @@ static void _zha_message_cb(void *data, int len)
     }
 }
 
-static void _zha_visible_device_cb(uint16_t addr)
+static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 {
     LOG_INF("Demo bulb registered with address 0x%04X !", addr);
     _demo_bulb_addr = addr;
+    if(_new_device_joined_cb)
+        _new_device_joined_cb(addr, ext_addr);
 }
 
 static void _security_disabled_cb(void)
@@ -196,6 +199,11 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
 uint8_t zg_zha_device_is_installed(void)
 {
     return (_demo_bulb_addr != 0xFFFD);
+}
+
+void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb)
+{
+    _new_device_joined_cb = cb;
 }
 
 

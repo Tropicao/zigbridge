@@ -29,9 +29,9 @@ znpdep = cc.find_library('znp', dirs: ['/usr/local/lib',
 uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
 ptdep = dependency('threads')
 iniparserdep = cc.find_library('iniparser')
-janssondep = cc.find_library('jansson')
 einadep = dependency('eina')
-dep = [znpdep, uvdep, ptdep, iniparserdep, einadep]
+janssondep = dependency('jansson')
+dep = [znpdep, uvdep, ptdep, iniparserdep, einadep, janssondep]
 
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']

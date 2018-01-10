@@ -12,7 +12,7 @@
 
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
-static void (*_zdo_tc_dev_ind_cb)(uint16_t addr);
+static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -60,7 +60,7 @@ static uint8_t mt_zdo_tc_dev_ind_cb(TcDevIndFormat_t *msg)
             msg->SrcNwkAddr, msg->ExtAddr, msg->ParentNwkAddr);
     LOG_INF("=============================================");
     if(_zdo_tc_dev_ind_cb)
-        _zdo_tc_dev_ind_cb(msg->SrcNwkAddr);
+        _zdo_tc_dev_ind_cb(msg->SrcNwkAddr, msg->ExtAddr);
     return 0;
 }
 
@@ -136,7 +136,7 @@ void mt_zdo_startup_from_app(SyncActionCb cb)
     zdoStartupFromApp(&req);
 }
 
-void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr))
+void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr))
 {
     _zdo_tc_dev_ind_cb = cb;
 }
