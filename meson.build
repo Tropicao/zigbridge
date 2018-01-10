@@ -14,8 +14,7 @@ src = ['src/main.c',
         'src/mt_util.c',
         'src/zha.c',
         'src/zll.c',
-        'src/utils/sm.c',
-        'src/utils/list.c']
+        'src/utils/sm.c']
 
 # Includes
 znpinc = include_directories('/usr/local/include/libznp')
@@ -31,7 +30,8 @@ uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
 ptdep = dependency('threads')
 iniparserdep = cc.find_library('iniparser')
 janssondep = cc.find_library('jansson')
-dep = [znpdep, uvdep, ptdep, iniparserdep]
+einadep = dependency('eina')
+dep = [znpdep, uvdep, ptdep, iniparserdep, einadep]
 
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']
