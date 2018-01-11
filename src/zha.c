@@ -58,8 +58,8 @@
  *          Local variables     *
  *******************************/
 
-static uint16_t _demo_bulb_addr = 0xFFFD;
 static uint8_t _demo_bulb_state = 0x1;
+static uint16_t _pending_command_addr = 0xFFFD;
 static NewDeviceJoinedCb _new_device_joined_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
@@ -91,15 +91,14 @@ static void _zha_message_cb(void *data, int len)
 
 static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 {
-    LOG_INF("Demo bulb registered with address 0x%04X !", addr);
-    _demo_bulb_addr = addr;
+    LOG_INF("New device joined network with address 0x%04X !", addr);
     if(_new_device_joined_cb)
         _new_device_joined_cb(addr, ext_addr);
 }
 
 static void _security_disabled_cb(void)
 {
-    zg_zha_switch_bulb_state();
+    zg_zha_switch_bulb_state(_pending_command_addr);
 }
 
 /********************************
@@ -161,23 +160,24 @@ void zg_zha_shutdown(void)
     zg_sm_destroy(_init_sm);
 }
 
-void zg_zha_switch_bulb_state(void)
+void zg_zha_switch_bulb_state(uint16_t short_addr)
 {
     static int sec_enabled = 0;
 
     if(!sec_enabled)
     {
         LOG_INF("Re-enabling security before sending command");
+        _pending_command_addr = short_addr;
         mt_sys_nv_write_enable_security(_security_disabled_cb);
         sec_enabled = 1;
         return;
     }
 
-    if(_demo_bulb_addr != 0xFFFD)
+    if(short_addr != 0xFFFD)
     {
         _demo_bulb_state = !_demo_bulb_state;
-        LOG_INF("Switch : Bulb 0x%4X - State %s", _demo_bulb_addr, _demo_bulb_state ? "ON":"OFF");
-        zg_zha_set_bulb_state(_demo_bulb_addr, _demo_bulb_state);
+        LOG_INF("Switch : Bulb 0x%4X - State %s", short_addr, _demo_bulb_state ? "ON":"OFF");
+        zg_zha_set_bulb_state(short_addr, _demo_bulb_state);
     }
 }
 
@@ -194,11 +194,6 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
             NULL,
             0,
             NULL);
-}
-
-uint8_t zg_zha_device_is_installed(void)
-{
-    return (_demo_bulb_addr != 0xFFFD);
 }
 
 void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb)

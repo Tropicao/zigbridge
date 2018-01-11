@@ -270,6 +270,7 @@ void zg_zll_send_identify_request(SyncActionCb cb)
     char zll_data[LEN_IDENTIFY_REQUEST] = {0};
     uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
 
+    LOG_INF("Sending identify request");
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
@@ -290,6 +291,7 @@ void zg_zll_send_factory_reset_request(SyncActionCb cb)
 {
     char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
 
+    LOG_INF("Sending factory reset request");
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));

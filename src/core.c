@@ -13,6 +13,12 @@
 #include "device.h"
 
 /********************************
+ *     Constants and macros     *
+ *******************************/
+
+#define DEMO_DEVICE_ID              0
+
+/********************************
  * Initialization state machine *
  *******************************/
 
@@ -67,10 +73,12 @@ static void _process_command_touchlink()
 
 static void _process_command_switch_light()
 {
+    uint16_t addr = 0xFFFD;
     if(_initialized)
     {
-        if(zg_zha_device_is_installed())
-            zg_zha_switch_bulb_state();
+        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        if(addr != 0xFFFD)
+            zg_zha_switch_bulb_state(addr);
         else
             LOG_WARN("Device is not installed, cannot switch light");
     }
@@ -120,7 +128,9 @@ void zg_core_init(void)
 
 void zg_core_shutdown(void)
 {
+    zg_device_shutdown();
     zg_zha_shutdown();
     zg_zll_shutdown();
     zg_aps_shutdown();
 }
+

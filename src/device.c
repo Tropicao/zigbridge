@@ -121,7 +121,8 @@ static void _print_device_list(void)
 
     LOG_DBG(" =============== Device list ===============");
     EINA_LIST_FOREACH(_device_list, l, data)
-        LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X");
+        LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X",
+                data->id, data->short_addr, data->ext_addr);
     LOG_DBG("============================================");
 
 }
@@ -277,4 +278,22 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
         }
     }
     return (DeviceId)tmp_id;
+}
+
+uint16_t zg_device_get_short_addr(DeviceId id)
+{
+    uint16_t addr = 0xFFFD;
+    Eina_List *l = NULL;
+    DeviceData *data = NULL;
+
+    EINA_LIST_FOREACH(_device_list, l, data)
+    {
+        if(data->id == id)
+        {
+            addr = data->short_addr;
+            break;
+        }
+    }
+
+    return addr;
 }
