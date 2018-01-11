@@ -43,6 +43,7 @@ static void _announce_gateway(SyncActionCb cb)
 }
 
 static ZgSmState _init_states[] = {
+    {mt_sys_nv_write_clear_flag, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_nv_write_nwk_key, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
