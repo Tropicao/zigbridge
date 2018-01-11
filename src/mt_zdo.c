@@ -10,6 +10,8 @@
 #define SCAN_ALL_CHANNELS_VALUE             0x07FFF800
 #define MT_ZDO_NWK_DISCOVERY_TIMEOUT_MS     50
 
+#define DEVICE_ANNCE_CAPABILITIES           0x8E
+
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
@@ -64,6 +66,20 @@ static uint8_t mt_zdo_tc_dev_ind_cb(TcDevIndFormat_t *msg)
     return 0;
 }
 
+static uint8_t mt_zdo_device_annce_srsp_cb(DeviceAnnceSrspFormat_t *msg)
+{
+    if(!msg)
+        LOG_WARN("ZDO Device Annce SRSP status : %02X", msg->Status);
+    else
+        LOG_INF("ZDO Device Annce SRSP status : %02X", msg->Status);
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
@@ -100,6 +116,7 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
+    mt_zdo_device_annce_srsp_cb,
 };
 
 /********************************
@@ -139,4 +156,17 @@ void mt_zdo_startup_from_app(SyncActionCb cb)
 void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr))
 {
     _zdo_tc_dev_ind_cb = cb;
+}
+
+void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
+{
+    LOG_INF("Announce gateway (0x%04X - 0x%016X) to network", addr, uid);
+
+    if(cb)
+        sync_action_cb = cb;
+    DeviceAnnceFormat_t req;
+    req.NWKAddr = addr;
+    memcpy(req.IEEEAddr, &uid, sizeof(uid));
+    req.Capabilities = DEVICE_ANNCE_CAPABILITIES;
+    zdoDeviceAnnce(&req);
 }

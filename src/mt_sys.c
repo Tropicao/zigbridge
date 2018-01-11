@@ -12,6 +12,7 @@ static uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;
+static uint64_t _ext_addr = 0x0000000000000000;
 
 /********************************
  *       Constant data          *
@@ -46,6 +47,16 @@ static uint8_t _ping_srsp_cb(PingSrspFormat_t *msg)
     return 0;
 }
 
+static uint8_t _get_ext_addr_srsp_cb(GetExtAddrSrspFormat_t *msg)
+{
+    LOG_INF("Received extended address (0x%016X)", msg->ExtAddr);
+    _ext_addr = msg->ExtAddr;
+
+    if(sync_action_cb)
+        sync_action_cb();
+    return 0;
+}
+
 static uint8_t _reset_ind_cb(ResetIndFormat_t *msg)
 {
     LOG_INF("System reset ind. received. Reason : %s ",
@@ -75,7 +86,7 @@ static uint8_t _osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
 
 static mtSysCb_t mt_sys_cb = {
     _ping_srsp_cb,
-    NULL,
+    _get_ext_addr_srsp_cb,
     NULL,
     _reset_ind_cb,
     NULL,
@@ -170,5 +181,19 @@ void mt_sys_nv_write_nwk_key(SyncActionCb cb)
     if(cb)
         sync_action_cb = cb;
     mt_sys_osal_nv_write(0x62, 0, zg_keys_network_key_size_get(), zg_keys_network_key_get());
+}
+
+void mt_sys_check_ext_addr(SyncActionCb cb)
+{
+    LOG_INF("Retrieving extended address");
+
+    if(cb)
+        sync_action_cb = cb;
+    sysGetExtAddr();
+}
+
+uint64_t mt_sys_get_ext_addr(void)
+{
+    return _ext_addr;
 }
 

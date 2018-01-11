@@ -12,6 +12,8 @@ void mt_sys_nv_write_disable_security(SyncActionCb cb);
 void mt_sys_nv_write_enable_security(SyncActionCb cb);
 void mt_sys_nv_set_pan_id(SyncActionCb cb);
 void mt_sys_nv_write_nwk_key(SyncActionCb cb);
+void mt_sys_check_ext_addr(SyncActionCb cb);
+uint64_t mt_sys_get_ext_addr(void);
 
 #endif
 

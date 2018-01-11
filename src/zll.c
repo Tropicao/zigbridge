@@ -7,6 +7,7 @@
 #include "zcl.h"
 #include "sm.h"
 #include "mt_af.h"
+#include "mt_sys.h"
 
 /********************************
  *          Constants           *
@@ -210,6 +211,11 @@ static void _send_five_scan_requests()
     _send_single_scan_request();
 }
 
+static void _security_disabled(void)
+{
+    _send_five_scan_requests();
+}
+
 /********************************
  *          Internal            *
  *******************************/
@@ -312,5 +318,5 @@ void zg_zll_start_touchlink(void)
 {
     LOG_INF("Starting touchlink procedure");
     _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
-    _send_five_scan_requests();
+    mt_sys_nv_write_disable_security(_security_disabled);
 }
