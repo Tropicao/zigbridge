@@ -12,6 +12,9 @@
 
 #define DEVICE_ANNCE_CAPABILITIES           0x8E
 
+#define ROUTE_REQ_OPTIONS                   0x00
+#define ROUTE_REQ_RADIUS                    0x05
+
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
@@ -80,6 +83,20 @@ static uint8_t mt_zdo_device_annce_srsp_cb(DeviceAnnceSrspFormat_t *msg)
 
 }
 
+static uint8_t mt_zdo_ext_route_disc_srsp_cb(ExtRouteDiscSrspFormat_t *msg)
+{
+    if(!msg)
+        LOG_WARN("Route discovery SRSP status : %02X", msg->Status);
+    else
+        LOG_INF("Route discovery  SRSP status : %02X", msg->Status);
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
@@ -117,6 +134,7 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     mt_zdo_device_annce_srsp_cb,
+    mt_zdo_ext_route_disc_srsp_cb
 };
 
 /********************************
@@ -170,3 +188,19 @@ void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
     req.Capabilities = DEVICE_ANNCE_CAPABILITIES;
     zdoDeviceAnnce(&req);
 }
+
+void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
+{
+    ExtRouteDiscFormat_t req;
+
+    LOG_INF("Asking route for device 0x%04X", addr);
+    if(cb)
+        sync_action_cb = cb;
+
+    req.DstAddr = addr;
+    req.Options = ROUTE_REQ_OPTIONS;
+    req.Radius = ROUTE_REQ_RADIUS;
+    zdoExtRouteDisc(&req);
+}
+
+

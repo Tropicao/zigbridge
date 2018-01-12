@@ -12,6 +12,7 @@
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
 uv_poll_t user_poll;
+static uint8_t _reset_network = 0;
 
 static void signal_handler(uv_signal_t *handle __attribute__((unused)), int signum __attribute__((unused)))
 {
@@ -42,12 +43,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     char config_file_path[PATH_STRING_MAX_SIZE] = {0};
     int c = 0;
 
-    while ((c = getopt (argc, argv, "c:")) != -1)
+    while ((c = getopt (argc, argv, "c:r")) != -1)
     {
         switch (c)
         {
             case 'c':
                 strncpy(config_file_path,optarg, PATH_STRING_MAX_SIZE);
+                break;
+            case 'r':
+                _reset_network = 1;
                 break;
             case '?':
                 if (optopt == 'c')
@@ -98,7 +102,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    zg_core_init();
+    zg_core_init(_reset_network);
     LOG_INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 

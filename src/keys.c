@@ -112,5 +112,9 @@ uint8_t zg_keys_network_key_size_get()
     return NETWORK_KEY_SIZE;
 }
 
+void zg_keys_network_key_del(void)
+{
+    unlink(zg_conf_get_network_key_path());
+}
 
 

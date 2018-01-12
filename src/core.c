@@ -11,6 +11,7 @@
 #include "mt_util.h"
 #include "ipc.h"
 #include "device.h"
+#include "keys.h"
 
 /********************************
  *     Constants and macros     *
@@ -25,6 +26,7 @@
 
 static ZgSm *_init_sm = NULL;
 static uint8_t _initialized = 0;
+static uint8_t _reset_network = 0;
 
 /* Callback triggered when core initialization is complete */
 
@@ -37,13 +39,29 @@ static void _general_init_cb(void)
     }
 }
 
+static void _write_clear_flag(SyncActionCb cb)
+{
+    if(_reset_network)
+        mt_sys_nv_write_clear_state_and_config(cb);
+    else
+        //mt_sys_nv_write_clear_config(cb);
+        cb();
+}
+
 static void _announce_gateway(SyncActionCb cb)
 {
     mt_zdo_device_annce(GATEWAY_ADDR, mt_sys_get_ext_addr(), cb);
 }
 
+
+static void _get_demo_device_route(SyncActionCb cb)
+{
+    mt_zdo_ext_route_disc_request(zg_device_get_short_addr(DEMO_DEVICE_ID), cb);
+}
+
+
 static ZgSmState _init_states[] = {
-    {mt_sys_nv_write_clear_flag, _general_init_cb},
+    {_write_clear_flag, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_nv_write_nwk_key, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
@@ -56,6 +74,7 @@ static ZgSmState _init_states[] = {
     {zg_zha_init, _general_init_cb},
     {mt_zdo_startup_from_app, _general_init_cb},
     {mt_sys_nv_write_enable_security, _general_init_cb},
+    {_get_demo_device_route, _general_init_cb},
     {_announce_gateway, _general_init_cb}
 };
 
@@ -120,17 +139,20 @@ static void _process_user_command(IpcCommand cmd)
  *             API              *
  *******************************/
 
-void zg_core_init(void)
+void zg_core_init(uint8_t reset_network)
 {
     LOG_INF("Initializing core application");
+    _reset_network = reset_network;
     mt_af_register_callbacks();
     mt_sys_register_callbacks();
     mt_zdo_register_callbacks();
     mt_util_register_callbacks();
+    if(reset_network)
+        zg_keys_network_key_del();
     zg_aps_init();
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_new_device_joined_callback(_new_device_cb);
-    zg_device_init();
+    zg_device_init(reset_network);
 
     _init_sm = zg_sm_create(_init_states, _init_nb_states);
     zg_sm_continue(_init_sm);

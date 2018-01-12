@@ -199,6 +199,11 @@ void _free_device_list()
         _destroy_device_data(data);
 }
 
+void _del_device_list(void)
+{
+    unlink(zg_conf_get_device_list_path());
+}
+
 void _save_device_list()
 {
     Eina_List *l = NULL;
@@ -233,10 +238,13 @@ void _save_device_list()
  *             API              *
  *******************************/
 
-void zg_device_init()
+void zg_device_init(uint8_t reset_device)
 {
     eina_init();
-    _load_device_list();
+    if(reset_device)
+        _del_device_list();
+    else
+        _load_device_list();
 }
 
 void zg_device_shutdown()
@@ -253,7 +261,7 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
     data = _get_device_by_ext_addr(ext_addr);
     if(data)
     {
-        LOG_ERR("Device already exists in device base");
+        LOG_INF("Device already exists in device base");
         return -1;
     }
 
