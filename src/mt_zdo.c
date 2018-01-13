@@ -34,7 +34,11 @@ static uint8_t mt_zdo_state_change_ind_cb(uint8_t zdoState)
 
 static uint8_t mt_zdo_nwk_discovery_srsp_cb(NwkDiscoveryCnfFormat_t *msg)
 {
-    LOG_INF("ZDO Nwk discovery SRSP status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_ERR("Error sending ZDO discovery request : %s", znp_strerror(msg->Status));
+    else
+        LOG_INF("ZDO disocvery request sent");
+
     if(sync_action_cb)
         sync_action_cb();
 
@@ -71,10 +75,10 @@ static uint8_t mt_zdo_tc_dev_ind_cb(TcDevIndFormat_t *msg)
 
 static uint8_t mt_zdo_device_annce_srsp_cb(DeviceAnnceSrspFormat_t *msg)
 {
-    if(!msg)
-        LOG_WARN("ZDO Device Annce SRSP status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_WARN("Error sending device announce request : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("ZDO Device Annce SRSP status : %02X", msg->Status);
+        LOG_INF("Device announce request sent");
 
     if(sync_action_cb)
         sync_action_cb();
@@ -85,10 +89,10 @@ static uint8_t mt_zdo_device_annce_srsp_cb(DeviceAnnceSrspFormat_t *msg)
 
 static uint8_t mt_zdo_ext_route_disc_srsp_cb(ExtRouteDiscSrspFormat_t *msg)
 {
-    if(!msg)
-        LOG_WARN("Route discovery SRSP status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_WARN("Error sending route request : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("Route discovery  SRSP status : %02X", msg->Status);
+        LOG_INF("Route request sent");
 
     if(sync_action_cb)
         sync_action_cb();

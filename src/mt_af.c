@@ -39,7 +39,10 @@ typedef enum
 
 static uint8_t _register_srsp_cb(RegisterSrspFormat_t *msg)
 {
-    LOG_INF("AF register status status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_ERR("Error registering new enpdoint : %s", znp_strerror(msg->Status));
+    else
+        LOG_INF("New endpoint registered");
     if(sync_action_cb)
         sync_action_cb();
 
@@ -48,13 +51,13 @@ static uint8_t _register_srsp_cb(RegisterSrspFormat_t *msg)
 
 static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 {
-    if(msg->Status != 0)
+    if(msg->Status != ZSuccess)
     {
-        LOG_WARN("AF data request status : %02X", msg->Status);
+        LOG_ERR("Error sending data to remote device : %s", znp_strerror(msg->Status));
     }
     else
     {
-        LOG_INF("AF data request status : %02X", msg->Status);
+        LOG_INF("Data request sent to remote device");
         _transaction_id++;
     }
     if(sync_action_cb)
@@ -65,13 +68,13 @@ static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
 
 static uint8_t _data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
 {
-    if(msg->Status != 0)
+    if(msg->Status != ZSuccess)
     {
-        LOG_WARN("AF data request ext status : %02X", msg->Status);
+        LOG_ERR("Error sending extending data request to remote device : %s", znp_strerror(msg->Status));
     }
     else
     {
-        LOG_INF("AF data request ext status : %02X", msg->Status);
+        LOG_INF("Extended data request sent to remote device");
         _transaction_id++;
     }
     if(sync_action_cb)
@@ -82,10 +85,11 @@ static uint8_t _data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
 
 static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
 {
-    if(msg->Status != 0)
-        LOG_WARN("AF interpan ctl status status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_ERR("Error sending interpan control command : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("AF interpan ctl status : %02X", msg->Status);
+        LOG_INF("Inter-pan command applied");
+
     if(sync_action_cb)
         sync_action_cb();
 
@@ -119,7 +123,7 @@ static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
 
 static uint8_t _data_confirm_cb(DataConfirmFormat_t *msg)
 {
-    if(msg->Status != 0)
+    if(msg->Status != ZSuccess)
         LOG_WARN("AF data request status : %02X", msg->Status);
     else
         LOG_INF("AF data request status : %02X", msg->Status);

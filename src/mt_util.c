@@ -19,10 +19,10 @@ static SyncActionCb sync_action_cb = NULL;
 
 static uint8_t _callback_sub_cmd_srsp_cb(CallbackSubCmdSrspFormat_t *msg)
 {
-    if(msg->Status != 0)
-        LOG_WARN("Callback sub cmd srsp status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_ERR("Cannot subscribe to callback : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("Callback sub cmd srsp status : %02X", msg->Status);
+        LOG_INF("Callback subscription validated");
     if(sync_action_cb)
         sync_action_cb();
 

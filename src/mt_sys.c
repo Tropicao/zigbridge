@@ -75,10 +75,11 @@ static uint8_t _reset_ind_cb(ResetIndFormat_t *msg)
 
 static uint8_t _osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
 {
-    if(msg->Status == 0)
-        LOG_INF("NV write status : %02X", msg->Status);
+    if(msg->Status != ZSuccess)
+        LOG_ERR("Error writing NV element : %s", znp_strerror(msg->Status));
     else
-        LOG_ERR("NV write status : %02X", msg->Status);
+        LOG_INF("NV element written");
+
     if(sync_action_cb)
         sync_action_cb();
 
