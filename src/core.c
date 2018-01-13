@@ -19,6 +19,7 @@
 
 #define DEMO_DEVICE_ID              0
 #define GATEWAY_ADDR                0x0000
+#define GATEWAY_CHANNEL             11
 
 /********************************
  * Initialization state machine *
@@ -47,6 +48,11 @@ static void _write_clear_flag(SyncActionCb cb)
         cb();
 }
 
+static void _write_channel(SyncActionCb cb)
+{
+    mt_sys_nv_write_channel(GATEWAY_CHANNEL, cb);
+}
+
 static void _announce_gateway(SyncActionCb cb)
 {
     mt_zdo_device_annce(GATEWAY_ADDR, mt_sys_get_ext_addr(), cb);
@@ -67,6 +73,7 @@ static ZgSmState _init_states[] = {
     {mt_sys_check_ext_addr, _general_init_cb},
     {mt_sys_nv_write_coord_flag, _general_init_cb},
     {mt_sys_nv_set_pan_id, _general_init_cb},
+    {_write_channel, _general_init_cb},
     {mt_sys_ping_dongle, _general_init_cb},
     {mt_util_af_subscribe_cmd, _general_init_cb},
     {zg_zll_init, _general_init_cb},

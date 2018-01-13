@@ -216,3 +216,70 @@ uint64_t mt_sys_get_ext_addr(void)
     return _ext_addr;
 }
 
+void mt_sys_nv_write_channel(uint8_t channel, SyncActionCb cb)
+{
+    uint32_t channel_mask = 0x0000;
+
+    switch(channel)
+    {
+        case 11:
+            channel_mask = 0x00000800;
+            break;
+        case 12:
+            channel_mask = 0x00001000;
+            break;
+        case 13:
+            channel_mask = 0x00002000;
+            break;
+        case 14:
+            channel_mask = 0x00004000;
+            break;
+        case 15:
+            channel_mask = 0x00008000;
+            break;
+        case 16:
+            channel_mask = 0x00010000;
+            break;
+        case 17:
+            channel_mask = 0x00020000;
+            break;
+        case 18:
+            channel_mask = 0x00040000;
+            break;
+        case 19:
+            channel_mask = 0x00080000;
+            break;
+        case 20:
+            channel_mask = 0x00100000;
+            break;
+        case 21:
+            channel_mask = 0x00200000;
+            break;
+        case 22:
+            channel_mask = 0x00400000;
+            break;
+        case 23:
+            channel_mask = 0x00800000;
+            break;
+        case 24:
+            channel_mask = 0x01000000;
+            break;
+        case 25:
+            channel_mask = 0x02000000;
+            break;
+        case 26:
+            channel_mask = 0x04000000;
+            break;
+        default:
+            LOG_ERR("Cannot set channel %d (not a proper channel value)", channel);
+            if(cb)
+                cb();
+            return;
+            break;
+    }
+    LOG_INF("Setting radio to operate on channel %d", channel);
+    if(cb)
+        sync_action_cb = cb;
+    mt_sys_osal_nv_write(0x84, 0, sizeof(channel_mask), (uint8_t *)&channel_mask);
+}
+
