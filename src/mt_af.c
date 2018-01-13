@@ -124,9 +124,9 @@ static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
 static uint8_t _data_confirm_cb(DataConfirmFormat_t *msg)
 {
     if(msg->Status != ZSuccess)
-        LOG_WARN("AF data request status : %02X", msg->Status);
+        LOG_ERR("Error sending data request : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("AF data request status : %02X", msg->Status);
+        LOG_INF("Data request sent");
 
     return 0;
 }
