@@ -65,7 +65,7 @@ static void _get_demo_device_route(SyncActionCb cb)
 }
 
 
-static ZgSmState _init_states[] = {
+static ZgSmState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_nv_write_nwk_key, _general_init_cb},
@@ -84,7 +84,21 @@ static ZgSmState _init_states[] = {
     {_announce_gateway, _general_init_cb}
 };
 
-static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
+static int _init_reset_nb_states = sizeof(_init_states_reset)/sizeof(ZgSmState);
+
+static ZgSmState _init_states_restart[] = {
+    {mt_sys_reset_dongle, _general_init_cb},
+    {mt_sys_check_ext_addr, _general_init_cb},
+    {mt_sys_ping_dongle, _general_init_cb},
+    {mt_util_af_subscribe_cmd, _general_init_cb},
+    {zg_zll_init, _general_init_cb},
+    {zg_zha_init, _general_init_cb},
+    {mt_zdo_startup_from_app, _general_init_cb},
+    {mt_sys_nv_write_enable_security, _general_init_cb},
+    {_get_demo_device_route, _general_init_cb},
+    {_announce_gateway, _general_init_cb}
+};
+static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgSmState);
 
 /********************************
  *     Commands processing      *
@@ -161,7 +175,10 @@ void zg_core_init(uint8_t reset_network)
     zg_zha_register_new_device_joined_callback(_new_device_cb);
     zg_device_init(reset_network);
 
-    _init_sm = zg_sm_create(_init_states, _init_nb_states);
+    if(reset_network)
+        _init_sm = zg_sm_create(_init_states_reset, _init_reset_nb_states);
+    else
+        _init_sm = zg_sm_create(_init_states_restart, _init_restart_nb_states);
     zg_sm_continue(_init_sm);
 }
 
