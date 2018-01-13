@@ -85,7 +85,7 @@ static ApsEndpoint *_add_new_endpoint(uint8_t endpoint, ApsMsgCb cb)
     }
     buffer->endpoint = endpoint;
     buffer->cb = cb;
-    
+
     if(!_endpoints_list)
     {
         _endpoints_list = buffer;
