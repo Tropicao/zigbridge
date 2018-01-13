@@ -42,6 +42,8 @@ The list of needed build flags are the following :
 * NWK_MAX_DEVICE_LIST=0 : there is no need to allocate ressources to an intern device list, since the list will be stored on host size by gateway application
 * SECURE=1 : it is needed to allow encrypted communication with device implementing security
 * NV_INIT : enable basic persistent data in USB dongle flash
+* NV_RESTORE : allow basic network data persistence, needed to rejoin network
+  without issue when ZNP is restarted
 * ZTOOL_P1 : enable ZTOOL (Texas Instruments tool) messages over CC2531 serial port 1
 * MT_TASK : enable Monitor and Test commands, which is the core of communication between host and USB radio. A certain amount of MT sub flags need to be defined too
   * MT_AF_FUNC : enable AF commands
