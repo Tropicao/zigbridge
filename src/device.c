@@ -261,7 +261,9 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
     data = _get_device_by_ext_addr(ext_addr);
     if(data)
     {
-        LOG_INF("Device already exists in device base");
+        LOG_INF("Device already exists in device base, updating its data");
+        data->short_addr = short_addr;
+        _save_device_list();
         return -1;
     }
 
