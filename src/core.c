@@ -142,6 +142,7 @@ void zg_core_init(uint8_t reset_network)
 {
     LOG_INF("Initializing core application");
     _reset_network = reset_network;
+    _reset_network |= !zg_keys_check_network_key_exists();
     mt_af_register_callbacks();
     mt_sys_register_callbacks();
     mt_zdo_register_callbacks();

@@ -117,4 +117,7 @@ void zg_keys_network_key_del(void)
     unlink(zg_conf_get_network_key_path());
 }
 
-
+uint8_t zg_keys_check_network_key_exists(void)
+{
+    return !access(zg_conf_get_network_key_path(), F_OK);
+}
