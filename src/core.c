@@ -43,7 +43,7 @@ static void _general_init_cb(void)
 static void _write_clear_flag(SyncActionCb cb)
 {
     if(_reset_network)
-        mt_sys_nv_write_clear_state_and_config(cb);
+        mt_sys_nv_write_startup_options(STARTUP_CLEAR_STATE|STARTUP_CLEAR_CONFIG,cb);
     else
         cb();
 }

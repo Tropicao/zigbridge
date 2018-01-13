@@ -5,8 +5,6 @@
 #include "mt_sys.h"
 #include "keys.h"
 
-static uint8_t nv_clear_state_and_configuration_data[] = {3};
-static uint8_t nv_clear_configuration_data[] = {1};
 static uint8_t nv_coord_data[] = {0};
 static uint8_t nv_disable_sec_data[] = {0};
 static uint8_t nv_enable_sec_data[] = {1};
@@ -145,20 +143,21 @@ void mt_sys_ping_dongle(SyncActionCb cb)
     sysPing();
 }
 
-void mt_sys_nv_write_clear_config(SyncActionCb cb)
+void mt_sys_nv_write_startup_options(MtSysStartupOptions options,SyncActionCb cb)
 {
-    LOG_INF("Writing NV clear flag for configuration");
+    uint8_t nv_options = 0x00;
+    LOG_INF("Writing startup options");
     if(cb)
         sync_action_cb = cb;
-    mt_sys_osal_nv_write(3, 0, 1, nv_clear_configuration_data);
-}
 
-void mt_sys_nv_write_clear_state_and_config(SyncActionCb cb)
-{
-    LOG_INF("Writing NV clear flag for state and configuration");
-    if(cb)
-        sync_action_cb = cb;
-    mt_sys_osal_nv_write(3, 0, 1, nv_clear_state_and_configuration_data);
+    if(options & STARTUP_CLEAR_NWK_FRAME_COUNTER)
+        nv_options |= 0x1 << 7;
+    if(options & STARTUP_CLEAR_STATE)
+        nv_options |= 0x1 << 1;
+    if(options & STARTUP_CLEAR_CONFIG)
+        nv_options |= 0x1;
+
+    mt_sys_osal_nv_write(3, 0, 1, &nv_options);
 }
 
 void mt_sys_nv_write_coord_flag(SyncActionCb cb)
