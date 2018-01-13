@@ -44,7 +44,6 @@ static void _write_clear_flag(SyncActionCb cb)
     if(_reset_network)
         mt_sys_nv_write_clear_state_and_config(cb);
     else
-        //mt_sys_nv_write_clear_config(cb);
         cb();
 }
 
