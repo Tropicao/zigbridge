@@ -104,7 +104,7 @@ static uint8_t mt_zdo_ext_route_disc_srsp_cb(ExtRouteDiscSrspFormat_t *msg)
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
-    NULL,
+    mt_zdo_node_desc_rsp_cb,
     NULL,
     NULL,
     NULL,
@@ -138,7 +138,8 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     mt_zdo_device_annce_srsp_cb,
-    mt_zdo_ext_route_disc_srsp_cb
+    mt_zdo_ext_route_disc_srsp_cb,
+    NULL
 };
 
 /********************************

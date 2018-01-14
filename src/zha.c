@@ -94,6 +94,7 @@ static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
     LOG_INF("New device joined network with address 0x%04X !", addr);
     if(_new_device_joined_cb)
         _new_device_joined_cb(addr, ext_addr);
+    
 }
 
 static void _security_disabled_cb(void)
@@ -200,5 +201,17 @@ void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb)
 {
     _new_device_joined_cb = cb;
 }
+
+void zha_ask_node_descriptor(uint16_t short_addr)
+{
+    NodeDescReqFormat_t req;
+
+    LOG_INF("Sending Node descriptor request to 0x%04X", short_addr);
+    req.DstAddr = 0x0000;
+    req.NwkAddrOfInterest = short_addr;
+    zdoNodeDescReq(&req);
+}
+
+
 
 
