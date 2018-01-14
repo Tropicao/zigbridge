@@ -95,10 +95,15 @@ static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t)
  *   ZLL messages callbacks     *
  *******************************/
 
+static void _reset_sent(void)
+{
+    mt_sys_nv_write_enable_security(NULL);
+}
+
 static void _identify_delay_timeout_cb(uv_timer_t *t)
 {
     uv_unref((uv_handle_t *)t);
-    zg_zll_send_factory_reset_request(NULL);
+    zg_zll_send_factory_reset_request(_reset_sent);
 }
 
 static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
