@@ -6,6 +6,7 @@
 
 typedef enum
 {
+    STARTUP_NO_CLEAR =                  0x00,
     STARTUP_CLEAR_NWK_FRAME_COUNTER =   0x01,
     STARTUP_CLEAR_STATE =               0x02,
     STARTUP_CLEAR_CONFIG =              0x04,

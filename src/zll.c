@@ -8,6 +8,8 @@
 #include "sm.h"
 #include "mt_af.h"
 #include "mt_sys.h"
+#include "mt_util.h"
+#include "mt_zdo.h"
 
 /********************************
  *          Constants           *
@@ -35,6 +37,9 @@
 #define INDEX_ZIGBEE_INFORMATION                4
 #define INDEX_ZLL_INFORMATION                   5
 
+/* Scan Response frame format */
+#define LEN_SCAN_RESPONSE                       29
+
 /* Identify Request frame format */
 #define LEN_IDENTIFY_REQUEST                    6
 #define INDEX_IDENTIFY_DURATION                 4
@@ -58,7 +63,7 @@
 
 
 /* App data */
-#define SCAN_TIMEOUT                            0.25
+#define SCAN_RESPONSE_DELAY_MS                  250
 #define ZLL_PROFIL_ID                           0xC05E  /* ZLL */
 #define ZLL_DEVICE_ID                           0X0210  /* Extended color light */
 #define ZLL_DEVICE_VERSION                      0x2     /* Version 2 */
@@ -71,6 +76,10 @@
 static uv_timer_t _scan_timeout_timer;
 static uv_timer_t _identify_timer;
 static uint8_t _stop_scan = 0;
+//static uint8_t _primary_channel = 11;
+//static uint8_t _secondary_channels[] = {15, 20, 25};
+//static uint8_t _nb_secondary_channels = sizeof(_secondary_channels)/sizeof(uint8_t);
+static uint8_t _current_channel = ZLL_CHANNEL;
 
 static uint32_t _interpan_transaction_identifier = 0;
 
@@ -94,7 +103,7 @@ static void _identify_delay_timeout_cb(uv_timer_t *t)
 
 static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
-    LOG_INF("A device is ready to install");
+    LOG_INF("Received scan response from new device");
     _stop_scan = 1;
     zg_zll_send_identify_request(NULL);
     uv_timer_init(uv_default_loop(), &_identify_timer);
@@ -150,7 +159,7 @@ static void _set_inter_pan_endpoint(SyncActionCb cb)
 
 static void _set_inter_pan_channel(SyncActionCb cb)
 {
-    mt_af_set_inter_pan_channel(ZLL_CHANNEL, cb);
+    mt_af_set_inter_pan_channel(_current_channel, cb);
 }
 
 void _register_zll_endpoint(SyncActionCb cb)
@@ -180,42 +189,65 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
  *    Touchlink state machine   *
  *******************************/
 
-static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)));
+static ZgSm *_touchlink_sm = NULL;
 
-static void _scan_request_sent(void)
+static void _send_single_scan_request(SyncActionCb cb)
 {
-    if(_stop_scan !=1)
-        uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, 250, 0);
+    LOG_INF("Sending ZLL scan request");
+    zg_zll_send_scan_request(cb);
 }
 
-static void _send_single_scan_request()
+static void _wait_scan_response(SyncActionCb cb)
 {
-    zg_zll_send_scan_request(_scan_request_sent);
+    LOG_INF("Waiting for scan response for %d ms", SCAN_RESPONSE_DELAY_MS);
+    uv_timer_cb timer_cb = (uv_timer_cb)cb;
+    uv_timer_start(&_scan_timeout_timer, timer_cb, SCAN_RESPONSE_DELAY_MS, 0);
 }
 
-static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
+/*
+static void _switch_to_primary_channel(SyncActionCb cb)
 {
-    static int scan_counter = 0;
+    LOG_INF("Switching to ZLL primary channel (%d)", _primary_channel);
+    mt_sys_nv_write_channel(_primary_channel, cb);
+}
 
-    scan_counter++;
-    if(scan_counter < 5 && !_stop_scan)
-        _send_single_scan_request();
+static void _switch_to_new_secondary_channel(SyncActionCb cb)
+{
+    static uint8_t index = 0;
+    if(index < _nb_secondary_channels)
+    {
+        LOG_INF("Switching to ZLL secondary channel (%d)", _secondary_channels[index]);
+        mt_sys_nv_write_channel(_secondary_channels[index], cb);
+        index++;
+    }
     else
+        cb();
+}
+*/
+static void _touchlink_callback(void)
+{
+    if(_stop_scan || zg_sm_continue(_touchlink_sm) != 0)
+    {
+        if(!_stop_scan)
+            LOG_INF("Touchlink procedure ended without finding any new device");
+        _stop_scan = 0;
         uv_unref((uv_handle_t *) &_scan_timeout_timer);
+        zg_sm_destroy(_init_sm);
+    }
 }
 
-static void _send_five_scan_requests()
-{
-    _stop_scan = 0;
-    uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
-    _send_single_scan_request();
-}
-
-static void _security_disabled(void)
-{
-    _send_five_scan_requests();
-}
-
+static ZgSmState _touchlink_states[] = {
+    {mt_sys_nv_write_disable_security, _touchlink_callback},
+    {_send_single_scan_request, _touchlink_callback},
+    {_wait_scan_response, _touchlink_callback},
+    {_send_single_scan_request, _touchlink_callback},
+    {_wait_scan_response, _touchlink_callback},
+    {_send_single_scan_request, _touchlink_callback},
+    {_wait_scan_response, _touchlink_callback},
+    {_send_single_scan_request, _touchlink_callback},
+    {_wait_scan_response, _touchlink_callback},
+};
+static int _touchlink_nb_states = sizeof(_touchlink_states)/sizeof(ZgSmState);
 /********************************
  *          Internal            *
  *******************************/
@@ -318,5 +350,8 @@ void zg_zll_start_touchlink(void)
 {
     LOG_INF("Starting touchlink procedure");
     _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
-    mt_sys_nv_write_disable_security(_security_disabled);
+    _stop_scan = 0;
+    uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
+    _touchlink_sm = zg_sm_create(_touchlink_states, _touchlink_nb_states);
+    zg_sm_continue(_touchlink_sm);
 }

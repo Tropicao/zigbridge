@@ -48,6 +48,11 @@ static void _write_clear_flag(SyncActionCb cb)
         cb();
 }
 
+static void _reset_clear_flag(SyncActionCb cb)
+{
+    mt_sys_nv_write_startup_options(STARTUP_NO_CLEAR,cb);
+}
+
 static void _write_channel(SyncActionCb cb)
 {
     mt_sys_nv_write_channel(GATEWAY_CHANNEL, cb);
@@ -68,6 +73,7 @@ static void _get_demo_device_route(SyncActionCb cb)
 static ZgSmState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
+    {_reset_clear_flag, _general_init_cb},
     {mt_sys_nv_write_nwk_key, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_check_ext_addr, _general_init_cb},
