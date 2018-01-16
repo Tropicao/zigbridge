@@ -45,8 +45,7 @@ void mt_util_register_callbacks(void)
 void mt_util_af_subscribe_cmd (SyncActionCb cb)
 {
     LOG_INF("Subscribing to MT_AF callbacks");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     CallbackSubCmdFormat_t req;
     req.SubsystemId = MT_AF_CB;
     req.Action = MT_CB_ACTION_ENABLE;

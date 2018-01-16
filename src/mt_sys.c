@@ -128,8 +128,7 @@ void mt_sys_register_callbacks(void)
 void mt_sys_reset_dongle (SyncActionCb cb)
 {
     LOG_INF("Resetting ZNP");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     ResetReqFormat_t resReq;
     resReq.Type = 1;
     sysResetReq(&resReq);
@@ -138,8 +137,7 @@ void mt_sys_reset_dongle (SyncActionCb cb)
 void mt_sys_ping_dongle(SyncActionCb cb)
 {
     LOG_INF("Ping dongle");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     sysPing();
 }
 
@@ -147,8 +145,7 @@ void mt_sys_nv_write_startup_options(MtSysStartupOptions options,SyncActionCb cb
 {
     uint8_t nv_options = 0x00;
     LOG_INF("Writing startup options");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
 
     if(options & STARTUP_CLEAR_NWK_FRAME_COUNTER)
         nv_options |= 0x1 << 7;
@@ -163,32 +160,28 @@ void mt_sys_nv_write_startup_options(MtSysStartupOptions options,SyncActionCb cb
 void mt_sys_nv_write_coord_flag(SyncActionCb cb)
 {
     LOG_INF("Setting device as coordinator");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x87, 0, 1, nv_coord_data);
 }
 
 void mt_sys_nv_write_disable_security(SyncActionCb cb)
 {
     LOG_INF("Disabling NWK security");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x64, 0, 1, nv_disable_sec_data);
 }
 
 void mt_sys_nv_write_enable_security(SyncActionCb cb)
 {
     LOG_INF("Enabling NWK security");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x64, 0, 1, nv_enable_sec_data);
 }
 
 void mt_sys_nv_set_pan_id(SyncActionCb cb)
 {
     LOG_INF("Setting PAN ID");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x83, 0, 2, nv_set_pan_id);
 }
 
@@ -196,8 +189,7 @@ void mt_sys_nv_write_nwk_key(SyncActionCb cb)
 {
     LOG_INF("Setting network key");
 
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x62, 0, zg_keys_network_key_size_get(), zg_keys_network_key_get());
 }
 
@@ -205,8 +197,7 @@ void mt_sys_check_ext_addr(SyncActionCb cb)
 {
     LOG_INF("Retrieving extended address");
 
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     sysGetExtAddr();
 }
 
@@ -277,8 +268,7 @@ void mt_sys_nv_write_channel(uint8_t channel, SyncActionCb cb)
             break;
     }
     LOG_INF("Setting radio to operate on channel %d", channel);
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     mt_sys_osal_nv_write(0x84, 0, sizeof(channel_mask), (uint8_t *)&channel_mask);
 }
 

@@ -168,8 +168,7 @@ void mt_af_register_endpoint(   uint8_t endpoint,
     uint8_t index;
 
     LOG_INF("Registering new endpoint with profile 0x%4X", profile);
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     req.EndPoint = endpoint;
     req.AppProfId = profile;
     req.AppDeviceId = device_id;
@@ -189,8 +188,7 @@ void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
     InterPanCtlFormat_t req;
 
     LOG_INF("Setting inter-pan endpoint 0x%02X", endpoint);
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     req.Command = INTER_PAN_REGISTER;
     memcpy(req.Data, &endpoint, sizeof(endpoint));
     afInterPanCtl(&req);
@@ -201,8 +199,7 @@ void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
     InterPanCtlFormat_t req;
 
     LOG_INF("Setting inter-pan channel 0x%02X", channel);
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     req.Command = INTER_PAN_SET;
     memcpy(req.Data, &channel, sizeof(channel));
     afInterPanCtl(&req);
@@ -230,8 +227,7 @@ void mt_af_send_data_request_ext(   uint16_t dst_addr,
     }
 
     LOG_DBG("Sending AF_DATA_REQUEST_EXT");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     DataRequestExtFormat_t req;
     req.DstAddrMode = SHORT_ADDR_MODE;
     memset(req.DstAddr, 0, sizeof(req.DstAddr));

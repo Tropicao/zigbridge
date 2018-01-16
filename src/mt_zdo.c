@@ -187,8 +187,7 @@ void mt_zdo_nwk_discovery_req(SyncActionCb cb)
     uint8_t status;
 
     LOG_INF("Sending ZDO network discover request");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     memcpy(req.ScanChannels, &scan_param, 4);
     req.ScanDuration = 5;
     status = zdoNwkDiscoveryReq(&req);
@@ -199,8 +198,7 @@ void mt_zdo_nwk_discovery_req(SyncActionCb cb)
 void mt_zdo_startup_from_app(SyncActionCb cb)
 {
     LOG_INF("Starting ZDO stack");
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     StartupFromAppFormat_t req;
     req.StartDelay = 0;
     zdoStartupFromApp(&req);
@@ -215,8 +213,7 @@ void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
 {
     LOG_INF("Announce gateway (0x%04X - 0x%016X) to network", addr, uid);
 
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     DeviceAnnceFormat_t req;
     req.NWKAddr = addr;
     memcpy(req.IEEEAddr, &uid, sizeof(uid));
@@ -229,8 +226,7 @@ void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
     ExtRouteDiscFormat_t req;
 
     LOG_INF("Asking route for device 0x%04X", addr);
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
 
     req.DstAddr = addr;
     req.Options = ROUTE_REQ_OPTIONS;
@@ -243,8 +239,7 @@ void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
     LOG_INF("Requesting active endpoints for device 0x%04X", short_addr);
 
     ActiveEpReqFormat_t req;
-    if(cb)
-        sync_action_cb = cb;
+    sync_action_cb = cb;
     req.DstAddr = 0x0000;
     req.NwkAddrOfInterest = short_addr;
     zdoActiveEpReq(&req);
