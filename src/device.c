@@ -307,3 +307,10 @@ uint16_t zg_device_get_short_addr(DeviceId id)
 
     return addr;
 }
+
+uint8_t zg_device_is_device_known(uint64_t ext_addr)
+{
+    DeviceData *data = _get_device_by_ext_addr(ext_addr);
+    return (data != NULL);
+}
+

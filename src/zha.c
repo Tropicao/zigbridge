@@ -212,6 +212,9 @@ void zha_ask_node_descriptor(uint16_t short_addr)
     zdoNodeDescReq(&req);
 }
 
-
+void zg_zha_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
+{
+    mt_zdo_query_active_endpoints(short_addr, cb);
+}
 
 

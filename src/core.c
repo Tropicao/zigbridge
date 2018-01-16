@@ -105,7 +105,16 @@ static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgSmSta
  *******************************/
 static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
-    zg_add_device(short_addr, ext_addr);
+    if(!zg_device_is_device_known(ext_addr))
+    {
+        LOG_INF("Seen device is a new device");
+        zg_add_device(short_addr, ext_addr);
+        zg_zha_query_active_endpoints(short_addr, NULL);
+    }
+    else
+    {
+        LOG_INF("Visible device is already learnt");
+    }
 }
 
 /********************************

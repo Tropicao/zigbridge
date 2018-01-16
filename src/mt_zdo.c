@@ -23,6 +23,21 @@ static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
  *     MT ZDO callbacks         *
  *******************************/
 
+static uint8_t mt_zdo_active_ep_rsp_cb(ActiveEpRspFormat_t *msg)
+{
+    int index = 0;
+    if(msg->Status != ZSuccess)
+    {
+        LOG_ERR("Error on ACTIVE ENDPOINT SRSP : %s", znp_strerror(msg->Status));
+        return 1;
+    }
+    LOG_INF("Device 0x%04X has %d active endpoints :", msg->SrcAddr, msg->ActiveEPCount);
+    for(index = 0; index < msg->ActiveEPCount; index++)
+        LOG_INF("Endpoint 0x%02X", msg->ActiveEPList[index]);
+    return 0;
+}
+
+
 static uint8_t mt_zdo_state_change_ind_cb(uint8_t zdoState)
 {
     LOG_INF("New ZDO state : 0x%02X", zdoState);
@@ -101,13 +116,27 @@ static uint8_t mt_zdo_ext_route_disc_srsp_cb(ExtRouteDiscSrspFormat_t *msg)
 
 }
 
+static uint8_t mt_zdo_active_ep_req_srsp_cb(ActiveEpReqSrspFormat_t *msg)
+{
+    if(msg->Status != ZSuccess)
+        LOG_WARN("Error sending route request : %s", znp_strerror(msg->Status));
+    else
+        LOG_INF("Route request sent");
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
     NULL,
     NULL,
-    NULL,
+    mt_zdo_active_ep_rsp_cb,
     NULL,
     NULL,
     NULL,
@@ -140,7 +169,7 @@ static mtZdoCb_t mt_zdo_cb = {
     mt_zdo_device_annce_srsp_cb,
     mt_zdo_ext_route_disc_srsp_cb,
     NULL,
-    NULL
+    mt_zdo_active_ep_req_srsp_cb
 };
 
 /********************************
@@ -209,4 +238,15 @@ void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
     zdoExtRouteDisc(&req);
 }
 
+void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
+{
+    LOG_INF("Requesting active endpoints for device 0x%04X", short_addr);
+
+    ActiveEpReqFormat_t req;
+    if(cb)
+        sync_action_cb = cb;
+    req.DstAddr = 0x0000;
+    req.NwkAddrOfInterest = short_addr;
+    zdoActiveEpReq(&req);
+}
 
