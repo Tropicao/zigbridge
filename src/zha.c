@@ -60,7 +60,7 @@
 
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
-static NewDeviceJoinedCb _new_device_joined_cb = NULL;
+static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
     ZCL_CLUSTER_ON_OFF};
@@ -92,9 +92,9 @@ static void _zha_message_cb(void *data, int len)
 static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 {
     LOG_INF("New device joined network with address 0x%04X !", addr);
-    if(_new_device_joined_cb)
-        _new_device_joined_cb(addr, ext_addr);
-    
+    if(_new_device_ind_cb)
+        _new_device_ind_cb(addr, ext_addr);
+
 }
 
 static void _security_disabled_cb(void)
@@ -197,9 +197,9 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
             NULL);
 }
 
-void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb)
+void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb)
 {
-    _new_device_joined_cb = cb;
+    _new_device_ind_cb = cb;
 }
 
 void zha_ask_node_descriptor(uint16_t short_addr)

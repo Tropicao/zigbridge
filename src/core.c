@@ -172,7 +172,7 @@ void zg_core_init(uint8_t reset_network)
         zg_keys_network_key_del();
     zg_aps_init();
     zg_ipc_register_command_cb(_process_user_command);
-    zg_zha_register_new_device_joined_callback(_new_device_cb);
+    zg_zha_register_device_ind_callback(_new_device_cb);
     zg_device_init(reset_network);
 
     if(reset_network)

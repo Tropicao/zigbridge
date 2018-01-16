@@ -11,7 +11,7 @@ void zg_zha_init(InitCompleteCb cb);
 void zg_zha_shutdown(void);
 void zg_zha_switch_bulb_state(uint16_t short_addr);
 void zg_zha_set_bulb_state(uint16_t addr, uint8_t state);
-void zg_zha_register_new_device_joined_callback(NewDeviceJoinedCb cb);
+void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb);
 void zha_ask_node_descriptor(uint16_t short_addr);
 
 #endif
