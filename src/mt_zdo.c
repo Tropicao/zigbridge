@@ -139,6 +139,7 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     mt_zdo_device_annce_srsp_cb,
     mt_zdo_ext_route_disc_srsp_cb,
+    NULL,
     NULL
 };
 
