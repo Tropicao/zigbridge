@@ -4,6 +4,7 @@
 #include "aps.h"
 #include "mt_af.h"
 #include "utils.h"
+#include "zcl.h"
 
 /********************************
  *          Data types          *
@@ -174,6 +175,14 @@ void zg_aps_register_endpoint(  uint8_t endpoint,
     if(!_add_new_endpoint(endpoint, msg_cb))
         return;
 
+    /* We do not need to register ZDP endpoint (0x0000) since it is enabled by default */
+    if(endpoint == ZCL_ZDP_ENDPOINT)
+    {
+        if(cb)
+            cb();
+        return;
+    }
+
     mt_af_register_endpoint(endpoint,
             profile,
             device_id,
@@ -209,11 +218,21 @@ void zg_aps_send_data(  uint16_t dst_addr,
     if(cb)
         _current_cb = cb;
 
-    aps_data[INDEX_FCS] = _build_frame_control();
-    aps_data[INDEX_TRANS_SEQ_NUM] = _transaction_sequence_number;
-    aps_data[INDEX_COMMAND] = command;
-    if(len > 0 && data)
-        memcpy(aps_data+APS_HEADER_SIZE, data, len);
+    if(src_endpoint != 0x0000)
+    {
+        aps_data[INDEX_FCS] = _build_frame_control();
+        aps_data[INDEX_TRANS_SEQ_NUM] = _transaction_sequence_number;
+        aps_data[INDEX_COMMAND] = command;
+        if(len > 0 && data)
+            memcpy(aps_data+APS_HEADER_SIZE, data, len);
+    }
+    else
+    {
+        memcpy(aps_data, data, 1);
+        aps_data[1] = dst_addr & 0xFF;
+        aps_data[2] = (dst_addr >> 8) & 0xFF;
+        aps_data_len = 3;
+    }
 
     mt_af_send_data_request_ext(dst_addr,
             dst_pan,

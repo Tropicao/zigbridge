@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <znp.h>
 #include "core.h"
+#include "zdp.h"
 #include "zha.h"
 #include "zll.h"
 #include "sm.h"
@@ -93,6 +94,7 @@ static ZgSmState _init_states_restart[] = {
     {mt_util_af_subscribe_cmd, _general_init_cb},
     {zg_zll_init, _general_init_cb},
     {zg_zha_init, _general_init_cb},
+    {zg_zdp_init, _general_init_cb},
     {mt_zdo_startup_from_app, _general_init_cb},
     {mt_sys_nv_write_enable_security, _general_init_cb},
     {_get_demo_device_route, _general_init_cb},
@@ -161,7 +163,7 @@ static void _process_command_discovery(void)
         LOG_WARN("No device installed, abort characteristics discovery");
         return;
     }
-    zg_zha_query_active_endpoints(addr, NULL);
+    zg_zdp_query_active_endpoints(addr, NULL);
 }
 
 static void _process_user_command(IpcCommand cmd)
