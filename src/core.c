@@ -127,6 +127,7 @@ static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep
     {
         LOG_INF("Active endpoint 0x%02X", ep_list[index]);
     }
+    zg_device_update_endpoints(short_addr, nb_ep, ep_list);
 }
 
 /********************************

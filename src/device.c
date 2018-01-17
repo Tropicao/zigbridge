@@ -21,9 +21,15 @@
 
 typedef struct
 {
+    uint8_t num;
+} EndpointData;
+
+typedef struct
+{
     DeviceId id;
     uint16_t short_addr;
     uint64_t ext_addr;
+    Eina_List *endpoints;
 } DeviceData;
 
 /********************************
@@ -31,6 +37,87 @@ typedef struct
  *******************************/
 
 static Eina_List *_device_list = NULL;
+
+/********************************
+ *  Device data retrievement    *
+ *******************************/
+
+static DeviceData *_get_device_by_short_addr(uint16_t short_addr)
+{
+    Eina_List *l;
+    DeviceData *data;
+
+    EINA_LIST_FOREACH(_device_list, l, data)
+    {
+        if(data->short_addr == short_addr)
+            break;
+    }
+
+    return data;
+}
+
+
+/********************************
+ *  Endpoint data management    *
+ *******************************/
+
+static void _destroy_endpoint_data(EndpointData *endpoint)
+{
+    if(endpoint)
+    {
+    }
+    ZG_VAR_FREE(endpoint);
+}
+
+static void _destroy_endpoints_list(DeviceData *data)
+{
+    EndpointData *endpoint = NULL;
+    if(!data)
+        return;
+
+    EINA_LIST_FREE(data->endpoints, endpoint)
+    {
+        _destroy_endpoint_data(endpoint);
+    }
+    data->endpoints = NULL;
+}
+
+static EndpointData *_get_endpoint_by_num(Eina_List *ep, uint8_t num)
+{
+    EndpointData *res = NULL;
+    Eina_List *l = NULL;
+    if(!ep)
+        return NULL;
+
+    EINA_LIST_FOREACH(ep, l, res)
+    {
+        if(res->num == num)
+            return res;
+    }
+    return res;
+}
+
+
+
+static void _add_endpoint(DeviceData *data, uint8_t num)
+{
+    EndpointData *endpoint = NULL;
+    if(!data)
+        return;
+
+    if(_get_endpoint_by_num(data->endpoints, num) != NULL)
+        return;
+
+    endpoint = calloc(1, sizeof(EndpointData));
+    if(!endpoint)
+    {
+        LOG_CRI("Error allocating memory for new endpoint");
+        return;
+    }
+
+    endpoint->num = num;
+    data->endpoints = eina_list_append(data->endpoints, endpoint);
+}
 
 /********************************
  *   Device data management     *
@@ -52,6 +139,11 @@ static DeviceData *_create_device_data( DeviceId id,
 
 static void _destroy_device_data(DeviceData *data)
 {
+    if(data)
+    {
+        _destroy_endpoints_list(data);
+    }
+
     ZG_VAR_FREE(data);
 }
 
@@ -68,6 +160,7 @@ static DeviceData *_get_device_by_ext_addr(uint64_t ext_addr)
 
     return data;
 }
+
 
 
 /********************************
@@ -116,13 +209,19 @@ static void _add_device_to_list(DeviceData *data)
 
 static void _print_device_list(void)
 {
-    Eina_List *l = NULL;
+    Eina_List *l = NULL, *l_ep = NULL;
     DeviceData *data = NULL;
+    EndpointData *endpoint = NULL;
 
     LOG_DBG(" =============== Device list ===============");
     EINA_LIST_FOREACH(_device_list, l, data)
+    {
         LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X",
                 data->id, data->short_addr, data->ext_addr);
+        EINA_LIST_FOREACH(data->endpoints, l_ep, endpoint)
+            LOG_DBG("Endpoint : 0x%02X", endpoint->num);
+    }
+
     LOG_DBG("============================================");
 
 }
@@ -132,14 +231,15 @@ void _load_device_list()
     json_t *root = NULL, *array = NULL;
     json_error_t error;
     const char *device_path = zg_conf_get_device_list_path();
-    size_t index;
-    json_t *value;
+    size_t index, ep_index;
+    json_t *value, *ep;
     DeviceData *data;
 
     /* Saved data */
     json_t *id = NULL;
     json_t *short_addr = NULL;
     json_t *ext_addr = NULL;
+    json_t *endpoints;
 
 
 
@@ -165,11 +265,23 @@ void _load_device_list()
         {
             short_addr = json_object_get(value, "short_addr");
             ext_addr = json_object_get(value, "ext_addr");
+
             data = _create_device_data( json_integer_value(id),
                                         json_integer_value(short_addr),
                                         json_integer_value(ext_addr));
             if(data)
+            {
                 _add_device_to_list(data);
+                endpoints = json_object_get(value, "endpoints");
+                if(endpoints && json_is_array(endpoints))
+                {
+                    json_array_foreach(endpoints, ep_index, ep)
+                    {
+                        _add_endpoint(data,json_integer_value(json_object_get(ep, "num")));
+                    }
+                }
+            }
+
             else
                 LOG_WARN("Cannot create device data from retrieved device data in file");
 
@@ -208,22 +320,44 @@ void _save_device_list()
 {
     Eina_List *l = NULL;
     DeviceData *data = NULL;
-    json_t *root = NULL, *array = NULL, *device = NULL;
+    EndpointData *current_endpoint = NULL;
+    json_t *root = NULL, *array = NULL, *device = NULL, *endpoints = NULL, *endpoint = NULL;
     const char *device_path = zg_conf_get_device_list_path();
 
     array = json_array();
     EINA_LIST_FOREACH(_device_list, l, data)
     {
+        endpoints = json_array();
+        EINA_LIST_FOREACH(data->endpoints, l, current_endpoint)
+        {
+            endpoint = json_object();
+            if(json_object_set_new(endpoint, "num", json_integer(current_endpoint->num)))
+            {
+                LOG_ERR("Cannot build json object for file %s, for device 0x%04X - endpoint 0x%02X",
+                        device_path, data->short_addr, current_endpoint->num);
+            }
+            else
+            {
+                json_array_append(endpoints, endpoint);
+            }
+            json_decref(endpoint);
+        }
         device = json_object();
+
         if( json_object_set_new(device, "id", json_integer(data->id))                   ||
             json_object_set_new(device, "short_addr", json_integer(data->short_addr))   ||
-            json_object_set_new(device, "ext_addr", json_integer(data->ext_addr))        )
+            json_object_set_new(device, "ext_addr", json_integer(data->ext_addr))       ||
+            json_object_set(device, "endpoints", endpoints ))
         {
             LOG_ERR("Cannot build json value to save device %d", data->id);
+            json_decref(device);
+            json_decref(endpoints);
             json_decref(root);
             return;
         }
-        json_array_append_new(array, device);
+        json_array_append(array, device);
+        json_decref(device);
+        json_decref(endpoints);
     }
 
     root = json_object();
@@ -312,5 +446,30 @@ uint8_t zg_device_is_device_known(uint64_t ext_addr)
 {
     DeviceData *data = _get_device_by_ext_addr(ext_addr);
     return (data != NULL);
+}
+
+void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list)
+{
+    DeviceData *data = _get_device_by_short_addr(short_addr);
+    uint8_t index = 0;
+
+    if(!data)
+    {
+        LOG_ERR("Cannot save endpoints for device 0x%04X : device is unknown", short_addr);
+        return;
+    }
+    if(nb_ep <= 0 || !ep_list)
+    {
+        LOG_ERR("Cannot save endpoints for device 0x%04X : %s.",
+                nb_ep > 0 ? "incorrect number of endpoints" : "endpoint list is NULL");
+        return;
+    }
+    
+    LOG_INF("Saving up-to-date endpoints list for device 0x%04X", short_addr);
+    for(index = 0; index < nb_ep; index++)
+    {
+        _add_endpoint(data, ep_list[index]);
+    }
+    _save_device_list();
 }
 
