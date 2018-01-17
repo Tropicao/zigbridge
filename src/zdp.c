@@ -6,6 +6,7 @@
 #include "aps.h"
 #include "zcl.h"
 #include "sm.h"
+#include "mt_zdo.h"
 
 /********************************
  *          Constants           *
@@ -31,10 +32,17 @@
 
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _init_complete_cb = NULL;
+static ActiveEpRspCb _active_ep_cb = NULL;
 
 /********************************
  *   ZDP messages callbacks     *
  *******************************/
+
+static void _zdo_active_ep_rsp_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list)
+{
+    if(_active_ep_cb)
+        _active_ep_cb(short_addr, nb_ep, ep_list);
+}
 
 static void _zdp_message_cb(void *data, int len)
 {
@@ -102,6 +110,7 @@ void zg_zdp_init(SyncActionCb cb)
     if(cb)
         _init_complete_cb = cb;
 
+    mt_zdo_register_active_ep_rsp_callback(_zdo_active_ep_rsp_cb);
     _init_sm = zg_sm_create(_init_states, _init_nb_states);
     zg_sm_continue(_init_sm);
 }
@@ -134,4 +143,7 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 
 }
 
-
+void zg_zdp_register_active_endpoints_rsp(ActiveEpRspCb cb)
+{
+    _active_ep_cb = cb;
+}

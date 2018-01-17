@@ -103,8 +103,9 @@ static ZgSmState _init_states_restart[] = {
 static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgSmState);
 
 /********************************
- *     Commands processing      *
+ *  Network Events processing   *
  *******************************/
+
 static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
     if(!zg_device_is_device_known(ext_addr))
@@ -115,6 +116,16 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
     else
     {
         LOG_INF("Visible device is already learnt");
+    }
+}
+
+static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list)
+{
+    uint8_t index = 0;
+    LOG_INF("Device 0x%04X has %d active endpoints :", short_addr, nb_ep);
+    for(index = 0; index < nb_ep; index++)
+    {
+        LOG_INF("Active endpoint 0x%02X", ep_list[index]);
     }
 }
 
@@ -204,6 +215,7 @@ void zg_core_init(uint8_t reset_network)
     zg_aps_init();
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
+    zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_device_init(reset_network);
 
     if(reset_network)

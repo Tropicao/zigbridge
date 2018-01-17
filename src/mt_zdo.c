@@ -18,6 +18,7 @@
 static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
+static void (*_zdo_active_ep_rsp_cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list) = NULL;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -25,15 +26,15 @@ static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 
 static uint8_t mt_zdo_active_ep_rsp_cb(ActiveEpRspFormat_t *msg)
 {
-    int index = 0;
     if(msg->Status != ZSuccess)
     {
         LOG_ERR("Error on ACTIVE ENDPOINT SRSP : %s", znp_strerror(msg->Status));
         return 1;
     }
-    LOG_INF("Device 0x%04X has %d active endpoints :", msg->SrcAddr, msg->ActiveEPCount);
-    for(index = 0; index < msg->ActiveEPCount; index++)
-        LOG_INF("Endpoint 0x%02X", msg->ActiveEPList[index]);
+    LOG_INF("MT_ZDO_ACTIVE_EP_RSP received");
+    if(_zdo_active_ep_rsp_cb)
+        _zdo_active_ep_rsp_cb(msg->NwkAddr, msg->ActiveEPCount, msg->ActiveEPList);
+
     return 0;
 }
 
@@ -245,3 +246,7 @@ void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
     zdoActiveEpReq(&req);
 }
 
+void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list))
+{
+    _zdo_active_ep_rsp_cb = cb;
+}
