@@ -23,7 +23,7 @@ typedef struct ApsEndpoint
  *******************************/
 
 /* APS Header format */
-#define APS_HEADER_SIZE             3
+#define ZCL_HEADER_SIZE             3
 #define INDEX_FCS                   0x0
 #define INDEX_TRANS_SEQ_NUM         0x1
 #define INDEX_COMMAND               0x2
@@ -205,9 +205,11 @@ void zg_aps_send_data(  uint16_t dst_addr,
                         SyncActionCb cb)
 {
     uint8_t *aps_data = NULL;
-    int aps_data_len;
+    int aps_data_len = len;
 
-    aps_data_len = APS_HEADER_SIZE + len;
+    if(src_endpoint != ZCL_ZDP_ENDPOINT)
+        aps_data_len += ZCL_HEADER_SIZE;
+
     aps_data = calloc(aps_data_len, sizeof(uint8_t));
     if(!aps_data)
     {
@@ -218,20 +220,17 @@ void zg_aps_send_data(  uint16_t dst_addr,
     if(cb)
         _current_cb = cb;
 
-    if(src_endpoint != 0x0000)
+    if(src_endpoint != ZCL_ZDP_ENDPOINT)
     {
         aps_data[INDEX_FCS] = _build_frame_control();
         aps_data[INDEX_TRANS_SEQ_NUM] = _transaction_sequence_number;
         aps_data[INDEX_COMMAND] = command;
         if(len > 0 && data)
-            memcpy(aps_data+APS_HEADER_SIZE, data, len);
+            memcpy(aps_data + ZCL_HEADER_SIZE, data, len);
     }
     else
     {
-        memcpy(aps_data, data, 1);
-        aps_data[1] = dst_addr & 0xFF;
-        aps_data[2] = (dst_addr >> 8) & 0xFF;
-        aps_data_len = 3;
+        memcpy(aps_data, data, len);
     }
 
     mt_af_send_data_request_ext(dst_addr,

@@ -15,7 +15,8 @@
 
 /* Active Endpoint */
 #define LEN_ACTIVE_ENDPOINT_REQ                 3
-#define INDEX_TRANSACTION_SEQ_NUMBER            0 
+#define INDEX_TRANSACTION_SEQ_NUMBER            0
+#define INDEX_NWK_ADDR_OF_INTEREST              1
 
 /* Data */
 
@@ -117,6 +118,9 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
     memcpy(zdp_data+INDEX_TRANSACTION_SEQ_NUMBER,
             &_transaction_sequence_number,
             sizeof(_transaction_sequence_number));
+    memcpy(zdp_data+INDEX_NWK_ADDR_OF_INTEREST,
+            &short_addr,
+            sizeof(short_addr));
 
     zg_aps_send_data(short_addr,
             0xABCD,
