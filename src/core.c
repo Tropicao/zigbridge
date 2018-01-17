@@ -109,7 +109,6 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
     {
         LOG_INF("Seen device is a new device");
         zg_add_device(short_addr, ext_addr);
-        zg_zha_query_active_endpoints(short_addr, NULL);
     }
     else
     {
@@ -147,6 +146,24 @@ static void _process_command_switch_light()
 
 }
 
+static void _process_command_discovery(void)
+{
+    uint16_t addr = 0xFFFD;
+    if(!_initialized)
+    {
+        LOG_WARN("Core application has not finished initializing, abort device discovery");
+        return;
+    }
+
+    addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+    if(addr == 0xFFFD)
+    {
+        LOG_WARN("No device installed, abort characteristics discovery");
+        return;
+    }
+    zg_zha_query_active_endpoints(addr, NULL);
+}
+
 static void _process_user_command(IpcCommand cmd)
 {
     switch(cmd)
@@ -156,6 +173,9 @@ static void _process_user_command(IpcCommand cmd)
             break;
         case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
             _process_command_switch_light();
+            break;
+        case ZG_IPC_COMMAND_DISCOVERY:
+            _process_command_discovery();
             break;
         default:
             LOG_WARN("Unsupported command");

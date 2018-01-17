@@ -57,6 +57,8 @@ static void _process_ipc_message_cb(uv_poll_t *handler __attribute__((unused)), 
             buffer[size > 0 ? index+size-1:index-1] = 0;
             if(strcmp((char *)buffer, "touchlink") == 0)
                 cmd = ZG_IPC_COMMAND_TOUCHLINK;
+            else if(strcmp((char *)buffer, "d") == 0)
+                cmd = ZG_IPC_COMMAND_DISCOVERY;
             else
             {
                 LOG_WARN("Unknown command");
