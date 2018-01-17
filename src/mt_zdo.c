@@ -121,7 +121,7 @@ static uint8_t mt_zdo_active_ep_req_srsp_cb(ActiveEpReqSrspFormat_t *msg)
     if(msg->Status != ZSuccess)
         LOG_WARN("Error sending route request : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("Route request sent");
+        LOG_INF("Active endpoint request sent");
 
     if(sync_action_cb)
         sync_action_cb();
