@@ -131,6 +131,20 @@ static uint8_t mt_zdo_active_ep_req_srsp_cb(ActiveEpReqSrspFormat_t *msg)
 
 }
 
+static uint8_t mt_zdo_permit_join_req_srsp_cb(PermitJoinReqSrspFormat_t *msg)
+{
+    if(msg->Status != ZSuccess)
+        LOG_WARN("Error permitting new devices to join : %s", znp_strerror(msg->Status));
+    else
+        LOG_INF("New devices are now allowed to join");
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
@@ -170,7 +184,8 @@ static mtZdoCb_t mt_zdo_cb = {
     mt_zdo_device_annce_srsp_cb,
     mt_zdo_ext_route_disc_srsp_cb,
     NULL,
-    mt_zdo_active_ep_req_srsp_cb
+    mt_zdo_active_ep_req_srsp_cb,
+    mt_zdo_permit_join_req_srsp_cb
 };
 
 /********************************
@@ -250,3 +265,16 @@ void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint
 {
     _zdo_active_ep_rsp_cb = cb;
 }
+
+void mt_zdo_permit_join(SyncActionCb cb)
+{
+    LOG_INF("Allowing new devices to join for 32s");
+    sync_action_cb = cb;
+    MgmtPermitJoinReqFormat_t req;
+    req.AddrMode = 0xFF;
+    req.DstAddr = 0x0000;
+    req.Duration = 0x20;
+    req.TCSignificance = 0x00;
+    zdoMgmtPermitJoinReq(&req);
+}
+
