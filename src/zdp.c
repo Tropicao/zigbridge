@@ -19,6 +19,10 @@
 #define INDEX_TRANSACTION_SEQ_NUMBER            0
 #define INDEX_NWK_ADDR_OF_INTEREST              1
 
+/* simple descriptor */
+#define LEN_SIMPLE_DESC_REQ                     4
+#define INDEX_ENDPOINT                          3
+
 /* Data */
 
 /********** Application data **********/
@@ -139,6 +143,31 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
             0x00,
             zdp_data,
             LEN_ACTIVE_ENDPOINT_REQ,
+            cb);
+
+}
+
+void zg_zdp_query_simple_descriptor(uint16_t short_addr, uint8_t endpoint, SyncActionCb cb)
+{
+    char zdp_data[LEN_SIMPLE_DESC_REQ] = {0};
+
+    LOG_INF("Sending simple descriptor request to device 0x%04X for endpoint 0x%02X", short_addr, endpoint);
+    memcpy(zdp_data+INDEX_TRANSACTION_SEQ_NUMBER,
+            &_transaction_sequence_number,
+            sizeof(_transaction_sequence_number));
+    memcpy(zdp_data+INDEX_NWK_ADDR_OF_INTEREST,
+            &short_addr,
+            sizeof(short_addr));
+    zdp_data[INDEX_ENDPOINT] = endpoint;
+
+    zg_aps_send_data(short_addr,
+            0xABCD,
+            ZCL_ZDP_ENDPOINT,
+            ZCL_ZDP_ENDPOINT,
+            ZCL_CLUSTER_SIMPLE_DESCRIPTOR_REQUEST,
+            0x00,
+            zdp_data,
+            LEN_SIMPLE_DESC_REQ,
             cb);
 
 }

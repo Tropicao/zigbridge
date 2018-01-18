@@ -8,6 +8,7 @@
 #define ZCL_ZDP_ENDPOINT                        0x00
 
 /* Cluster identifiers */
+#define ZCL_CLUSTER_SIMPLE_DESCRIPTOR_REQUEST   0x0004
 #define ZCL_CLUSTER_ACTIVE_ENDPOINTS_REQUEST    0x0005
 #define ZCL_CLUSTER_ON_OFF                      0x0006
 #define ZCL_CLUSTER_TOUCHLINK_COMMISSIONING     0x1000
