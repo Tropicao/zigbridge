@@ -217,8 +217,7 @@ void zg_aps_send_data(  uint16_t dst_addr,
         return;
     }
 
-    if(cb)
-        _current_cb = cb;
+    _current_cb = cb;
 
     if(src_endpoint != ZCL_ZDP_ENDPOINT)
     {

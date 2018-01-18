@@ -86,10 +86,17 @@ static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t)
  *   ZLL messages callbacks     *
  *******************************/
 
+static void _touchlink_finished(void)
+{
+    LOG_INF("Device reset, enabling security again");
+    mt_sys_nv_write_enable_security(NULL);
+}
+
 static void _identify_delay_timeout_cb(uv_timer_t *t)
 {
     uv_unref((uv_handle_t *)t);
-    zg_zll_send_factory_reset_request(NULL);
+    LOG_INF("Device identified itself, sending reset");
+    zg_zll_send_factory_reset_request(_touchlink_finished);
 }
 
 static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
@@ -199,9 +206,15 @@ static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
 
     scan_counter++;
     if(scan_counter < 5 && !_stop_scan)
+    {
         _send_single_scan_request();
+    }
     else
+    {
         uv_unref((uv_handle_t *) &_scan_timeout_timer);
+        if(!_stop_scan)
+            mt_sys_nv_write_enable_security(NULL);
+    }
 }
 
 static void _send_five_scan_requests()

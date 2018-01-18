@@ -123,7 +123,7 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 {
     char zdp_data[LEN_ACTIVE_ENDPOINT_REQ] = {0};
 
-    LOG_INF("Sending active endpoint request");
+    LOG_INF("Sending active endpoint request to device 0x%04X", short_addr);
     memcpy(zdp_data+INDEX_TRANSACTION_SEQ_NUMBER,
             &_transaction_sequence_number,
             sizeof(_transaction_sequence_number));
