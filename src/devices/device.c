@@ -316,48 +316,64 @@ void _del_device_list(void)
     unlink(zg_conf_get_device_list_path());
 }
 
-void _save_device_list()
+static json_t *_build_endpoint_data_json(EndpointData *data)
 {
-    Eina_List *l = NULL;
-    DeviceData *data = NULL;
+    json_t *endpoint = NULL;
+    endpoint = json_object();
+    if(json_object_set_new(endpoint, "num", json_integer(data->num)))
+    {
+        LOG_ERR("Cannot build json object for endpoint 0x%02X", data->num);
+    }
+    return endpoint;
+}
+
+static json_t *_build_device_data_json(DeviceData *data)
+{
+    json_t *endpoints = NULL, *endpoint = NULL, *device = NULL;
     EndpointData *current_endpoint = NULL;
-    json_t *root = NULL, *array = NULL, *device = NULL, *endpoints = NULL, *endpoint = NULL;
+    Eina_List *l = NULL;
+
+    endpoints = json_array();
+    EINA_LIST_FOREACH(data->endpoints, l, current_endpoint)
+    {
+        endpoint = _build_endpoint_data_json(current_endpoint);
+        if(endpoint)
+        {
+            json_array_append(endpoints, endpoint);
+            json_decref(endpoint);
+        }
+    }
+    device = json_object();
+
+    if( json_object_set_new(device, "id", json_integer(data->id))                   ||
+            json_object_set_new(device, "short_addr", json_integer(data->short_addr))   ||
+            json_object_set_new(device, "ext_addr", json_integer(data->ext_addr))       ||
+            json_object_set_new(device, "endpoints", endpoints ))
+    {
+        LOG_ERR("Cannot build json value to save device %d", data->id);
+        json_decref(device);
+        device = NULL;
+    }
+    return device;
+}
+
+static void _save_device_list()
+{
+    DeviceData *data = NULL;
+    Eina_List *l = NULL;
+    json_t *root = NULL, *array = NULL, *device = NULL;
     const char *device_path = zg_conf_get_device_list_path();
 
     array = json_array();
     EINA_LIST_FOREACH(_device_list, l, data)
     {
-        endpoints = json_array();
-        EINA_LIST_FOREACH(data->endpoints, l, current_endpoint)
+        device = _build_device_data_json(data);
+        if(device)
         {
-            endpoint = json_object();
-            if(json_object_set_new(endpoint, "num", json_integer(current_endpoint->num)))
-            {
-                LOG_ERR("Cannot build json object for file %s, for device 0x%04X - endpoint 0x%02X",
-                        device_path, data->short_addr, current_endpoint->num);
-            }
-            else
-            {
-                json_array_append(endpoints, endpoint);
-            }
-            json_decref(endpoint);
-        }
-        device = json_object();
-
-        if( json_object_set_new(device, "id", json_integer(data->id))                   ||
-            json_object_set_new(device, "short_addr", json_integer(data->short_addr))   ||
-            json_object_set_new(device, "ext_addr", json_integer(data->ext_addr))       ||
-            json_object_set(device, "endpoints", endpoints ))
-        {
-            LOG_ERR("Cannot build json value to save device %d", data->id);
+            json_array_append(array, device);
             json_decref(device);
-            json_decref(endpoints);
-            json_decref(root);
-            return;
         }
-        json_array_append(array, device);
-        json_decref(device);
-        json_decref(endpoints);
+        LOG_INF("Stored data for device 0x%04X", data->short_addr);
     }
 
     root = json_object();
