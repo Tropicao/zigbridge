@@ -271,7 +271,7 @@ void mt_zdo_permit_join(SyncActionCb cb)
     LOG_INF("Allowing new devices to join for 32s");
     sync_action_cb = cb;
     MgmtPermitJoinReqFormat_t req;
-    req.AddrMode = 0xFF;
+    req.AddrMode = 0x02;
     req.DstAddr = 0x0000;
     req.Duration = 0x20;
     req.TCSignificance = 0x00;

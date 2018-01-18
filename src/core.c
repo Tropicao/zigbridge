@@ -185,6 +185,12 @@ static void _process_command_discovery(void)
     zg_zdp_query_active_endpoints(addr, NULL);
 }
 
+static void _process_command_open_network(void)
+{
+    LOG_INF("Opening network to allow new devices to join");
+    mt_zdo_permit_join(NULL);
+}
+
 static void _process_user_command(IpcCommand cmd)
 {
     switch(cmd)
@@ -197,6 +203,9 @@ static void _process_user_command(IpcCommand cmd)
             break;
         case ZG_IPC_COMMAND_DISCOVERY:
             _process_command_discovery();
+            break;
+        case ZG_IPC_COMMAND_OPEN_NETWORK:
+            _process_command_open_network();
             break;
         default:
             LOG_WARN("Unsupported command");
