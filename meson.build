@@ -4,7 +4,6 @@ project('ZLL Gateway' , 'c')
 src = ['src/main.c',
         'src/core.c',
         'src/ipc.c',
-        'src/device.c',
         'src/aps.c',
         'src/conf.c',
         'src/keys.c',
@@ -15,11 +14,12 @@ src = ['src/main.c',
         'src/zdp.c',
         'src/zha.c',
         'src/zll.c',
-        'src/utils/sm.c']
+        'src/utils/sm.c',
+        'src/devices/device.c']
 
 # Includes
 znpinc = include_directories('/usr/local/include/libznp')
-localinc = include_directories('include', 'include/utils')
+localinc = include_directories('src', 'src/utils', 'src/devices')
 incdir = [znpinc, localinc]
 
 # Libraries

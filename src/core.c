@@ -29,6 +29,7 @@
 static ZgSm *_init_sm = NULL;
 static uint8_t _initialized = 0;
 static uint8_t _reset_network = 0;
+static uint16_t _current_learning_device_addr = 0xFFFD;
 
 /* Callback triggered when core initialization is complete */
 
@@ -112,7 +113,9 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
     if(!zg_device_is_device_known(ext_addr))
     {
         LOG_INF("Seen device is a new device");
+        _current_learning_device_addr = short_addr;
         zg_add_device(short_addr, ext_addr);
+        zg_zdp_query_active_endpoints(_current_learning_device_addr, NULL);
     }
     else
     {
@@ -129,6 +132,8 @@ static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep
         LOG_INF("Active endpoint 0x%02X", ep_list[index]);
     }
     zg_device_update_endpoints(short_addr, nb_ep, ep_list);
+    if(ep_list)
+        zg_zdp_query_simple_descriptor(_current_learning_device_addr, ep_list[0], NULL);
 }
 
 /********************************
@@ -176,6 +181,7 @@ static void _process_command_discovery(void)
         LOG_WARN("No device installed, abort characteristics discovery");
         return;
     }
+    _current_learning_device_addr = addr;
     zg_zdp_query_active_endpoints(addr, NULL);
 }
 
