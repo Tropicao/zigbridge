@@ -226,22 +226,76 @@ static void _print_device_list(void)
 
 }
 
-void _load_device_list()
+static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
 {
-    json_t *root = NULL, *array = NULL;
-    json_error_t error;
-    const char *device_path = zg_conf_get_device_list_path();
-    size_t index, ep_index;
-    json_t *value, *ep;
-    DeviceData *data;
+    if(!data || !endpoint || !json_is_object(endpoint))
+    {
+        LOG_ERR("Cannot load endpoint data from json file");
+        return;
+    }
+    _add_endpoint(data,json_integer_value(json_object_get(endpoint, "num")));
+}
 
+static void _load_device_data(json_t *device)
+{
     /* Saved data */
     json_t *id = NULL;
     json_t *short_addr = NULL;
     json_t *ext_addr = NULL;
     json_t *endpoints;
+    DeviceData *data = NULL;
+    uint8_t ep_index;
+    json_t *ep = NULL;
 
+    if(!device || !json_is_object(device))
+    {
+        LOG_ERR("Cannot load endpoint data from json file");
+        return;
+    }
 
+    id = json_object_get(device, "id");
+    if(id)
+    {
+        short_addr = json_object_get(device, "short_addr");
+        ext_addr = json_object_get(device, "ext_addr");
+
+        data = _create_device_data( json_integer_value(id),
+                json_integer_value(short_addr),
+                json_integer_value(ext_addr));
+        if(data)
+        {
+            _add_device_to_list(data);
+            endpoints = json_object_get(device, "endpoints");
+            if(endpoints && json_is_array(endpoints))
+            {
+                json_array_foreach(endpoints, ep_index, ep)
+                {
+                    _load_endpoint_data(data, ep);
+                }
+            }
+        }
+
+        else
+            LOG_WARN("Cannot create device data from retrieved device data in file");
+
+        json_decref(id);
+        json_decref(short_addr);
+        json_decref(ext_addr);
+    }
+    else
+    {
+        LOG_ERR("Cannot load device : id is not properly formatted");
+    }
+
+}
+
+static void _load_device_list()
+{
+    json_t *root = NULL, *array = NULL;
+    json_error_t error;
+    const char *device_path = zg_conf_get_device_list_path();
+    size_t index;
+    json_t *value;
 
     eina_list_free(_device_list);
     root = json_load_file(zg_conf_get_device_list_path(), 0, &error);
@@ -260,39 +314,7 @@ void _load_device_list()
 
     json_array_foreach(array, index, value)
     {
-        id = json_object_get(value, "id");
-        if(id)
-        {
-            short_addr = json_object_get(value, "short_addr");
-            ext_addr = json_object_get(value, "ext_addr");
-
-            data = _create_device_data( json_integer_value(id),
-                                        json_integer_value(short_addr),
-                                        json_integer_value(ext_addr));
-            if(data)
-            {
-                _add_device_to_list(data);
-                endpoints = json_object_get(value, "endpoints");
-                if(endpoints && json_is_array(endpoints))
-                {
-                    json_array_foreach(endpoints, ep_index, ep)
-                    {
-                        _add_endpoint(data,json_integer_value(json_object_get(ep, "num")));
-                    }
-                }
-            }
-
-            else
-                LOG_WARN("Cannot create device data from retrieved device data in file");
-
-            json_decref(id);
-            json_decref(short_addr);
-            json_decref(ext_addr);
-        }
-        else
-        {
-            LOG_ERR("Cannot load device : id is not properly formatted");
-        }
+        _load_device_data(value);
     }
 
     _print_device_list();
