@@ -1,10 +1,12 @@
 @startuml
-[*] -> SendScan
+[*] --> DisableSecurity
+DisableSecurity --> SendScan : securityDisabled
 SendScan --> WaitResponse : ScanSent
 WaitResponse --> SendScan : (responseTimeout and nbScanPrimaryChannel < 5)
 WaitResponse --> Identify : scanResponseReceived
-WaitResponse --> [*] : (responseTimeout and nbScanPrimaryChannel = 5)
+WaitResponse --> EnableSecurity : (responseTimeout and nbScanPrimaryChannel = 5)
 Identify --> WaitIdentify : identifyRequestSent
 WaitIdentify --> FactoryReset : identifyPeriodPast
-FactoryReset --> [*] : factoryResetSent
+FactoryReset --> EnableSecurity : factoryResetSent
+EnableSecurity --> [*] : SecurityEnabled
 @enduml
