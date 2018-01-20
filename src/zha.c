@@ -8,7 +8,7 @@
 #include "mt_af.h"
 #include "mt_zdo.h"
 #include "mt_sys.h"
-#include "sm.h"
+#include "action_list.h"
 
 /********************************
  *          Constants           *
@@ -106,14 +106,14 @@ static void _security_disabled_cb(void)
  * Initialization state machine *
  *******************************/
 
-static ZgSm *_init_sm = NULL;
+static ZgAl *_init_sm = NULL;
 
 /* Callback triggered when ZHA initialization is complete */
 static InitCompleteCb _init_complete_cb = NULL;
 
 static void _general_init_cb(void)
 {
-    if(zg_sm_continue(_init_sm) != 0)
+    if(zg_al_continue(_init_sm) != 0)
     {
         LOG_INF("ZHA application is initialized");
         if(_init_complete_cb)
@@ -136,10 +136,10 @@ void _register_zha_endpoint(SyncActionCb cb)
 }
 
 
-static ZgSmState _init_states[] = {
+static ZgAlState _init_states[] = {
     {_register_zha_endpoint, _general_init_cb}
 };
-static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
+static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 /********************************
  *          ZLL API             *
@@ -152,13 +152,13 @@ void zg_zha_init(InitCompleteCb cb)
         _init_complete_cb = cb;
 
     mt_zdo_register_visible_device_cb(_zha_visible_device_cb);
-    _init_sm = zg_sm_create(_init_states, _init_nb_states);
-    zg_sm_continue(_init_sm);
+    _init_sm = zg_al_create(_init_states, _init_nb_states);
+    zg_al_continue(_init_sm);
 }
 
 void zg_zha_shutdown(void)
 {
-    zg_sm_destroy(_init_sm);
+    zg_al_destroy(_init_sm);
 }
 
 void zg_zha_switch_bulb_state(uint16_t short_addr)

@@ -4,7 +4,7 @@
 #include "zdp.h"
 #include "zha.h"
 #include "zll.h"
-#include "sm.h"
+#include "action_list.h"
 #include "aps.h"
 #include "mt_af.h"
 #include "mt_sys.h"
@@ -26,7 +26,7 @@
  * Initialization state machine *
  *******************************/
 
-static ZgSm *_init_sm = NULL;
+static ZgAl *_init_sm = NULL;
 static uint8_t _initialized = 0;
 static uint8_t _reset_network = 0;
 static uint16_t _current_learning_device_addr = 0xFFFD;
@@ -35,7 +35,7 @@ static uint16_t _current_learning_device_addr = 0xFFFD;
 
 static void _general_init_cb(void)
 {
-    if(zg_sm_continue(_init_sm) != 0)
+    if(zg_al_continue(_init_sm) != 0)
     {
         LOG_INF("Core application is initialized");
         _initialized = 1;
@@ -67,7 +67,7 @@ static void _get_demo_device_route(SyncActionCb cb)
 }
 
 
-static ZgSmState _init_states_reset[] = {
+static ZgAlState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_nv_write_nwk_key, _general_init_cb},
@@ -86,9 +86,9 @@ static ZgSmState _init_states_reset[] = {
     {_announce_gateway, _general_init_cb},
 };
 
-static int _init_reset_nb_states = sizeof(_init_states_reset)/sizeof(ZgSmState);
+static int _init_reset_nb_states = sizeof(_init_states_reset)/sizeof(ZgAlState);
 
-static ZgSmState _init_states_restart[] = {
+static ZgAlState _init_states_restart[] = {
     {mt_sys_reset_dongle, _general_init_cb},
     {mt_sys_check_ext_addr, _general_init_cb},
     {mt_sys_ping_dongle, _general_init_cb},
@@ -101,7 +101,7 @@ static ZgSmState _init_states_restart[] = {
     {_get_demo_device_route, _general_init_cb},
     {_announce_gateway, _general_init_cb}
 };
-static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgSmState);
+static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgAlState);
 
 /********************************
  *  Network Events processing   *
@@ -235,10 +235,10 @@ void zg_core_init(uint8_t reset_network)
     zg_device_init(reset_network);
 
     if(reset_network)
-        _init_sm = zg_sm_create(_init_states_reset, _init_reset_nb_states);
+        _init_sm = zg_al_create(_init_states_reset, _init_reset_nb_states);
     else
-        _init_sm = zg_sm_create(_init_states_restart, _init_restart_nb_states);
-    zg_sm_continue(_init_sm);
+        _init_sm = zg_al_create(_init_states_restart, _init_restart_nb_states);
+    zg_al_continue(_init_sm);
 }
 
 void zg_core_shutdown(void)

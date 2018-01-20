@@ -5,7 +5,7 @@
 #include "zll.h"
 #include "aps.h"
 #include "zcl.h"
-#include "sm.h"
+#include "action_list.h"
 #include "mt_af.h"
 #include "mt_sys.h"
 
@@ -132,19 +132,19 @@ static void _zll_message_cb(void *data, int len)
  * Initialization state machine *
  *******************************/
 
-static ZgSm *_init_sm = NULL;
+static ZgAl *_init_sm = NULL;
 
 /* Callback triggered when ZLL initialization is complete */
 static InitCompleteCb _init_complete_cb = NULL;
 
 static void _general_init_cb(void)
 {
-    if(zg_sm_continue(_init_sm) != 0)
+    if(zg_al_continue(_init_sm) != 0)
     {
         LOG_INF("ZLL application is initialized");
         if(_init_complete_cb)
         {
-            zg_sm_destroy(_init_sm);
+            zg_al_destroy(_init_sm);
             _init_complete_cb();
         }
     }
@@ -176,12 +176,12 @@ void _register_zll_endpoint(SyncActionCb cb)
 
 
 
-static ZgSmState _init_states[] = {
+static ZgAlState _init_states[] = {
     {_register_zll_endpoint, _general_init_cb},
     {_set_inter_pan_endpoint, _general_init_cb},
     {_set_inter_pan_channel, _general_init_cb}
 };
-static int _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
+static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 /********************************
  *    Touchlink state machine   *
@@ -253,14 +253,14 @@ void zg_zll_init(InitCompleteCb cb)
     LOG_INF("Initializing ZLL");
     if(cb)
         _init_complete_cb = cb;
-    _init_sm = zg_sm_create(_init_states, _init_nb_states);
-    zg_sm_continue(_init_sm);
+    _init_sm = zg_al_create(_init_states, _init_nb_states);
+    zg_al_continue(_init_sm);
 }
 
 void zg_zll_shutdown(void)
 {
     _stop_scan = 1;
-    zg_sm_destroy(_init_sm);
+    zg_al_destroy(_init_sm);
 }
 
 void zg_zll_send_scan_request(SyncActionCb cb)

@@ -15,6 +15,7 @@ src = ['src/main.c',
         'src/zha.c',
         'src/zll.c',
         'src/utils/sm.c',
+        'src/utils/action_list.c',
         'src/devices/device.c']
 
 # Includes

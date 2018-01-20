@@ -5,7 +5,7 @@
 #include "zdp.h"
 #include "aps.h"
 #include "zcl.h"
-#include "sm.h"
+#include "action_list.h"
 #include "mt_zdo.h"
 
 /********************************
@@ -68,16 +68,16 @@ static void _zdp_message_cb(void *data, int len)
  * Initialization state machine *
  *******************************/
 
-static ZgSm *_init_sm = NULL;
+static ZgAl *_init_sm = NULL;
 
 static void _general_init_cb(void)
 {
-    if(zg_sm_continue(_init_sm) != 0)
+    if(zg_al_continue(_init_sm) != 0)
     {
         LOG_INF("ZDP application is initialized");
         if(_init_complete_cb)
         {
-            zg_sm_destroy(_init_sm);
+            zg_al_destroy(_init_sm);
             _init_complete_cb();
         }
     }
@@ -97,11 +97,11 @@ void _register_zdp_endpoint(SyncActionCb cb)
                                 cb);
 }
 
-static ZgSmState _init_states[] = {
+static ZgAlState _init_states[] = {
     {_register_zdp_endpoint, _general_init_cb},
 };
 
-static uint8_t _init_nb_states = sizeof(_init_states)/sizeof(ZgSmState);
+static uint8_t _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 /********************************
  *          ZLL API             *
@@ -115,8 +115,8 @@ void zg_zdp_init(SyncActionCb cb)
         _init_complete_cb = cb;
 
     mt_zdo_register_active_ep_rsp_callback(_zdo_active_ep_rsp_cb);
-    _init_sm = zg_sm_create(_init_states, _init_nb_states);
-    zg_sm_continue(_init_sm);
+    _init_sm = zg_al_create(_init_states, _init_nb_states);
+    zg_al_continue(_init_sm);
 }
 
 void zg_zdp_shutdown(void)
