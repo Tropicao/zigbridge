@@ -1,0 +1,6 @@
+@startuml
+[*] --> ActiveEndpointDiscovery
+ActiveEndpointDiscovery --> SimpleDescriptorDiscovery : ActiveEnpointResponse
+SimpleDescriptorDiscovery --> SimpleDescriptorDiscovery : OtherDescriptorsToQuery
+SimpleDescriptorDiscovery --> [*] : AllEndpointsDiscovered
+@enduml
