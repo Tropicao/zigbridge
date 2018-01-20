@@ -13,7 +13,7 @@
  *          Constants           *
  *******************************/
 
-#define ZLL_ENDPOINT                            0x1
+#define ZLL_ENDPOINT                            0x2
 #define ZLL_CHANNEL                             0x0B
 
 /********** Format **********/

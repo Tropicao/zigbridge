@@ -14,7 +14,7 @@
  *          Constants           *
  *******************************/
 
-#define ZHA_ENDPOINT                            0x2
+#define ZHA_ENDPOINT                            0x1
 
 /********** Format **********/
 
