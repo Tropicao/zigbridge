@@ -21,6 +21,7 @@
 #define COMMAND_OFF                             0x00
 #define COMMAND_ON                              0x01
 #define COMMAND_TOGGLE                          0x02
+#define COMMAND_REPORT_ATTRIBUTE                0x0A
 #define COMMAND_OFF_WITH_EFFECT                 0x40
 #define COMMAND_ON_WITH_RECALL_GLOBAL_SCENE     0x41
 
@@ -60,6 +61,7 @@
 
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
+static void (*_button_change_cb)(void) = NULL;
 static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
@@ -73,6 +75,15 @@ static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t)
 /********************************
  *   ZHA messages callbacks     *
  *******************************/
+static void _process_report_attribute(void *data, int len __attribute__((unused)))
+{
+    uint8_t *buffer = (uint8_t *) data;
+
+    LOG_INF("Received new switch status : %s", buffer[6] ? "Released":"Pushed");
+    if(_button_change_cb && buffer[6] == 0x00)
+        _button_change_cb();
+}
+
 
 static void _zha_message_cb(void *data, int len)
 {
@@ -83,6 +94,9 @@ static void _zha_message_cb(void *data, int len)
     LOG_DBG("Received ZHA data (%d bytes)", len);
     switch(buffer[2])
     {
+        case COMMAND_REPORT_ATTRIBUTE:
+            _process_report_attribute(data, len);
+            break;
         default:
             LOG_WARN("Unsupported ZHA command %02X", buffer[2]);
             break;
@@ -211,3 +225,9 @@ void zha_ask_node_descriptor(uint16_t short_addr)
     req.NwkAddrOfInterest = short_addr;
     zdoNodeDescReq(&req);
 }
+
+void zg_zha_register_button_state_cb(void (*cb)(void))
+{
+    _button_change_cb = cb;
+}
+

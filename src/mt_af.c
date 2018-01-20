@@ -96,9 +96,30 @@ static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
     return 0;
 }
 
-static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
+static uint8_t _incoming_msg_cb(IncomingMsgFormat_t *msg)
 {
     LOG_INF("Extended AF message received");
+    LOG_INF("Group id : 0x%04X", msg->GroupId);
+    LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
+    LOG_INF("Source addr : 0x%016X", msg->SrcAddr);
+    LOG_INF("Source Endpoint : 0x%02X", msg->SrcEndpoint);
+    LOG_INF("Dest Endpoint : 0x%02X", msg->DstEndpoint);
+    LOG_INF("Was Broadcast : 0x%02X", msg->WasBroadcast);
+    LOG_INF("Link Quality : 0x%02X", msg->LinkQuality);
+    LOG_INF("Security Use : 0x%02X", msg->SecurityUse);
+    LOG_INF("Timestamp : 0x%08X", msg->TimeStamp);
+    LOG_INF("Transaction sequence num : 0x%02X", msg->TransSeqNum);
+    LOG_INF("Length : %d", msg->Len);
+
+    if(_af_incoming_msg_cb)
+        _af_incoming_msg_cb(msg->DstEndpoint, msg->Data, msg->Len);
+
+    return 0;
+}
+
+static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
+{
+    LOG_INF("AF message received");
     LOG_INF("Group id : 0x%04X", msg->GroupId);
     LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
     LOG_INF("Source addr mode : 0x%02X", msg->SrcAddrMode);
@@ -138,7 +159,7 @@ static mtAfCb_t mt_af_cb = {
     _data_request_srsp_cb,
     _data_request_ext_srsp_cb,
     _data_confirm_cb,
-    NULL,
+    _incoming_msg_cb,
     _incoming_msg_ext_cb,
     NULL,
     NULL,

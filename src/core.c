@@ -227,12 +227,28 @@ static void _simple_desc_cb(uint8_t endpoint, uint16_t profile)
         zg_sm_send_event(_new_device_sm, EVENT_ALL_SIMPLE_DESC_RECEIVED);
 }
 
-
-
-
 /********************************
  *     Commands processing      *
  *******************************/
+
+static void _button_change_cb(void)
+{
+    uint16_t addr = 0xFFFD;
+
+    LOG_INF("Button pressed, toggling the light");
+    if(_initialized)
+    {
+        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        if(addr != 0xFFFD)
+            zg_zha_switch_bulb_state(addr);
+        else
+            LOG_WARN("Device is not installed, cannot switch light");
+    }
+    else
+    {
+        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+    }
+}
 
 static void _process_command_touchlink()
 {
@@ -304,6 +320,7 @@ void zg_core_init(uint8_t reset_network)
     zg_aps_init();
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
+    zg_zha_register_button_state_cb(_button_change_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_device_init(reset_network);
