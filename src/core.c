@@ -13,6 +13,7 @@
 #include "ipc.h"
 #include "device.h"
 #include "keys.h"
+#include "sm.h"
 
 /********************************
  *     Constants and macros     *
@@ -29,7 +30,6 @@
 static ZgAl *_init_sm = NULL;
 static uint8_t _initialized = 0;
 static uint8_t _reset_network = 0;
-static uint16_t _current_learning_device_addr = 0xFFFD;
 
 /* Callback triggered when core initialization is complete */
 
@@ -104,6 +104,69 @@ static ZgAlState _init_states_restart[] = {
 static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgAlState);
 
 /********************************
+ *  New device learning SM      *
+ *******************************/
+
+/*** Local variables ***/
+static uint16_t _current_learning_device_addr = 0xFFFD;
+ZgSm *_new_device_sm = NULL;
+
+enum
+{
+    STATE_INIT,
+    STATE_ACTIVE_ENDPOINT_DISC,
+    STATE_SIMPLE_DESC_DISC,
+    STATE_SHUTDOWN,
+};
+
+enum
+{
+    EVENT_INIT_DONE,
+    EVENT_ACTIVE_ENDPOINTS_RESP,
+    EVENT_SIMPLE_DESC_RECEIVED,
+    EVENT_ALL_SIMPLE_DESC_RECEIVED,
+};
+
+static void _init_new_device_sm(void)
+{
+    zg_sm_send_event(_new_device_sm, EVENT_INIT_DONE);
+}
+
+static void _query_active_endpoints(void)
+{
+    zg_zdp_query_active_endpoints(_current_learning_device_addr, NULL);
+}
+
+static void _query_simple_desc(void)
+{
+    uint8_t endpoint = zg_device_get_next_empty_endpoint(_current_learning_device_addr);
+    zg_zdp_query_simple_descriptor(_current_learning_device_addr, endpoint, NULL);
+}
+
+static void _shutdown_new_device_sm(void)
+{
+    LOG_INF("Learnind device process finished");
+    _current_learning_device_addr = 0xFFFD;
+    zg_sm_destroy(_new_device_sm);
+}
+
+static ZgSmStateData _new_device_states[] = {
+    {STATE_INIT, _init_new_device_sm},
+    {STATE_ACTIVE_ENDPOINT_DISC, _query_active_endpoints},
+    {STATE_SIMPLE_DESC_DISC, _query_simple_desc},
+    {STATE_SHUTDOWN, _shutdown_new_device_sm}
+};
+static ZgSmStateNb _new_device_nb_states = sizeof(_new_device_states)/sizeof(ZgSmStateData);
+
+static ZgSmTransitionData _new_device_transitions[] = {
+    {STATE_INIT, EVENT_INIT_DONE, STATE_ACTIVE_ENDPOINT_DISC},
+    {STATE_ACTIVE_ENDPOINT_DISC, EVENT_ACTIVE_ENDPOINTS_RESP, STATE_SIMPLE_DESC_DISC},
+    {STATE_SIMPLE_DESC_DISC, EVENT_SIMPLE_DESC_RECEIVED, STATE_SIMPLE_DESC_DISC},
+    {STATE_SIMPLE_DESC_DISC, EVENT_ALL_SIMPLE_DESC_RECEIVED, STATE_SHUTDOWN},
+};
+static ZgSmTransitionNb _new_device_nb_transitions = sizeof(_new_device_transitions)/sizeof(ZgSmTransitionData);
+
+/********************************
  *  Network Events processing   *
  *******************************/
 
@@ -112,9 +175,25 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
     if(!zg_device_is_device_known(ext_addr))
     {
         LOG_INF("Seen device is a new device");
-        _current_learning_device_addr = short_addr;
         zg_add_device(short_addr, ext_addr);
-        zg_zdp_query_active_endpoints(_current_learning_device_addr, NULL);
+        if(_new_device_sm)
+        {
+            LOG_WARN("Already learning a new device, cannot learn newly visible device");
+            return;
+        }
+        _new_device_sm = zg_sm_create(  "New device",
+                                        _new_device_states,
+                                        _new_device_nb_states,
+                                        _new_device_transitions,
+                                        _new_device_nb_transitions);
+        if(!_new_device_sm)
+        {
+            LOG_ERR("Abort new device learning");
+            return;
+        }
+        LOG_INF("Start learning new device properties");
+        _current_learning_device_addr = short_addr;
+        zg_sm_start(_new_device_sm);
     }
     else
     {
@@ -131,9 +210,25 @@ static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep
         LOG_INF("Active endpoint 0x%02X", ep_list[index]);
     }
     zg_device_update_endpoints(short_addr, nb_ep, ep_list);
-    if(ep_list)
-        zg_zdp_query_simple_descriptor(_current_learning_device_addr, ep_list[0], NULL);
+    zg_sm_send_event(_new_device_sm, EVENT_ACTIVE_ENDPOINTS_RESP);
 }
+
+static void _simple_desc_cb(uint8_t endpoint, uint16_t profile)
+{
+    uint8_t next_endpoint;
+    LOG_INF("Endpoint 0x%02X of device 0x%04X has profile 0x%04X",
+            endpoint, _current_learning_device_addr, profile);
+    zg_device_update_endpoint_profile(_current_learning_device_addr, endpoint, profile);
+    
+    next_endpoint = zg_device_get_next_empty_endpoint(_current_learning_device_addr);
+    if(next_endpoint)
+        zg_sm_send_event(_new_device_sm, EVENT_SIMPLE_DESC_RECEIVED);
+    else
+        zg_sm_send_event(_new_device_sm, EVENT_ALL_SIMPLE_DESC_RECEIVED);
+}
+
+
+
 
 /********************************
  *     Commands processing      *
@@ -165,25 +260,6 @@ static void _process_command_switch_light()
 
 }
 
-static void _process_command_discovery(void)
-{
-    uint16_t addr = 0xFFFD;
-    if(!_initialized)
-    {
-        LOG_WARN("Core application has not finished initializing, abort device discovery");
-        return;
-    }
-
-    addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
-    if(addr == 0xFFFD)
-    {
-        LOG_WARN("No device installed, abort characteristics discovery");
-        return;
-    }
-    _current_learning_device_addr = addr;
-    zg_zdp_query_active_endpoints(addr, NULL);
-}
-
 static void _process_command_open_network(void)
 {
     LOG_INF("Opening network to allow new devices to join");
@@ -199,9 +275,6 @@ static void _process_user_command(IpcCommand cmd)
             break;
         case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
             _process_command_switch_light();
-            break;
-        case ZG_IPC_COMMAND_DISCOVERY:
-            _process_command_discovery();
             break;
         case ZG_IPC_COMMAND_OPEN_NETWORK:
             _process_command_open_network();
@@ -232,6 +305,7 @@ void zg_core_init(uint8_t reset_network)
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
+    zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_device_init(reset_network);
 
     if(reset_network)

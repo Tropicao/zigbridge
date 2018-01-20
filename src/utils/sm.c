@@ -101,7 +101,12 @@ void zg_sm_send_event(ZgSm *sm, ZgSmEvent event)
     {
         LOG_DBG("SM [%s] - Switching state from %d to %d", sm->name, sm->current_state, new_state);
         sm->current_state = new_state;
-        if(sm->states[new_state].func)
-            sm->states[new_state].func();
     }
+    else
+    {
+        LOG_DBG("SM [%s] - Re-entering state %d", sm->name, sm->current_state);
+    }
+
+    if(sm->states[new_state].func)
+        sm->states[new_state].func();
 }

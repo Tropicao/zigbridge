@@ -19,6 +19,7 @@ static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 static void (*_zdo_active_ep_rsp_cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list) = NULL;
+static void (*_zdo_simple_desc_rsp_cb)(uint8_t endpoint, uint16_t profile) = NULL;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -34,6 +35,20 @@ static uint8_t mt_zdo_active_ep_rsp_cb(ActiveEpRspFormat_t *msg)
     LOG_INF("MT_ZDO_ACTIVE_EP_RSP received");
     if(_zdo_active_ep_rsp_cb)
         _zdo_active_ep_rsp_cb(msg->NwkAddr, msg->ActiveEPCount, msg->ActiveEPList);
+
+    return 0;
+}
+
+static uint8_t mt_zdo_simple_desc_rsp_cb(SimpleDescRspFormat_t *msg)
+{
+    if(msg->Status != ZSuccess)
+    {
+        LOG_ERR("Error on SIMPLE DESC RSP : %s", znp_strerror(msg->Status));
+        return 1;
+    }
+    LOG_INF("MT_ZDO_SIMPLE_DESC_RSP received");
+    if(_zdo_simple_desc_rsp_cb)
+        _zdo_simple_desc_rsp_cb(msg->Endpoint, msg->ProfileID);
 
     return 0;
 }
@@ -150,7 +165,7 @@ static mtZdoCb_t mt_zdo_cb = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    mt_zdo_simple_desc_rsp_cb,
     mt_zdo_active_ep_rsp_cb,
     NULL,
     NULL,
@@ -264,6 +279,11 @@ void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list))
 {
     _zdo_active_ep_rsp_cb = cb;
+}
+
+void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile))
+{
+    _zdo_simple_desc_rsp_cb = cb;
 }
 
 void mt_zdo_permit_join(SyncActionCb cb)

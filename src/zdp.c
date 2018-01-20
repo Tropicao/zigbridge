@@ -37,6 +37,7 @@
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _init_complete_cb = NULL;
 static ActiveEpRspCb _active_ep_cb = NULL;
+static SimpleDescRspCb _simple_desc_rsp_cb = NULL;
 
 /********************************
  *   ZDP messages callbacks     *
@@ -46,6 +47,12 @@ static void _zdo_active_ep_rsp_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *e
 {
     if(_active_ep_cb)
         _active_ep_cb(short_addr, nb_ep, ep_list);
+}
+
+static void _zdo_simple_desc_rsp_cb(uint8_t endpoint, uint16_t profile)
+{
+    if(_simple_desc_rsp_cb)
+        _simple_desc_rsp_cb(endpoint, profile);
 }
 
 static void _zdp_message_cb(void *data, int len)
@@ -115,6 +122,7 @@ void zg_zdp_init(SyncActionCb cb)
         _init_complete_cb = cb;
 
     mt_zdo_register_active_ep_rsp_callback(_zdo_active_ep_rsp_cb);
+    mt_zdo_register_simple_desc_rsp_cb(_zdo_simple_desc_rsp_cb);
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
 }
@@ -175,4 +183,9 @@ void zg_zdp_query_simple_descriptor(uint16_t short_addr, uint8_t endpoint, SyncA
 void zg_zdp_register_active_endpoints_rsp(ActiveEpRspCb cb)
 {
     _active_ep_cb = cb;
+}
+
+void zg_zdp_register_simple_desc_rsp(SimpleDescRspCb cb)
+{
+    _simple_desc_rsp_cb = cb;
 }

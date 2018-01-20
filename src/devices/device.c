@@ -22,6 +22,7 @@
 typedef struct
 {
     uint8_t num;
+    uint16_t profile;
 } EndpointData;
 
 typedef struct
@@ -342,7 +343,8 @@ static json_t *_build_endpoint_data_json(EndpointData *data)
 {
     json_t *endpoint = NULL;
     endpoint = json_object();
-    if(json_object_set_new(endpoint, "num", json_integer(data->num)))
+    if(json_object_set_new(endpoint, "num", json_integer(data->num))||
+            json_object_set_new(endpoint, "profile", json_integer(data->profile)))
     {
         LOG_ERR("Cannot build json object for endpoint 0x%02X", data->num);
     }
@@ -510,4 +512,43 @@ void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_
     }
     _save_device_list();
 }
+
+void zg_device_update_endpoint_profile(uint16_t addr, uint8_t endpoint, uint16_t profile)
+{
+    EndpointData *ep = NULL;
+    DeviceData *device = NULL;
+    device = _get_device_by_short_addr(addr);
+    if(device)
+    {
+        ep = _get_endpoint_by_num(device->endpoints, endpoint);
+        if(ep)
+        {
+            ep->profile = profile;
+            _save_device_list();
+        }
+    }
+}
+
+uint8_t zg_device_get_next_empty_endpoint(uint16_t addr)
+{
+    uint8_t res = 0x00;
+    Eina_List *l = NULL;
+    EndpointData *endpoint = NULL;
+    DeviceData *device = NULL;
+
+    device = _get_device_by_short_addr(addr);
+    if(device)
+    {
+        EINA_LIST_FOREACH(device->endpoints, l, endpoint)
+        {
+            if(!(endpoint->profile))
+            {
+                res = endpoint->num;
+                break;
+            }
+        }
+    }
+    return res;
+}
+
 

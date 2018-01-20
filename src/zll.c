@@ -406,8 +406,6 @@ void _register_zll_endpoint(SyncActionCb cb)
                                 cb);
 }
 
-
-
 static ZgAlState _init_states[] = {
     {_register_zll_endpoint, _general_init_cb},
     {_set_inter_pan_endpoint, _general_init_cb},
