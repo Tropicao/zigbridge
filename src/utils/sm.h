@@ -26,7 +26,7 @@ typedef struct
 
 typedef struct
 {
-    char *name;
+    char name[ZG_SM_NAME_MAX_LEN];
     ZgSmStateData *states;
     ZgSmStateNb nb_states;
     ZgSmTransitionData *transitions;
@@ -40,7 +40,7 @@ ZgSm *zg_sm_create( const char *name,
                     ZgSmTransitionData *transitions,
                     ZgSmTransitionNb nb_transitions);
 uint8_t zg_sm_start(ZgSm *sm);
-void zg_sm_stop(ZgSm *sm);
+void zg_sm_destroy(ZgSm *sm);
 void zg_sm_send_event(ZgSm *sm, ZgSmEvent event);
 
 

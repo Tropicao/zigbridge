@@ -24,7 +24,7 @@ ZgSm *zg_sm_create( const char *name,
         return NULL;
     }
 
-    if(!transitions || nb_transitions)
+    if(!transitions || !nb_transitions)
     {
         LOG_ERR("Cannot create state machine %s with no transitions", name);
         return NULL;
@@ -37,6 +37,8 @@ ZgSm *zg_sm_create( const char *name,
         return NULL;
     }
 
+    LOG_DBG("SM [%s] -  Creating state machine with %d states and %d transitions",
+            name, nb_states, nb_transitions);
     strncpy(result->name, name, ZG_SM_NAME_MAX_LEN);
     result->states = states;
     result->nb_states = nb_states;
@@ -81,6 +83,7 @@ void zg_sm_send_event(ZgSm *sm, ZgSmEvent event)
         return;
     }
 
+    LOG_DBG("SM [%s] - Received event %d", sm->name, event);
     new_state=sm->current_state;
     for(index = 0; index < sm->nb_transitions; index++)
     {
@@ -89,13 +92,14 @@ void zg_sm_send_event(ZgSm *sm, ZgSmEvent event)
 
         if(sm->transitions[index].event == event)
         {
-            new_state = sm->transitions[index].state;
+            new_state = sm->transitions[index].new_state;
             break;
         }
     }
 
     if(new_state != sm->current_state)
     {
+        LOG_DBG("SM [%s] - Switching state from %d to %d", sm->name, sm->current_state, new_state);
         sm->current_state = new_state;
         if(sm->states[new_state].func)
             sm->states[new_state].func();
