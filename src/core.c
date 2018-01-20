@@ -83,7 +83,6 @@ static ZgSmState _init_states_reset[] = {
     {zg_zdp_init, _general_init_cb},
     {mt_zdo_startup_from_app, _general_init_cb},
     {mt_sys_nv_write_enable_security, _general_init_cb},
-    {_get_demo_device_route, _general_init_cb},
     {_announce_gateway, _general_init_cb},
 };
 
