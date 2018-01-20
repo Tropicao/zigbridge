@@ -98,6 +98,18 @@ static EndpointData *_get_endpoint_by_num(Eina_List *ep, uint8_t num)
     return res;
 }
 
+static EndpointData *_create_endpoint_data(  uint8_t num,
+                                    uint16_t profile)
+{
+    EndpointData *result = calloc(1, sizeof(EndpointData));
+
+    if(result)
+    {
+        result->num = num;
+        result->profile = profile;
+    }
+    return result;
+}
 
 
 static void _add_endpoint(DeviceData *data, uint8_t num)
@@ -109,15 +121,9 @@ static void _add_endpoint(DeviceData *data, uint8_t num)
     if(_get_endpoint_by_num(data->endpoints, num) != NULL)
         return;
 
-    endpoint = calloc(1, sizeof(EndpointData));
-    if(!endpoint)
-    {
-        LOG_CRI("Error allocating memory for new endpoint");
-        return;
-    }
-
-    endpoint->num = num;
-    data->endpoints = eina_list_append(data->endpoints, endpoint);
+    endpoint = _create_endpoint_data(num, 0x0000);
+    if(endpoint)
+        data->endpoints = eina_list_append(data->endpoints, endpoint);
 }
 
 /********************************
@@ -220,7 +226,7 @@ static void _print_device_list(void)
         LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X",
                 data->id, data->short_addr, data->ext_addr);
         EINA_LIST_FOREACH(data->endpoints, l_ep, endpoint)
-            LOG_DBG("Endpoint : 0x%02X", endpoint->num);
+            LOG_DBG("Endpoint : 0x%02X, profile 0x%04X", endpoint->num, endpoint->profile);
     }
 
     LOG_DBG("============================================");
@@ -229,12 +235,28 @@ static void _print_device_list(void)
 
 static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
 {
+    EndpointData *ep = NULL;
+    json_t *num = NULL, *profile = NULL;
+
     if(!data || !endpoint || !json_is_object(endpoint))
     {
         LOG_ERR("Cannot load endpoint data from json file");
         return;
     }
-    _add_endpoint(data,json_integer_value(json_object_get(endpoint, "num")));
+    num = json_object_get(endpoint, "num");
+    profile = json_object_get(endpoint, "profile");
+    if(!num || !json_is_integer(num) ||
+            !profile || !json_is_integer(profile))
+    {
+        LOG_ERR("Cannot load enpoint data for device 0x%04X", data->short_addr);
+    }
+    else
+    {
+        ep = _create_endpoint_data(json_integer_value(num), json_integer_value(profile));
+        data->endpoints = eina_list_append(data->endpoints, ep);
+    }
+    json_decref(num);
+    json_decref(profile);
 }
 
 static void _load_device_data(json_t *device)
@@ -504,7 +526,7 @@ void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_
                 nb_ep > 0 ? "incorrect number of endpoints" : "endpoint list is NULL");
         return;
     }
-    
+
     LOG_INF("Saving up-to-date endpoints list for device 0x%04X", short_addr);
     for(index = 0; index < nb_ep; index++)
     {
