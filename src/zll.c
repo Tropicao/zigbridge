@@ -8,6 +8,7 @@
 #include "action_list.h"
 #include "mt_af.h"
 #include "mt_sys.h"
+#include "sm.h"
 
 /********************************
  *          Constants           *
@@ -64,15 +65,11 @@
 #define ZLL_DEVICE_VERSION                      0x2     /* Version 2 */
 #define ZLL_INFORMATION_FIELD                   0x12
 
+#define ZLL_IDENTIFY_DELAY_MS                   3000
+
 /********************************
  *          Local variables     *
  *******************************/
-
-static uv_timer_t _scan_timeout_timer;
-static uv_timer_t _identify_timer;
-static uint8_t _stop_scan = 0;
-
-static uint32_t _interpan_transaction_identifier = 0;
 
 static uint16_t _zll_in_clusters[] = {
     ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
@@ -82,30 +79,265 @@ static uint16_t _zll_out_clusters[] = {
     ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
 static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t);
 
+static uint32_t _interpan_transaction_identifier = 0;
+
+/********************************
+ *          Internal            *
+ *******************************/
+
+uint32_t _generate_new_interpan_transaction_identifier()
+{
+    uint32_t result = 0;
+    result = rand() & 0xFF;
+    result |= (rand() & 0xFF) << 8;
+    result |= (rand() & 0xFF) << 16;
+    result |= (rand() & 0xFF) << 24;
+
+    return result;
+}
+
+
+/********************************
+ *         ZLL commands         *
+ *******************************/
+
+void _zll_send_scan_request(SyncActionCb cb)
+{
+    char zll_data[LEN_SCAN_REQUEST] = {0};
+
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
+    zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
+    zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
+
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
+            ZLL_ENDPOINT,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+            COMMAND_SCAN_REQUEST,
+            zll_data,
+            LEN_SCAN_REQUEST,
+            cb);
+}
+
+void _zll_send_identify_request(SyncActionCb cb)
+{
+    char zll_data[LEN_IDENTIFY_REQUEST] = {0};
+    uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
+
+    LOG_INF("Sending identify request");
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
+    memcpy(zll_data + INDEX_IDENTIFY_DURATION, &identify_duration, 2);
+
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
+            ZLL_ENDPOINT,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+            COMMAND_IDENTIFY_REQUEST,
+            zll_data,
+            LEN_IDENTIFY_REQUEST,
+            cb);
+}
+
+void _zll_send_factory_reset_request(SyncActionCb cb)
+{
+    char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
+
+    LOG_INF("Sending factory reset request");
+    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
+            &_interpan_transaction_identifier,
+            sizeof(_interpan_transaction_identifier));
+
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
+            ZLL_ENDPOINT,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+            COMMAND_FACTORY_NEW_REQUEST,
+            zll_data,
+            LEN_FACTORY_RESET_REQUEST,
+            cb);
+
+}
+
+
+/********************************
+ *    Touchlink state machine   *
+ *******************************/
+
+/*** Local variables ***/
+
+static uv_timer_t _scan_timeout_timer;
+static uv_timer_t _identify_timer;
+static uint8_t _scan_count = 0;
+static ZgSm *_touchlink_sm = NULL;
+
+
+/*** States and events ***/
+
+enum
+{
+    STATE_INIT,
+    STATE_DISABLE_SECURITY,
+    STATE_SEND_SCAN,
+    STATE_WAIT_SCAN_RESPONSE,
+    STATE_IDENTIY,
+    STATE_WAIT_IDENTIFY,
+    STATE_FACTORY_RESET,
+    STATE_ENABLE_SECURITY,
+    STATE_SHUTDOWN,
+};
+
+enum
+{
+    EVENT_INIT_DONE,
+    EVENT_SECURITY_DISABLED,
+    EVENT_SECURITY_ENABLED,
+    EVENT_SCAN_SENT,
+    EVENT_SCAN_TIMEOUT_RESCAN,
+    EVENT_SCAN_TIMEOUT_NO_RESCAN,
+    EVENT_SCAN_RESPONSE_RECEIVED,
+    EVENT_IDENTIFY_REQUEST_SENT,
+    EVENT_IDENTIFY_DELAY_PAST,
+    EVENT_FACTORY_RESET_SENT
+};
+
+/*** States entry functions ***/
+
+static void _init_touchlink(void)
+{
+    LOG_INF("Initializing touchlink state machine");
+    _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
+    uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
+    uv_timer_init(uv_default_loop(), &_identify_timer);
+    _scan_count = 0;
+    zg_sm_send_event(_touchlink_sm, EVENT_INIT_DONE);
+}
+
+static void _shutdown_touchlink(void)
+{
+    uv_unref((uv_handle_t *)&_scan_timeout_timer);
+    uv_unref((uv_handle_t *)&_identify_timer);
+    zg_sm_destroy(_touchlink_sm);
+    LOG_INF("Touchlink procedure finished");
+}
+
+static void _security_disabled_cb(void)
+{
+    zg_sm_send_event(_touchlink_sm, EVENT_SECURITY_DISABLED);
+}
+
+static void _disable_security(void)
+{
+    mt_sys_nv_write_disable_security(_security_disabled_cb);
+}
+
+static void _security_enabled_cb(void)
+{
+    zg_sm_send_event(_touchlink_sm, EVENT_SECURITY_ENABLED);
+}
+
+static void _enable_security(void)
+{
+    mt_sys_nv_write_enable_security(_security_enabled_cb);
+}
+
+static void _scan_request_sent(void)
+{
+    _scan_count++;
+    zg_sm_send_event(_touchlink_sm, EVENT_SCAN_SENT);
+}
+
+static void _send_single_scan_request()
+{
+    _zll_send_scan_request(_scan_request_sent);
+}
+
+static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
+{
+    if(_scan_count < 5)
+        zg_sm_send_event(_touchlink_sm, EVENT_SCAN_TIMEOUT_RESCAN);
+    else
+        zg_sm_send_event(_touchlink_sm, EVENT_SCAN_TIMEOUT_NO_RESCAN);
+}
+
+static void _wait_scan_response(void)
+{
+    uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, ZLL_IDENTIFY_DELAY_MS, 0);
+}
+
+static void _identify_request_sent_cb(void)
+{
+    zg_sm_send_event(_touchlink_sm, EVENT_IDENTIFY_REQUEST_SENT);
+}
+
+static void _send_identify_request(void)
+{
+    _zll_send_identify_request(_identify_request_sent_cb);
+}
+
+static void _identify_delay_timeout_cb(uv_timer_t *s __attribute__((unused)))
+{
+    zg_sm_send_event(_touchlink_sm, EVENT_IDENTIFY_DELAY_PAST);
+}
+
+static void _wait_identify_period(void)
+{
+    uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, ZLL_IDENTIFY_DELAY_MS, 0);
+}
+
+static void _factory_reset_sent_cb(void)
+{
+    zg_sm_send_event(_touchlink_sm, EVENT_FACTORY_RESET_SENT);
+}
+
+static void _send_factory_reset_request(void)
+{
+    _zll_send_factory_reset_request(_factory_reset_sent_cb);
+}
+
+static ZgSmStateData _touchlink_states[] = {
+    {STATE_INIT, _init_touchlink},
+    {STATE_DISABLE_SECURITY, _disable_security},
+    {STATE_SEND_SCAN, _send_single_scan_request},
+    {STATE_WAIT_SCAN_RESPONSE, _wait_scan_response},
+    {STATE_IDENTIY, _send_identify_request},
+    {STATE_WAIT_IDENTIFY, _wait_identify_period},
+    {STATE_FACTORY_RESET, _send_factory_reset_request},
+    {STATE_ENABLE_SECURITY, _enable_security},
+    {STATE_SHUTDOWN, _shutdown_touchlink}
+};
+static ZgSmStateNb _touchlink_nb_states = sizeof(_touchlink_states)/sizeof(ZgSmStateData);
+
+static ZgSmTransitionData _touchlink_transitions[] = {
+    {STATE_INIT, EVENT_INIT_DONE, STATE_DISABLE_SECURITY},
+    {STATE_DISABLE_SECURITY, EVENT_SECURITY_DISABLED, STATE_SEND_SCAN},
+    {STATE_SEND_SCAN, EVENT_SCAN_SENT, STATE_WAIT_SCAN_RESPONSE},
+    {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_TIMEOUT_RESCAN, STATE_SEND_SCAN},
+    {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_RESPONSE_RECEIVED, STATE_IDENTIY},
+    {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_TIMEOUT_NO_RESCAN, STATE_ENABLE_SECURITY},
+    {STATE_IDENTIY, EVENT_IDENTIFY_REQUEST_SENT, STATE_WAIT_IDENTIFY},
+    {STATE_WAIT_IDENTIFY, EVENT_IDENTIFY_DELAY_PAST, STATE_FACTORY_RESET},
+    {STATE_FACTORY_RESET, EVENT_FACTORY_RESET_SENT, STATE_ENABLE_SECURITY},
+    {STATE_ENABLE_SECURITY, EVENT_SECURITY_ENABLED, STATE_SHUTDOWN}
+};
+static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitions)/sizeof(ZgSmTransitionData);
+
+
+
 /********************************
  *   ZLL messages callbacks     *
  *******************************/
 
-static void _touchlink_finished(void)
-{
-    LOG_INF("Device reset, enabling security again");
-    mt_sys_nv_write_enable_security(NULL);
-}
-
-static void _identify_delay_timeout_cb(uv_timer_t *t)
-{
-    uv_unref((uv_handle_t *)t);
-    LOG_INF("Device identified itself, sending reset");
-    zg_zll_send_factory_reset_request(_touchlink_finished);
-}
-
 static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
-    LOG_INF("A device is ready to install");
-    _stop_scan = 1;
-    zg_zll_send_identify_request(NULL);
-    uv_timer_init(uv_default_loop(), &_identify_timer);
-    uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, 3000, 0);
+    LOG_INF("A device has sent a scan response");
+    zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
 }
 
@@ -184,67 +416,6 @@ static ZgAlState _init_states[] = {
 static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 /********************************
- *    Touchlink state machine   *
- *******************************/
-
-static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)));
-
-static void _scan_request_sent(void)
-{
-    if(_stop_scan !=1)
-        uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, 250, 0);
-}
-
-static void _send_single_scan_request()
-{
-    zg_zll_send_scan_request(_scan_request_sent);
-}
-
-static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
-{
-    static int scan_counter = 0;
-
-    scan_counter++;
-    if(scan_counter < 5 && !_stop_scan)
-    {
-        _send_single_scan_request();
-    }
-    else
-    {
-        uv_unref((uv_handle_t *) &_scan_timeout_timer);
-        if(!_stop_scan)
-            mt_sys_nv_write_enable_security(NULL);
-    }
-}
-
-static void _send_five_scan_requests()
-{
-    _stop_scan = 0;
-    uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
-    _send_single_scan_request();
-}
-
-static void _security_disabled(void)
-{
-    _send_five_scan_requests();
-}
-
-/********************************
- *          Internal            *
- *******************************/
-
-uint32_t _generate_new_interpan_transaction_identifier()
-{
-    uint32_t result = 0;
-    result = rand() & 0xFF;
-    result |= (rand() & 0xFF) << 8;
-    result |= (rand() & 0xFF) << 16;
-    result |= (rand() & 0xFF) << 24;
-
-    return result;
-}
-
-/********************************
  *          ZLL API             *
  *******************************/
 
@@ -259,77 +430,29 @@ void zg_zll_init(InitCompleteCb cb)
 
 void zg_zll_shutdown(void)
 {
-    _stop_scan = 1;
     zg_al_destroy(_init_sm);
-}
-
-void zg_zll_send_scan_request(SyncActionCb cb)
-{
-    char zll_data[LEN_SCAN_REQUEST] = {0};
-
-    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
-            &_interpan_transaction_identifier,
-            sizeof(_interpan_transaction_identifier));
-    zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
-    zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
-
-    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
-            ZCL_BROADCAST_INTER_PAN,
-            ZLL_ENDPOINT,
-            ZCL_BROADCAST_ENDPOINT,
-            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
-            COMMAND_SCAN_REQUEST,
-            zll_data,
-            LEN_SCAN_REQUEST,
-            cb);
-}
-
-void zg_zll_send_identify_request(SyncActionCb cb)
-{
-    char zll_data[LEN_IDENTIFY_REQUEST] = {0};
-    uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
-
-    LOG_INF("Sending identify request");
-    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
-            &_interpan_transaction_identifier,
-            sizeof(_interpan_transaction_identifier));
-    memcpy(zll_data + INDEX_IDENTIFY_DURATION, &identify_duration, 2);
-
-    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
-            ZCL_BROADCAST_INTER_PAN,
-            ZLL_ENDPOINT,
-            ZCL_BROADCAST_ENDPOINT,
-            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
-            COMMAND_IDENTIFY_REQUEST,
-            zll_data,
-            LEN_IDENTIFY_REQUEST,
-            cb);
-}
-
-void zg_zll_send_factory_reset_request(SyncActionCb cb)
-{
-    char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
-
-    LOG_INF("Sending factory reset request");
-    memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
-            &_interpan_transaction_identifier,
-            sizeof(_interpan_transaction_identifier));
-
-    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
-            ZCL_BROADCAST_INTER_PAN,
-            ZLL_ENDPOINT,
-            ZCL_BROADCAST_ENDPOINT,
-            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
-            COMMAND_FACTORY_NEW_REQUEST,
-            zll_data,
-            LEN_FACTORY_RESET_REQUEST,
-            cb);
-
 }
 
 void zg_zll_start_touchlink(void)
 {
+    if(_touchlink_sm)
+    {
+        LOG_WARN("A touchlink procedure is already in progress");
+        return;
+    }
+
+    _touchlink_sm = zg_sm_create(   "touchlink",
+                                    _touchlink_states,
+                                    _touchlink_nb_states,
+                                    _touchlink_transitions,
+                                    _touchlink_nb_transtitions);
+    if(!_touchlink_sm)
+    {
+        LOG_ERR("Abort touchlink procedure");
+        return;
+    }
+
     LOG_INF("Starting touchlink procedure");
-    _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
-    mt_sys_nv_write_disable_security(_security_disabled);
+    if(zg_sm_start(_touchlink_sm) != 0)
+        LOG_ERR("Error encountered while starting touchlink state machine");
 }
