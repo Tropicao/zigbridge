@@ -1,0 +1,10 @@
+@startuml
+[*] -> SendScan
+SendScan --> WaitResponse : ScanSent
+WaitResponse --> SendScan : (responseTimeout and nbScanPrimaryChannel < 5)
+WaitResponse --> Identify : scanResponseReceived
+WaitResponse --> [*] : (responseTimeout and nbScanPrimaryChannel = 5)
+Identify --> WaitIdentify : identifyRequestSent
+WaitIdentify --> FactoryReset : identifyPeriodPast
+FactoryReset --> [*] : factoryResetSent
+@enduml
