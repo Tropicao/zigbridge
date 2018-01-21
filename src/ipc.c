@@ -61,6 +61,10 @@ static void _process_ipc_message_cb(uv_poll_t *handler __attribute__((unused)), 
                 cmd = ZG_IPC_COMMAND_DISCOVERY;
             else if(strcmp((char*)buffer, "o") == 0)
                 cmd = ZG_IPC_COMMAND_OPEN_NETWORK;
+            else if(strcmp((char*)buffer, "b") == 0)
+                cmd = ZG_IPC_COMMAND_MOVE_TO_BLUE;
+            else if(strcmp((char*)buffer, "r") == 0)
+                cmd = ZG_IPC_COMMAND_MOVE_TO_RED;
             else
             {
                 LOG_WARN("Unknown command");

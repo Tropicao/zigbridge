@@ -14,6 +14,7 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state);
 void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb);
 void zha_ask_node_descriptor(uint16_t short_addr);
 void zg_zha_register_button_state_cb(void (*cb)(void));
+void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y);
 
 #endif
 

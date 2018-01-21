@@ -23,6 +23,12 @@
 #define GATEWAY_ADDR                0x0000
 #define GATEWAY_CHANNEL             11
 
+/*** For demo purpose, pre-calculated values */
+#define X_RED       65535
+#define Y_RED       0
+#define X_BLUE      0
+#define Y_BLUE      0
+
 /********************************
  * Initialization state machine *
  *******************************/
@@ -276,6 +282,23 @@ static void _process_command_switch_light()
 
 }
 
+static void _process_command_move_predefined_color(uint16_t x, uint16_t y)
+{
+    uint16_t addr = 0xFFFD;
+    if(_initialized)
+    {
+        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        if(addr != 0xFFFD)
+            zg_zha_move_to_color(addr, x, y);
+        else
+            LOG_WARN("Device is not installed, cannot switch light to predefined color");
+    }
+    else
+    {
+        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+    }
+}
+
 static void _process_command_open_network(void)
 {
     LOG_INF("Opening network to allow new devices to join");
@@ -294,6 +317,12 @@ static void _process_user_command(IpcCommand cmd)
             break;
         case ZG_IPC_COMMAND_OPEN_NETWORK:
             _process_command_open_network();
+            break;
+        case ZG_IPC_COMMAND_MOVE_TO_BLUE:
+            _process_command_move_predefined_color(X_BLUE, Y_BLUE);
+            break;
+        case ZG_IPC_COMMAND_MOVE_TO_RED:
+            _process_command_move_predefined_color(X_RED, Y_RED);
             break;
         default:
             LOG_WARN("Unsupported command");

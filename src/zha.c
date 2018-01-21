@@ -231,3 +231,23 @@ void zg_zha_register_button_state_cb(void (*cb)(void))
     _button_change_cb = cb;
 }
 
+void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y)
+{
+    uint8_t command[6];
+    uint16_t duration = 10;
+
+    memcpy(command, &x, 2);
+    memcpy(command+2, &y, 2);
+    memcpy(command+4, &duration, 2);
+
+    zg_aps_send_data(short_addr,
+            0xABCD,
+            ZHA_ENDPOINT,
+            0x0B,
+            ZCL_CLUSTER_COLOR_CONTROL,
+            0x07,
+            command,
+            6,
+            NULL);
+}
+
