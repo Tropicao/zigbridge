@@ -5,7 +5,7 @@
 #include "types.h"
 
 /* APS callbacks, registered by proper applications */
-typedef void (*ApsMsgCb)(void *data, int len);
+typedef void (*ApsMsgCb)(uint16_t cluster, void *data, int len);
 
 void zg_aps_init();
 void zg_aps_shutdown();

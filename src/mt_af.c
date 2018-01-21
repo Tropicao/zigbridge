@@ -112,7 +112,7 @@ static uint8_t _incoming_msg_cb(IncomingMsgFormat_t *msg)
     LOG_INF("Length : %d", msg->Len);
 
     if(_af_incoming_msg_cb)
-        _af_incoming_msg_cb(msg->DstEndpoint, msg->Data, msg->Len);
+        _af_incoming_msg_cb(msg->DstEndpoint, msg->ClusterId, msg->Data, msg->Len);
 
     return 0;
 }
@@ -137,7 +137,7 @@ static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
     /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
     */
     if(_af_incoming_msg_cb)
-        _af_incoming_msg_cb(msg->DstEndpoint, msg->Data, msg->Len);
+        _af_incoming_msg_cb(msg->DstEndpoint, msg->ClusterId, msg->Data, msg->Len);
 
     return 0;
 }

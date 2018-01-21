@@ -341,7 +341,7 @@ static uint8_t _process_scan_response(void *data __attribute__((unused)), int le
     return 0;
 }
 
-static void _zll_message_cb(void *data, int len)
+static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)

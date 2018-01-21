@@ -151,7 +151,7 @@ static void _query_simple_desc(void)
 
 static void _shutdown_new_device_sm(void)
 {
-    LOG_INF("Learnind device process finished");
+    LOG_INF("Learning device process finished");
     _current_learning_device_addr = 0xFFFD;
     zg_sm_destroy(_new_device_sm);
 }
@@ -225,7 +225,7 @@ static void _simple_desc_cb(uint8_t endpoint, uint16_t profile)
     LOG_INF("Endpoint 0x%02X of device 0x%04X has profile 0x%04X",
             endpoint, _current_learning_device_addr, profile);
     zg_device_update_endpoint_profile(_current_learning_device_addr, endpoint, profile);
-    
+
     next_endpoint = zg_device_get_next_empty_endpoint(_current_learning_device_addr);
     if(next_endpoint)
         zg_sm_send_event(_new_device_sm, EVENT_SIMPLE_DESC_RECEIVED);
@@ -255,6 +255,71 @@ static void _button_change_cb(void)
         LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
     }
 }
+
+static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
+{
+    /*
+     * Simple demo function : we want to move hue from blue to red when
+     * temperature increase.
+     * We will agree that first read temperature (ie room temperature) is the
+     * cold one (ie hue is blue), and that red hue can be reached at 30°C (can
+     * be reached by blowing hot air on sensor)
+     *
+     * TLDR :
+     * T=Cold : X=0, Y=0
+     * T=Hot : X=65535, Y=0
+     */
+    static float a, b;
+    static uint16_t ref_temp = 0;
+    const uint16_t max_temp = 2700;
+
+
+    if(temp > max_temp)
+        temp = max_temp;
+
+    if(ref_temp == 0 || temp < ref_temp)
+    {
+        LOG_DBG("Setting new temperature reference (%s)", ref_temp ? "New temp below ref temp":"No ref temp yet");
+        ref_temp = temp;
+        *y = 0;
+        *x = 0;
+        a = (float)(65535/(float)(max_temp - ref_temp));
+        b = -(float)(a*ref_temp);
+    }
+    else
+    {
+        LOG_DBG("Updating temperature color");
+        *y=0;
+        *x= a*temp + b;
+    }
+    LOG_DBG("X : 0x%04X - Y : 0x%04X", *x, *y);
+}
+
+
+static void _temperature_cb(uint16_t temp)
+{
+    uint16_t addr = 0xFFFD;
+    uint16_t x, y;
+
+    LOG_INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
+    if(_initialized)
+    {
+        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        if(addr != 0xFFFD)
+        {
+            _compute_new_color(temp, &x, &y);
+            zg_zha_move_to_color(addr, x, y, 5);
+        }
+        else
+            LOG_WARN("Device is not installed, cannot switch light");
+    }
+    else
+    {
+        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+    }
+}
+
+
 
 static void _process_command_touchlink()
 {
@@ -289,7 +354,7 @@ static void _process_command_move_predefined_color(uint16_t x, uint16_t y)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
         if(addr != 0xFFFD)
-            zg_zha_move_to_color(addr, x, y);
+            zg_zha_move_to_color(addr, x, y, 1);
         else
             LOG_WARN("Device is not installed, cannot switch light to predefined color");
     }
@@ -350,6 +415,7 @@ void zg_core_init(uint8_t reset_network)
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
+    zg_zha_register_temperature_cb(_temperature_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_device_init(reset_network);
