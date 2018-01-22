@@ -5,6 +5,14 @@ This software aims to provide a complete gateway solution to pilot devices on a
 Zigbee network. The gateway is designed to run on a Linux host equipped with a
 CC2531 USB dongle.
 
+## Current project state
+As you may see, this software is still under heavy development. The target for v1.0.0 is to be able to integrate it in a domotic solution to drive Zigbee devices in a home/appartment, with the following features :
+* detection and notification of available devices
+* devices installation
+* report of installed devices
+* execution of basic commands on devices (light, switches, sensors)
+Even if this scope is still not reached, some nice showcases are available if you have the necessary devices (see README_demo.md)
+
 ## How to build it
 
 This project use [Meson](http://mesonbuild.com/) as build system. You will need the following components :
@@ -41,3 +49,7 @@ The values of log level can be one between this ones :
 * LOG_WARN
 * LOG_INF
 * LOG_DBG
+
+## I want to report an issue or a feature request !
+
+First of all, thank you for using this software ! Please feel free to fill an issue on the project Github and I will gladly take a look at it, even if it is only a suggestion. However, keep in mind that any development I do is conditioned by the availability of devices to test it.
