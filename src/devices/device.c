@@ -23,6 +23,7 @@ typedef struct
 {
     uint8_t num;
     uint16_t profile;
+    uint16_t device_id;
 } EndpointData;
 
 typedef struct
@@ -236,7 +237,7 @@ static void _print_device_list(void)
 static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
 {
     EndpointData *ep = NULL;
-    json_t *num = NULL, *profile = NULL;
+    json_t *num = NULL, *profile = NULL, *device_id;
 
     if(!data || !endpoint || !json_is_object(endpoint))
     {
@@ -245,8 +246,10 @@ static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
     }
     num = json_object_get(endpoint, "num");
     profile = json_object_get(endpoint, "profile");
+    device_id = json_object_get(endpoint, "device_id");
     if(!num || !json_is_integer(num) ||
-            !profile || !json_is_integer(profile))
+            !profile || !json_is_integer(profile)||
+            !device_id || !json_is_integer(device_id))
     {
         LOG_ERR("Cannot load enpoint data for device 0x%04X", data->short_addr);
     }
@@ -366,7 +369,8 @@ static json_t *_build_endpoint_data_json(EndpointData *data)
     json_t *endpoint = NULL;
     endpoint = json_object();
     if(json_object_set_new(endpoint, "num", json_integer(data->num))||
-            json_object_set_new(endpoint, "profile", json_integer(data->profile)))
+            json_object_set_new(endpoint, "profile", json_integer(data->profile)) ||
+            json_object_set_new(endpoint, "device_id", json_integer(data->device_id)))
     {
         LOG_ERR("Cannot build json object for endpoint 0x%02X", data->num);
     }
@@ -535,7 +539,7 @@ void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_
     _save_device_list();
 }
 
-void zg_device_update_endpoint_profile(uint16_t addr, uint8_t endpoint, uint16_t profile)
+void zg_device_update_endpoint_data(uint16_t addr, uint8_t endpoint, uint16_t profile, uint16_t device_id)
 {
     EndpointData *ep = NULL;
     DeviceData *device = NULL;
@@ -546,6 +550,7 @@ void zg_device_update_endpoint_profile(uint16_t addr, uint8_t endpoint, uint16_t
         if(ep)
         {
             ep->profile = profile;
+            ep->device_id = device_id;
             _save_device_list();
         }
     }

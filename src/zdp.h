@@ -4,7 +4,7 @@
 #include "types.h"
 
 typedef void (*ActiveEpRspCb)(uint16_t short_addr, uint8_t nb_p, uint8_t *ep_list);
-typedef void (*SimpleDescRspCb)(uint8_t endpoint, uint16_t profile);
+typedef void (*SimpleDescRspCb)(uint8_t endpoint, uint16_t profile, uint16_t device_id);
 
 void zg_zdp_init(SyncActionCb cb);
 void zg_zdp_shutdown(void);

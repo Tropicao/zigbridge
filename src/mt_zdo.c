@@ -19,7 +19,7 @@ static const uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 static void (*_zdo_active_ep_rsp_cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list) = NULL;
-static void (*_zdo_simple_desc_rsp_cb)(uint8_t endpoint, uint16_t profile) = NULL;
+static void (*_zdo_simple_desc_rsp_cb)(uint8_t endpoint, uint16_t profile, uint16_t deviceId) = NULL;
 
 /********************************
  *     MT ZDO callbacks         *
@@ -48,7 +48,7 @@ static uint8_t mt_zdo_simple_desc_rsp_cb(SimpleDescRspFormat_t *msg)
     }
     LOG_INF("MT_ZDO_SIMPLE_DESC_RSP received");
     if(_zdo_simple_desc_rsp_cb)
-        _zdo_simple_desc_rsp_cb(msg->Endpoint, msg->ProfileID);
+        _zdo_simple_desc_rsp_cb(msg->Endpoint, msg->ProfileID, msg->DeviceID);
 
     return 0;
 }
@@ -281,7 +281,7 @@ void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint
     _zdo_active_ep_rsp_cb = cb;
 }
 
-void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile))
+void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id))
 {
     _zdo_simple_desc_rsp_cb = cb;
 }

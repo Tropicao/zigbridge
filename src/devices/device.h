@@ -11,7 +11,7 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr);
 uint16_t zg_device_get_short_addr(DeviceId id);
 uint8_t zg_device_is_device_known(uint64_t ext_addr);
 void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list);
-void zg_device_update_endpoint_profile(uint16_t addr, uint8_t endpoint, uint16_t profile);
+void zg_device_update_endpoint_data(uint16_t addr, uint8_t endpoint, uint16_t profile, uint16_t device_id);
 uint8_t zg_device_get_next_empty_endpoint(uint16_t addr);
 
 #endif

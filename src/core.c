@@ -219,12 +219,12 @@ static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep
     zg_sm_send_event(_new_device_sm, EVENT_ACTIVE_ENDPOINTS_RESP);
 }
 
-static void _simple_desc_cb(uint8_t endpoint, uint16_t profile)
+static void _simple_desc_cb(uint8_t endpoint, uint16_t profile, uint16_t device_id)
 {
     uint8_t next_endpoint;
     LOG_INF("Endpoint 0x%02X of device 0x%04X has profile 0x%04X",
             endpoint, _current_learning_device_addr, profile);
-    zg_device_update_endpoint_profile(_current_learning_device_addr, endpoint, profile);
+    zg_device_update_endpoint_data(_current_learning_device_addr, endpoint, profile, device_id);
 
     next_endpoint = zg_device_get_next_empty_endpoint(_current_learning_device_addr);
     if(next_endpoint)
