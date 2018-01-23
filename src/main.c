@@ -8,6 +8,7 @@
 #include "conf.h"
 #include "types.h"
 #include "stdin.h"
+#include "ipc.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
@@ -102,6 +103,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
+    zg_ipc_init();
     zg_core_init(_reset_network);
     LOG_INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
@@ -109,6 +111,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     LOG_INF("Quitting application");
     zg_core_shutdown();
+    zg_ipc_shutdown();
     uv_poll_stop(&znp_poll);
     znp_shutdown();
     zg_conf_free();
