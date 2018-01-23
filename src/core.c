@@ -10,6 +10,7 @@
 #include "mt_sys.h"
 #include "mt_zdo.h"
 #include "mt_util.h"
+#include "stdin.h"
 #include "ipc.h"
 #include "device.h"
 #include "keys.h"
@@ -370,23 +371,23 @@ static void _process_command_open_network(void)
     mt_zdo_permit_join(NULL);
 }
 
-static void _process_user_command(IpcCommand cmd)
+static void _process_user_command(StdinCommand cmd)
 {
     switch(cmd)
     {
-        case ZG_IPC_COMMAND_TOUCHLINK:
+        case ZG_STDIN_COMMAND_TOUCHLINK:
             _process_command_touchlink();
             break;
-        case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
+        case ZG_STDIN_COMMAND_SWITCH_DEMO_LIGHT:
             _process_command_switch_light();
             break;
-        case ZG_IPC_COMMAND_OPEN_NETWORK:
+        case ZG_STDIN_COMMAND_OPEN_NETWORK:
             _process_command_open_network();
             break;
-        case ZG_IPC_COMMAND_MOVE_TO_BLUE:
+        case ZG_STDIN_COMMAND_MOVE_TO_BLUE:
             _process_command_move_predefined_color(X_BLUE, Y_BLUE);
             break;
-        case ZG_IPC_COMMAND_MOVE_TO_RED:
+        case ZG_STDIN_COMMAND_MOVE_TO_RED:
             _process_command_move_predefined_color(X_RED, Y_RED);
             break;
         default:
@@ -412,7 +413,7 @@ void zg_core_init(uint8_t reset_network)
     if(reset_network)
         zg_keys_network_key_del();
     zg_aps_init();
-    zg_ipc_register_command_cb(_process_user_command);
+    zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
     zg_zha_register_temperature_cb(_temperature_cb);

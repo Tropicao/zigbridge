@@ -7,7 +7,7 @@
 #include "core.h"
 #include "conf.h"
 #include "types.h"
-#include "ipc.h"
+#include "stdin.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
@@ -96,7 +96,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     status = uv_poll_init(loop, &user_poll, user_fd);
 
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
-    uv_poll_start(&user_poll, UV_READABLE, zg_ipc_get_ipc_main_callback());
+    uv_poll_start(&user_poll, UV_READABLE, zg_stdin_get_stdin_main_callback());
 
     uv_signal_init(loop, &sig_int);
 
