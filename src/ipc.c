@@ -14,7 +14,7 @@
  *******************************/
 
 #define IPC_PIPENAME            "/tmp/zg_sock"
-#define IPC_DEFAULT_VERSION     "{\"version\":\"0.3.0\"}"
+#define IPC_DEFAULT_VERSION     "{\"version\":\"0.4.0\"}"
 #define IPC_STANDARD_ERROR      "{\"status\":\"Unknown command\"}"
 /********************************
  *      Local variables         *
