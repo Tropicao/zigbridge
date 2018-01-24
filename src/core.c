@@ -177,12 +177,29 @@ static ZgSmTransitionNb _new_device_nb_transitions = sizeof(_new_device_transiti
  *  Network Events processing   *
  *******************************/
 
+static void _send_ipc_event_new_device(DeviceId id)
+{
+    json_t *root = NULL;
+
+    root = json_object();
+    if(root)
+        json_object_set_new(root, "id", json_integer(id));
+    else
+        return;
+
+    zg_ipc_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
+    json_decref(root);
+}
+
 static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
+    DeviceId id = 0;
     if(!zg_device_is_device_known(ext_addr))
     {
         LOG_INF("Seen device is a new device");
-        zg_add_device(short_addr, ext_addr);
+        id = zg_add_device(short_addr, ext_addr);
+        LOG_INF("New id : %d", id);
+        _send_ipc_event_new_device(id);
         if(_new_device_sm)
         {
             LOG_WARN("Already learning a new device, cannot learn newly visible device");
@@ -238,15 +255,31 @@ static void _simple_desc_cb(uint8_t endpoint, uint16_t profile, uint16_t device_
  *     Commands processing      *
  *******************************/
 
-static void _button_change_cb(void)
+
+static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
+{
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "state", json_integer(state));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
+    json_decref(root);
+}
+
+
+static void _button_change_cb(uint8_t state)
 {
     uint16_t addr = 0xFFFD;
+    DeviceId id = 0;
 
     LOG_INF("Button pressed, toggling the light");
     if(_initialized)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
-        if(addr != 0xFFFD)
+        id = zg_device_get_id(addr);
+        _send_ipc_event_button_state_change(id, state);
+        if(addr != 0xFFFD && state == 0)
             zg_zha_switch_bulb_state(addr);
         else
             LOG_WARN("Device is not installed, cannot switch light");

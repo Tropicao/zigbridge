@@ -61,7 +61,7 @@
 
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
-static void (*_button_change_cb)(void) = NULL;
+static void (*_button_change_cb)(uint8_t state) = NULL;
 static void (*_temperature_cb)(uint16_t temp) = NULL;
 static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
@@ -84,8 +84,8 @@ static void _process_on_off_command(void *data, int len __attribute__((unused)))
     if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
     {
         LOG_INF("Received new switch status : %s", buffer[6] ? "Released":"Pushed");
-        if(_button_change_cb && buffer[6] == 0x00)
-            _button_change_cb();
+        if(_button_change_cb)
+            _button_change_cb(buffer[6]);
     }
     else
     {
@@ -256,7 +256,7 @@ void zha_ask_node_descriptor(uint16_t short_addr)
     zdoNodeDescReq(&req);
 }
 
-void zg_zha_register_button_state_cb(void (*cb)(void))
+void zg_zha_register_button_state_cb(void (*cb)(uint8_t state))
 {
     _button_change_cb = cb;
 }

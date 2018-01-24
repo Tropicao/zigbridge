@@ -531,6 +531,24 @@ uint16_t zg_device_get_short_addr(DeviceId id)
     return addr;
 }
 
+DeviceId zg_device_get_id(uint16_t short_addr)
+{
+    DeviceId id;
+    Eina_List *l = NULL;
+    DeviceData *data = NULL;
+
+    EINA_LIST_FOREACH(_device_list, l, data)
+    {
+        if(data->short_addr == short_addr)
+        {
+            id = data->id;
+            break;
+        }
+    }
+
+    return id;
+}
+
 uint8_t zg_device_is_device_known(uint64_t ext_addr)
 {
     DeviceData *data = _get_device_by_ext_addr(ext_addr);
