@@ -443,8 +443,11 @@ void zg_core_init(uint8_t reset_network)
     mt_sys_register_callbacks();
     mt_zdo_register_callbacks();
     mt_util_register_callbacks();
-    if(reset_network)
+    if(_reset_network)
+    {
         zg_keys_network_key_del();
+        LOG_INF("Starting new network");
+    }
     zg_aps_init();
     zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
@@ -452,9 +455,9 @@ void zg_core_init(uint8_t reset_network)
     zg_zha_register_temperature_cb(_temperature_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
-    zg_device_init(reset_network);
+    zg_device_init(_reset_network);
 
-    if(reset_network)
+    if(_reset_network)
         _init_sm = zg_al_create(_init_states_reset, _init_reset_nb_states);
     else
         _init_sm = zg_al_create(_init_states_restart, _init_restart_nb_states);
