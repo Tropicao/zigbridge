@@ -15,6 +15,8 @@ Even if this scope is still not reached, some nice showcases are available if yo
 
 ## How to build it
 
+You will need to flash CC2531 USB dongle firmware. Please follow the [firmware instructions](https://github.com/Tropicao/zll-gateway/blob/master/doc/firmware_instructions.md).
+
 This project use [Meson](http://mesonbuild.com/) as build system. You will need the following components :
 * Meson
 * Python 3
