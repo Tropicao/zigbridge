@@ -9,6 +9,7 @@
 #include "zll.h"
 #include "core.h"
 #include "utils.h"
+#include "mt_zdo.h"
 
 /********************************
  *          Constants           *
@@ -17,6 +18,7 @@
 #define IPC_PIPENAME            "/tmp/zg_sock"
 #define IPC_DEFAULT_VERSION     "{\"version\":\"0.4.0\"}"
 #define IPC_STANDARD_ERROR      "{\"status\":\"Unknown command\"}"
+#define IPC_OPEN_NETWORK_OK     "{\"open_network\":\"ok\"}"
 /********************************
  *      Local variables         *
  *******************************/
@@ -90,6 +92,22 @@ static void _send_device_list()
     uv_write(&req,(uv_stream_t *) _client, buf, 1, _allocated_req_sent);
 }
 
+static void _open_network(void)
+{
+    uv_write_t *req;
+    uv_buf_t buffer[] = {
+        {.base =IPC_OPEN_NETWORK_OK, .len=21}
+    };
+
+    if(!_client)
+        return;
+    req = calloc(1, sizeof(uv_write_t));
+
+    LOG_INF("Sending Open Network OK to IPC client");
+    uv_write(req, (uv_stream_t *)_client, buffer, 1, NULL);
+    mt_zdo_permit_join(NULL);
+}
+
 
 static void _process_ipc_data(char *data, int len)
 {
@@ -120,6 +138,8 @@ static void _process_ipc_data(char *data, int len)
             _send_version();
         else if(strcmp(json_string_value(command), "get_device_list") == 0)
             _send_device_list();
+        else if(strcmp(json_string_value(command), "open_network") == 0)
+            _open_network();
         else
         {
             _send_error();
