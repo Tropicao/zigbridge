@@ -141,6 +141,7 @@ void zg_ipc_init()
         LOG_ERR("Error listening on IPC socket");
         return;
     }
+    LOG_INF("IPC started on socket %s", IPC_PIPENAME);
 }
 
 void zg_ipc_shutdown()
