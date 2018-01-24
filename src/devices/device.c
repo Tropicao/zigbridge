@@ -434,6 +434,29 @@ static void _save_device_list()
     json_decref(root);
 }
 
+static json_t *_get_device_list_json(void)
+{
+    DeviceData *data = NULL;
+    Eina_List *l = NULL;
+    json_t *root = NULL, *array = NULL, *device = NULL;
+
+    array = json_array();
+    EINA_LIST_FOREACH(_device_list, l, data)
+    {
+        device = _build_device_data_json(data);
+        if(device)
+        {
+            json_array_append(array, device);
+            json_decref(device);
+        }
+        LOG_INF("Stored data for device 0x%04X", data->short_addr);
+    }
+
+    root = json_object();
+    json_object_set_new(root, "devices", array);
+    return root;
+}
+
 /********************************
  *             API              *
  *******************************/
@@ -577,5 +600,12 @@ uint8_t zg_device_get_next_empty_endpoint(uint16_t addr)
     }
     return res;
 }
+
+json_t *zg_device_get_device_list_json(void)
+{
+    return _get_device_list_json();
+}
+
+
 
 

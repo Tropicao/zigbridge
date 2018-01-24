@@ -46,9 +46,34 @@ static void _send_error()
     uv_write(&req,(uv_stream_t *) &_client, buffer, 1, NULL);
 }
 
+static void _device_list_sent(uv_write_t *req, int status __attribute__((unused)))
+{
+    uv_buf_t *buf = (uv_buf_t *)req->data;
+
+    free(buf->base);
+}
+
+static void _send_device_list()
+{
+    uv_write_t req;
+    size_t size;
+    json_t *devices = zg_device_get_device_list_json();
+
+    uv_buf_t *buf = calloc(1, sizeof(uv_buf_t));
+    size = json_dumpb(devices, NULL, 0, JSON_DECODE_ANY);
+    buf->base = calloc(size, sizeof(char));
+    size = json_dumpb(devices, buf->base, size, JSON_DECODE_ANY);
+    json_decref(devices);
+    buf->len = size;
+    req.data = buf;
+
+    uv_write(&req,(uv_stream_t *) &_client, buf, 1, _device_list_sent);
+}
+
+
 static void _process_ipc_data(char *data, int len)
 {
-   json_t *root; 
+   json_t *root;
    json_t *command;
    json_error_t error;
 
@@ -71,9 +96,9 @@ static void _process_ipc_data(char *data, int len)
    if(command && json_is_string(command))
    {
         if(strcmp(json_string_value(command), "version") == 0)
-        {
             _send_version();
-        }
+        else if(strcmp(json_string_value(command), "get_device_list") == 0)
+            _send_device_list();
         else
         {
             _send_error();
@@ -92,7 +117,7 @@ static void _new_data_cb(uv_stream_t *s __attribute__((unused)), ssize_t n, cons
         LOG_ERR("New data size error");
         return;
     }
-    
+
     _process_ipc_data(buf->base, n);
 }
 
