@@ -9,6 +9,8 @@
 #include "mt_af.h"
 #include "mt_sys.h"
 #include "sm.h"
+#include <jansson.h>
+#include "ipc.h"
 
 /********************************
  *          Constants           *
@@ -219,12 +221,24 @@ static void _init_touchlink(void)
     zg_sm_send_event(_touchlink_sm, EVENT_INIT_DONE);
 }
 
+static void _send_ipc_event_touchlink_end()
+{
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "status", json_string("finished"));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_TOUCHLINK_FINISHED, root);
+    json_decref(root);
+}
+
 static void _shutdown_touchlink(void)
 {
     uv_unref((uv_handle_t *)&_scan_timeout_timer);
     uv_unref((uv_handle_t *)&_identify_timer);
     zg_sm_destroy(_touchlink_sm);
     LOG_INF("Touchlink procedure finished");
+    _send_ipc_event_touchlink_end();
+
 }
 
 static void _security_disabled_cb(void)
