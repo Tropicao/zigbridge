@@ -26,16 +26,23 @@ In order to test integration, the following devices are needed :
 *Example* :  
   * Input : `{"command":"version"}`
   * Output : `{"version":"0.4.0"}`
-* Open Network : used to allow new devices to join for half a minute
+* Open Network : used to allow new devices to join for half a minute  
   *Example* :  
     * Input : `{"command":"open_network"}`
     * Output : `{"open_network":"ok"}`
-* get_device_list : used to query the list of installed devices and the corresponding properties
+* get_device_list : used to query the list of installed devices and the corresponding properties  
   *Example* :  
     * Input : `{"command":"get_device_list"}`
     * Output : `{"devices":[{"id": 0,"short_addr": 52041,"ext_addr": 6066005677890593, "endpoints": []}]}`
+* Touchlink : used to initiate a new touchlink procedure. The procedure will return OK if started, or an error if it cannot start or if another touchlink is in progress  
+  *Example* :  
+    * Input : `{"command":"touchlink"}`
+    * Output : `{"touchlink":"ok"}`
 
 ## Events
-* Button event : event received when a button is installed and that button is toggled
-  *Example* :
-    * Output : `{"event":"button_state","data":{"id":255,"state":0}}`
+* Button event : event received when a button is installed and that button is toggled  
+  *Example* : `{"event":"button_state","data":{"id":255,"state":0}}`  
+Temperature event : event received when a sensor reports a temperature value  
+  *Example* : `{"event":"temperature","data":{"temperature":2076}}`  
+Touchlink event : event received when a touchlink has a new state to notify   
+  *Example* : `{"event":"event_touchlink","data":{"status":"finished"}}`  
