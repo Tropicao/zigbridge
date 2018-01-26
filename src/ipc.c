@@ -285,8 +285,6 @@ void zg_ipc_send_event(ZgIpcEvent event, json_t *data)
     buf->len = size;
     req = calloc(1, sizeof(uv_write_t));
     req->data = buf;
-    if(req->data)
-        LOG_INF("Sending data : %s", buf->base);
 
     uv_write(req,(uv_stream_t *) _client, buf, 1, _allocated_req_sent);
 }
