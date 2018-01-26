@@ -15,6 +15,7 @@ typedef enum
 {
     ZG_IPC_EVENT_NEW_DEVICE,
     ZG_IPC_EVENT_BUTTON_STATE,
+    ZG_IPC_EVENT_TEMPERATURE,
     ZG_IPC_EVENT_GUARD, /* Keep this value last */
 } ZgIpcEvent;
 

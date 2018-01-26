@@ -330,15 +330,29 @@ static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
 }
 
 
+static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
+{
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "temperature", json_integer(temp));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
+    json_decref(root);
+}
+
 static void _temperature_cb(uint16_t temp)
 {
     uint16_t addr = 0xFFFD;
+    DeviceId id;
     uint16_t x, y;
 
     LOG_INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
     if(_initialized)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        id = zg_device_get_id(addr);
+        _send_ipc_event_temperature(id, temp);
         if(addr != 0xFFFD)
         {
             _compute_new_color(temp, &x, &y);
