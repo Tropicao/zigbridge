@@ -268,15 +268,13 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
 }
 
 
-static void _button_change_cb(uint8_t state)
+static void _button_change_cb(uint16_t addr, uint8_t state)
 {
-    uint16_t addr = 0xFFFD;
     DeviceId id = 0;
 
     LOG_INF("Button pressed, toggling the light");
     if(_initialized)
     {
-        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
         id = zg_device_get_id(addr);
         _send_ipc_event_button_state_change(id, state);
         if(addr != 0xFFFD && state == 0)
@@ -341,16 +339,14 @@ static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
     json_decref(root);
 }
 
-static void _temperature_cb(uint16_t temp)
+static void _temperature_cb(uint16_t addr, uint16_t temp)
 {
-    uint16_t addr = 0xFFFD;
-    DeviceId id;
+    DeviceId id = 0xFF;
     uint16_t x, y;
 
     LOG_INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
     if(_initialized)
     {
-        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
         id = zg_device_get_id(addr);
         _send_ipc_event_temperature(id, temp);
         if(addr != 0xFFFD)

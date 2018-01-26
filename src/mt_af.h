@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "types.h"
 
-typedef void (*AfIncomingMessageCb)(uint8_t endpoint, uint16_t cluster, void *data, int len);
+typedef void (*AfIncomingMessageCb)(uint16_t addr, uint8_t endpoint, uint16_t cluster, void *data, int len);
 
 void mt_af_register_callbacks(void);
 void mt_af_register_endpoint(   uint8_t endpoint,

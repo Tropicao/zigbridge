@@ -334,14 +334,14 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
  *   ZLL messages callbacks     *
  *******************************/
 
-static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
+static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data __attribute__((unused)), int len __attribute__((unused)))
 {
     LOG_INF("A device has sent a scan response");
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
 }
 
-static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data, int len)
+static void _zll_message_cb(uint16_t short_addr, uint16_t cluster __attribute__((unused)), void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
@@ -352,7 +352,7 @@ static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data
     {
         case COMMAND_SCAN_RESPONSE:
             LOG_INF("Received scan response");
-            _process_scan_response(buffer, len);
+            _process_scan_response(short_addr, buffer, len);
             break;
         default:
             LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[2]);

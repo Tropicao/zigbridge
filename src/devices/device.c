@@ -533,7 +533,7 @@ uint16_t zg_device_get_short_addr(DeviceId id)
 
 DeviceId zg_device_get_id(uint16_t short_addr)
 {
-    DeviceId id;
+    DeviceId id = 0xFF;
     Eina_List *l = NULL;
     DeviceData *data = NULL;
 

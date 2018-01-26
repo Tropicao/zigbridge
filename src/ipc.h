@@ -9,11 +9,12 @@ typedef enum
 {
     ZG_IPC_COMMAND_NONE,
     ZG_IPC_COMMAND_GET_DEVICE_LIST,
+    ZG_IPC_COMMAND_TOUCHLINK,
 } IpcCommand;
 
 typedef enum
 {
-    ZG_IPC_EVENT_NEW_DEVICE,
+    ZG_IPC_EVENT_NEW_DEVICE = 0,
     ZG_IPC_EVENT_BUTTON_STATE,
     ZG_IPC_EVENT_TEMPERATURE,
     ZG_IPC_EVENT_GUARD, /* Keep this value last */

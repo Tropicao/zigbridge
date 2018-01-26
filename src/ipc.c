@@ -25,9 +25,10 @@
 
 static uv_pipe_t _server;
 static uv_pipe_t *_client = NULL;
-static char *event_strings [] = {
+static char *event_strings [ZG_IPC_EVENT_GUARD] = {
     "new_device",
     "button_state",
+    "event_temperature"
 };
 
 
