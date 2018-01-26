@@ -431,12 +431,12 @@ void zg_zll_shutdown(void)
     zg_al_destroy(_init_sm);
 }
 
-void zg_zll_start_touchlink(void)
+uint8_t zg_zll_start_touchlink(void)
 {
     if(_touchlink_sm)
     {
         LOG_WARN("A touchlink procedure is already in progress");
-        return;
+        return 1;
     }
 
     _touchlink_sm = zg_sm_create(   "touchlink",
@@ -447,10 +447,14 @@ void zg_zll_start_touchlink(void)
     if(!_touchlink_sm)
     {
         LOG_ERR("Abort touchlink procedure");
-        return;
+        return 1;
     }
 
     LOG_INF("Starting touchlink procedure");
     if(zg_sm_start(_touchlink_sm) != 0)
+    {
         LOG_ERR("Error encountered while starting touchlink state machine");
+        return 1;
+    }
+    return 0;
 }

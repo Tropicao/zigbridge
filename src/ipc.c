@@ -19,6 +19,8 @@
 #define IPC_DEFAULT_VERSION     "{\"version\":\"0.4.0\"}"
 #define IPC_STANDARD_ERROR      "{\"status\":\"Unknown command\"}"
 #define IPC_OPEN_NETWORK_OK     "{\"open_network\":\"ok\"}"
+#define IPC_TOUCHLINK_OK        "{\"touchlink\":\"ok\"}"
+#define IPC_TOUCHLINK_KO        "{\"touchlink\":\"error\"}"
 /********************************
  *      Local variables         *
  *******************************/
@@ -109,6 +111,30 @@ static void _open_network(void)
     mt_zdo_permit_join(NULL);
 }
 
+static void _start_touchlink(void)
+{
+    uint8_t res;
+    uv_write_t *req;
+    uv_buf_t *buffer = NULL;
+    char *msg = NULL;
+
+    if(!_client)
+        return;
+
+    res = zg_zll_start_touchlink();
+    req = calloc(1, sizeof(uv_write_t));
+    buffer = calloc(1, sizeof(uv_buf_t));
+    msg = (res == 0 ? IPC_TOUCHLINK_OK:IPC_TOUCHLINK_KO);
+    buffer->base = calloc(strlen(msg)+1, sizeof(char));
+    buffer->len = strlen(msg) + 1 ;
+    strcpy(buffer->base, msg);
+    req->data = buffer;
+
+    LOG_INF("Sending touchlink status to IPC client");
+    if(uv_write(req, (uv_stream_t *)_client, buffer, 1, _allocated_req_sent) <= 0)
+        LOG_ERR("Cannot send touchlink status to IPC client");
+}
+
 
 static void _process_ipc_data(char *data, int len)
 {
@@ -141,6 +167,8 @@ static void _process_ipc_data(char *data, int len)
             _send_device_list();
         else if(strcmp(json_string_value(command), "open_network") == 0)
             _open_network();
+        else if(strcmp(json_string_value(command), "touchlink") == 0)
+            _start_touchlink();
         else
         {
             _send_error();
