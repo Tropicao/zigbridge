@@ -7,20 +7,20 @@ src = ['src/main.c',
         'src/aps.c',
         'src/conf.c',
         'src/keys.c',
-        'src/mt_af.c',
-        'src/mt_sys.c',
-        'src/mt_zdo.c',
-        'src/mt_util.c',
-        'src/zdp.c',
-        'src/zha.c',
-        'src/zll.c',
+        'src/mt/mt_af.c',
+        'src/mt/mt_sys.c',
+        'src/mt/mt_zdo.c',
+        'src/mt/mt_util.c',
+        'src/profiles/zdp.c',
+        'src/profiles/zha.c',
+        'src/profiles/zll.c',
         'src/utils/sm.c',
         'src/utils/action_list.c',
         'src/devices/device.c']
 
 # Includes
 znpinc = include_directories('/usr/local/include/libznp')
-localinc = include_directories('src', 'src/utils', 'src/devices')
+localinc = include_directories('src', 'src/utils', 'src/devices', 'src/profiles', 'src/mt')
 incdir = [znpinc, localinc]
 
 # Libraries
