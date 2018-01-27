@@ -1,10 +1,10 @@
 #include <jansson.h>
 #include <stdint.h>
-#include <znp.h>
 #include <Eina.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "logs.h"
 #include "device.h"
 #include "utils.h"
 #include "conf.h"
@@ -39,6 +39,7 @@ typedef struct
  *******************************/
 
 static Eina_List *_device_list = NULL;
+static int _log_domain = -1;
 
 /********************************
  *  Device data retrievement    *
@@ -205,7 +206,7 @@ static void _add_device_to_list(DeviceData *data)
 {
     if(!data)
     {
-        LOG_ERR("Cannot add device to device list because data is empty");
+        ERR("Cannot add device to device list because data is empty");
         return;
     }
     _device_list = eina_list_append(_device_list, data);
@@ -221,16 +222,16 @@ static void _print_device_list(void)
     DeviceData *data = NULL;
     EndpointData *endpoint = NULL;
 
-    LOG_DBG(" =============== Device list ===============");
+    DBG(" =============== Device list ===============");
     EINA_LIST_FOREACH(_device_list, l, data)
     {
-        LOG_DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016X",
+        DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016lX",
                 data->id, data->short_addr, data->ext_addr);
         EINA_LIST_FOREACH(data->endpoints, l_ep, endpoint)
-            LOG_DBG("Endpoint : 0x%02X, profile 0x%04X", endpoint->num, endpoint->profile);
+            DBG("Endpoint : 0x%02X, profile 0x%04X", endpoint->num, endpoint->profile);
     }
 
-    LOG_DBG("============================================");
+    DBG("============================================");
 
 }
 
@@ -241,7 +242,7 @@ static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
 
     if(!data || !endpoint || !json_is_object(endpoint))
     {
-        LOG_ERR("Cannot load endpoint data from json file");
+        ERR("Cannot load endpoint data from json file");
         return;
     }
     num = json_object_get(endpoint, "num");
@@ -251,7 +252,7 @@ static void _load_endpoint_data(DeviceData *data, json_t *endpoint)
             !profile || !json_is_integer(profile)||
             !device_id || !json_is_integer(device_id))
     {
-        LOG_ERR("Cannot load enpoint data for device 0x%04X", data->short_addr);
+        ERR("Cannot load enpoint data for device 0x%04X", data->short_addr);
     }
     else
     {
@@ -275,7 +276,7 @@ static void _load_device_data(json_t *device)
 
     if(!device || !json_is_object(device))
     {
-        LOG_ERR("Cannot load endpoint data from json file");
+        ERR("Cannot load endpoint data from json file");
         return;
     }
 
@@ -302,7 +303,7 @@ static void _load_device_data(json_t *device)
         }
 
         else
-            LOG_WARN("Cannot create device data from retrieved device data in file");
+            WRN("Cannot create device data from retrieved device data in file");
 
         json_decref(id);
         json_decref(short_addr);
@@ -310,7 +311,7 @@ static void _load_device_data(json_t *device)
     }
     else
     {
-        LOG_ERR("Cannot load device : id is not properly formatted");
+        ERR("Cannot load device : id is not properly formatted");
     }
 
 }
@@ -327,14 +328,14 @@ static void _load_device_list()
     root = json_load_file(zg_conf_get_device_list_path(), 0, &error);
     if(!root)
     {
-        LOG_WARN("Cannot load devices list from file %s : [%s] l.%d c.%d : %s",
+        WRN("Cannot load devices list from file %s : [%s] l.%d c.%d : %s",
             device_path, error.source, error.line, error.column, error.text);
         return;
     }
     array = json_object_get(root, "devices");
     if(!array)
     {
-        LOG_ERR("Cannot get device array from devices file");
+        ERR("Cannot get device array from devices file");
         goto end_load_device;
     }
 
@@ -372,7 +373,7 @@ static json_t *_build_endpoint_data_json(EndpointData *data)
             json_object_set_new(endpoint, "profile", json_integer(data->profile)) ||
             json_object_set_new(endpoint, "device_id", json_integer(data->device_id)))
     {
-        LOG_ERR("Cannot build json object for endpoint 0x%02X", data->num);
+        ERR("Cannot build json object for endpoint 0x%02X", data->num);
     }
     return endpoint;
 }
@@ -400,7 +401,7 @@ static json_t *_build_device_data_json(DeviceData *data)
             json_object_set_new(device, "ext_addr", json_integer(data->ext_addr))       ||
             json_object_set_new(device, "endpoints", endpoints ))
     {
-        LOG_ERR("Cannot build json value to save device %d", data->id);
+        ERR("Cannot build json value to save device %d", data->id);
         json_decref(device);
         device = NULL;
     }
@@ -423,13 +424,13 @@ static void _save_device_list()
             json_array_append(array, device);
             json_decref(device);
         }
-        LOG_INF("Stored data for device 0x%04X", data->short_addr);
+        INF("Stored data for device 0x%04X", data->short_addr);
     }
 
     root = json_object();
     json_object_set_new(root, "devices", array);
     if(json_dump_file(root, device_path, JSON_INDENT(DEVICES_NB_INDENT)))
-        LOG_ERR("Cannot save device list in file %s", device_path);
+        ERR("Cannot save device list in file %s", device_path);
 
     json_decref(root);
 }
@@ -441,6 +442,7 @@ static void _save_device_list()
 void zg_device_init(uint8_t reset_device)
 {
     eina_init();
+    _log_domain = zg_logs_domain_register("zg_devices", ZG_COLOR_LIGHTGREEN);
     if(reset_device)
         _del_device_list();
     else
@@ -461,7 +463,7 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
     data = _get_device_by_ext_addr(ext_addr);
     if(data)
     {
-        LOG_INF("Device already exists in device base, updating its data");
+        INF("Device already exists in device base, updating its data");
         data->short_addr = short_addr;
         _save_device_list();
         return -1;
@@ -470,20 +472,20 @@ int zg_add_device(uint16_t short_addr, uint64_t ext_addr)
     tmp_id = _get_next_free_id();
     if(tmp_id < 0)
     {
-        LOG_ERR("Cannot get free id, device database is full");
+        ERR("Cannot get free id, device database is full");
     }
     else
     {
         data = _create_device_data((DeviceId)tmp_id, short_addr, ext_addr);
         if(data)
         {
-            LOG_INF("Saving new device with id %d", tmp_id);
+            INF("Saving new device with id %d", tmp_id);
             _add_device_to_list(data);
             _save_device_list();
         }
         else
         {
-            LOG_ERR("Cannot create new device with id %d", tmp_id);
+            ERR("Cannot create new device with id %d", tmp_id);
             tmp_id = -1;
         }
     }
@@ -521,17 +523,17 @@ void zg_device_update_endpoints(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_
 
     if(!data)
     {
-        LOG_ERR("Cannot save endpoints for device 0x%04X : device is unknown", short_addr);
+        ERR("Cannot save endpoints for device 0x%04X : device is unknown", short_addr);
         return;
     }
     if(nb_ep <= 0 || !ep_list)
     {
-        LOG_ERR("Cannot save endpoints for device 0x%04X : %s.",
-                nb_ep > 0 ? "incorrect number of endpoints" : "endpoint list is NULL");
+        ERR("Cannot save endpoints for device 0x%04X : %s.",
+                short_addr, nb_ep > 0 ? "incorrect number of endpoints" : "endpoint list is NULL");
         return;
     }
 
-    LOG_INF("Saving up-to-date endpoints list for device 0x%04X", short_addr);
+    INF("Saving up-to-date endpoints list for device 0x%04X", short_addr);
     for(index = 0; index < nb_ep; index++)
     {
         _add_endpoint(data, ep_list[index]);

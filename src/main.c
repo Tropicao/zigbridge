@@ -3,20 +3,22 @@
 #include <unistd.h>
 #include <string.h>
 #include <uv.h>
-#include <znp.h>
+#include <Eina.h>
 #include "core.h"
 #include "conf.h"
 #include "types.h"
-#include "ipc.h"
+#include "rpc.h"
+#include "logs.h"
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
 uv_poll_t user_poll;
 static uint8_t _reset_network = 0;
+static int _log_domain = -1;
 
 static void signal_handler(uv_signal_t *handle __attribute__((unused)), int signum __attribute__((unused)))
 {
-    LOG_INF("Application received SIGINT");
+    INF("Application received SIGINT");
     uv_stop(loop);
 }
 
@@ -24,16 +26,23 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
 {
     if(status < 0)
     {
-        LOG_ERR("ZNP socket error %s (%s)", uv_err_name(status), uv_strerror(status));
+        ERR("ZNP socket error : %s (%s)", uv_err_name(status), uv_strerror(status));
         return;
     }
 
     if(events & UV_READABLE)
     {
-        LOG_DBG("ZNP socket has received data");
-        znp_loop_read();
+        DBG("ZNP socket has received data");
+        zg_rpc_read();
     }
 }
+
+static void _test_ping(void)
+{
+    INF("Sending ping to module");
+    zg_rpc_write(ZG_MT_CMD_SREQ, ZG_MT_SUBSYS_SYS, 0x01, NULL, 0);
+}
+
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
@@ -42,6 +51,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     int status = -1;
     char config_file_path[PATH_STRING_MAX_SIZE] = {0};
     int c = 0;
+
+    zg_logs_init();
 
     while ((c = getopt (argc, argv, "c:r")) != -1)
     {
@@ -55,9 +66,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
                 break;
             case '?':
                 if (optopt == 'c')
-                    LOG_ERR("Option -%c requires an argument", optopt);
+                    ERR("Option -%c requires an argument", optopt);
                 else
-                    LOG_ERR("Unknown option character `\\x%x'", optopt);
+                    ERR("Unknown option character `\\x%x'", optopt);
                 return 1;
                 break;
             default:
@@ -65,52 +76,53 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
     }
 
+    _log_domain = zg_logs_domain_register("zg_main", ZG_COLOR_BLACK);
     srand(time(NULL));
     if(config_file_path[0] != 0)
-        status = zg_conf_load(config_file_path);
+        status = zg_conf_init(config_file_path);
     else
-        status = zg_conf_load(NULL);
+        status = zg_conf_init(NULL);
 
     if(status != 0)
-        return 1;
+    {
+        ERR("Cannot load configuration, abort");
+        goto main_end;
+    }
 
     loop = uv_default_loop();
-    if(znp_init() != 0)
+
+    if(zg_rpc_init(zg_conf_get_znp_device_path()) != 0)
     {
-        LOG_CRI("Cannot initialize ZNP library");
-        return 1;
+        CRI("Cannot initialize ZNP medium");
+        goto main_end;
     }
-    znp_fd = znp_socket_get();
-    if(znp_fd < 0)
-    {
-        LOG_CRI("Cannot get ZNP socket descriptor");
-        return 1;
-    }
+    znp_fd = zg_rpc_get_fd();
+
     status = uv_poll_init(loop, &znp_poll, znp_fd);
     if(status < 0)
     {
-        LOG_ERR("Cannot add ZNP socket descriptor (%d) to main event loop : %s (%s)",
+        ERR("Cannot add ZNP socket descriptor (%d) to main event loop : %s (%s)",
                 znp_fd, uv_err_name(status), uv_strerror(status));
-        return 1;
+        goto main_end;
     }
-    status = uv_poll_init(loop, &user_poll, user_fd);
 
+    status = uv_poll_init(loop, &user_poll, user_fd);
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
-    uv_poll_start(&user_poll, UV_READABLE, zg_ipc_get_ipc_main_callback());
 
     uv_signal_init(loop, &sig_int);
-
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    zg_core_init(_reset_network);
-    LOG_INF("Starting main loop");
+    _test_ping();
+    INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
 
-    LOG_INF("Quitting application");
-    zg_core_shutdown();
+main_end:
+    INF("Quitting application");
+    uv_signal_stop(&sig_int);
+    uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
-    znp_shutdown();
-    zg_conf_free();
+    zg_conf_shutdown();
+    zg_logs_shutdown();
     exit(0);
 }

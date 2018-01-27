@@ -3,7 +3,6 @@
 #include <uv.h>
 #include <znp.h>
 #include "mt_util.h"
-#include "rpc.h"
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;

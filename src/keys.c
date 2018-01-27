@@ -5,14 +5,16 @@
 #include <string.h>
 #include <fcntl.h>
 #include <uv.h>
-#include <znp.h>
+#include <errno.h>
+#include "logs.h"
 #include "keys.h"
 #include "conf.h"
-#include "errno.h"
+#include "utils.h"
 
 #define NETWORK_KEY_SIZE        16
 
 static uint8_t *nwk_key = NULL;
+static int _log_domain = -1;
 
 void _store_network_key()
 {
@@ -20,19 +22,19 @@ void _store_network_key()
 
     if(!nwk_key)
     {
-        LOG_ERR("Cannot store network key : key is empty");
+        ERR("Cannot store network key : key is empty");
         return;
     }
 
     fd = open(zg_conf_get_network_key_path(), O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR);
     if(fd < 0)
     {
-        LOG_WARN("Network key file cannot be opened to store key");
+        WRN("Network key file cannot be opened to store key");
         return;
     }
 
     if(write(fd, nwk_key, NETWORK_KEY_SIZE) < 0)
-        LOG_ERR("Cannot store network key to file : %s", strerror(errno));
+        ERR("Cannot store network key to file : %s", strerror(errno));
     close(fd);
     return;
 }
@@ -46,19 +48,19 @@ uint8_t *_generate_new_network_key()
     fd = open("/dev/urandom", O_RDONLY);
     if(fd < 0)
     {
-        LOG_ERR("Cannot open /dev/urandom");
+        ERR("Cannot open /dev/urandom");
         return NULL;
     }
 
     result = calloc(NETWORK_KEY_SIZE, sizeof(uint8_t));
     if(!result)
     {
-        LOG_CRI("Cannot allocate memory for network key");
+        CRI("Cannot allocate memory for network key");
         uv_stop(uv_default_loop());
     }
     if(read(fd, result, NETWORK_KEY_SIZE) < 0)
     {
-        LOG_ERR("Cannot generate new network key : %s", strerror(errno));
+        ERR("Cannot generate new network key : %s", strerror(errno));
         free(nwk_key);
         nwk_key = NULL;
     }
@@ -77,7 +79,7 @@ void _load_network_key(void)
     fd = open(zg_conf_get_network_key_path(), O_RDONLY);
     if(fd < 0)
     {
-        LOG_WARN("Network key file cannot be opened, generating a new one");
+        WRN("Network key file cannot be opened, generating a new one");
         nwk_key = _generate_new_network_key();
         _store_network_key();
         return;
@@ -86,13 +88,13 @@ void _load_network_key(void)
     nwk_key = calloc(NETWORK_KEY_SIZE, sizeof(uint8_t));
     if(!nwk_key)
     {
-        LOG_CRI("Cannot allocate memory for network key");
+        CRI("Cannot allocate memory for network key");
         uv_stop(uv_default_loop());
     }
 
     if(read(fd, nwk_key, NETWORK_KEY_SIZE) < 0)
     {
-        LOG_ERR("Cannot read network key from file : %s", strerror(errno));
+        ERR("Cannot read network key from file : %s", strerror(errno));
         free(nwk_key);
         nwk_key = NULL;
     }
@@ -100,10 +102,20 @@ void _load_network_key(void)
     return;
 }
 
-uint8_t *zg_keys_network_key_get()
+void zg_keys_init()
 {
+    _log_domain = zg_logs_domain_register("zg_keys", ZG_COLOR_LIGHTRED);
     if(!nwk_key)
         _load_network_key();
+}
+
+void zg_keys_shutdown()
+{
+    ZG_VAR_FREE(nwk_key);
+}
+
+uint8_t *zg_keys_network_key_get()
+{
     return nwk_key;
 }
 

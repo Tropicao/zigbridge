@@ -1,8 +1,9 @@
 #include <string.h>
 #include <iniparser.h>
-#include <znp.h>
+#include <stdlib.h>
 #include "conf.h"
 #include "utils.h"
+#include "logs.h"
 
 #define SECTION_KEY_STRING_MAX_SIZE 128
 #define STRING_VALUE_MAX_SIZE       128
@@ -15,7 +16,7 @@
 #define SECTION_DEVICES             "devices"
 #define KEY_DEVICE_LIST_PATH            "device_list_path"
 
-#define PRINT_STRING_VALUE(section, key, val)   {LOG_INF("%s/%s : %s", section, key, val?val:"NULL");}
+#define PRINT_STRING_VALUE(section, key, val)   {INF("%s/%s : %s", section, key, val?val:"NULL");}
 
 /**
  * \brief This module holds all configuration management.
@@ -48,6 +49,7 @@ typedef enum
 } ValueType;
 
 static Configuration _configuration;
+static int _log_domain = -1;
 
 
 /****************************************
@@ -70,7 +72,7 @@ static void _load_value(dictionary *ini, char *section, char *key, void *var, Va
 
     if(snprintf(elem, SECTION_KEY_STRING_MAX_SIZE, "%s:%s", section, key) < 0)
     {
-        LOG_WARN("Cannot build iniparser key (section %s, key %s)", section, key);
+        WRN("Cannot build iniparser key (section %s, key %s)", section, key);
         return;
     }
 
@@ -94,11 +96,11 @@ static void _load_value(dictionary *ini, char *section, char *key, void *var, Va
                 if(*string_p)
                     strncpy(*string_p, string_value, val_len + 1);
                 else
-                    LOG_CRI("Cannot allocate memory for string value configuration");
+                    CRI("Cannot allocate memory for string value configuration");
             }
             break;
         default:
-            LOG_WARN("Unknown value type asked");
+            WRN("Unknown value type asked");
             break;
     }
 }
@@ -112,9 +114,9 @@ static void _print_configuration()
  *                  API                 *
  ***************************************/
 
-int zg_conf_load(char *conf_path)
+uint8_t zg_conf_init(char *conf_path)
 {
-
+    _log_domain = zg_logs_domain_register("zg_conf", ZG_COLOR_LIGHTBLUE);
     dictionary *dict;
     char *path = (conf_path ? conf_path:DEFAULT_CONFIG_PATH);
 
@@ -122,7 +124,7 @@ int zg_conf_load(char *conf_path)
     dict = iniparser_load(path);
     if(!dict)
     {
-        LOG_CRI("Cannot open configuration file %s", path);
+        CRI("Cannot open configuration file %s", path);
         return 1;
     }
     else
@@ -136,7 +138,7 @@ int zg_conf_load(char *conf_path)
     return 0;
 }
 
-void zg_conf_free()
+void zg_conf_shutdown()
 {
     ZG_VAR_FREE(_configuration.network_key_path);
     ZG_VAR_FREE(_configuration.device_list_path);
