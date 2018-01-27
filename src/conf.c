@@ -8,6 +8,8 @@
 #define STRING_VALUE_MAX_SIZE       128
 #define DEFAULT_CONFIG_PATH         "/etc/zll-gateway/config.ini"
 
+#define SECTION_GENERAL             "general"
+#define KEY_ZNP_DEVICE_PATH             "znp_device_path"
 #define SECTION_SECURITY            "security"
 #define KEY_NETWORK_KEY_PATH            "network_key_path"
 #define SECTION_DEVICES             "devices"
@@ -35,6 +37,7 @@ typedef struct
 {
     char *network_key_path;
     char *device_list_path;
+    char *znp_device_path;
 } Configuration;
 
 typedef enum
@@ -126,6 +129,7 @@ int zg_conf_load(char *conf_path)
     {
         _load_value(dict, SECTION_SECURITY, KEY_NETWORK_KEY_PATH, &(_configuration.network_key_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_DEVICES, KEY_DEVICE_LIST_PATH, &(_configuration.device_list_path), CONF_VAL_STRING);
+        _load_value(dict, SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, &(_configuration.znp_device_path), CONF_VAL_STRING);
         iniparser_freedict(dict);
     }
     _print_configuration();
@@ -139,6 +143,10 @@ void zg_conf_free()
     memset(&_configuration, 0, sizeof(_configuration));
 }
 
+const char *zg_conf_get_znp_device_path()
+{
+    return _configuration.znp_device_path;
+}
 
 const char *zg_conf_get_network_key_path()
 {
