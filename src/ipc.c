@@ -1,10 +1,10 @@
-#include <znp.h>
 #include <unistd.h>
 #include <string.h>
 #include "ipc.h"
 #include "zha.h"
 #include "zll.h"
 #include "core.h"
+#include "logs.h"
 
 /********************************
  *          Constants           *
@@ -15,6 +15,7 @@
  *      Local variables         *
  *******************************/
 
+static int _log_domain = -1;
 static ipc_command_cb _command_cb = NULL;
 
 
@@ -35,7 +36,7 @@ static void _process_ipc_message_cb(uv_poll_t *handler __attribute__((unused)), 
 
     if(status < 0)
     {
-        LOG_ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
+        ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
         return;
     }
 
@@ -67,7 +68,7 @@ static void _process_ipc_message_cb(uv_poll_t *handler __attribute__((unused)), 
                 cmd = ZG_IPC_COMMAND_MOVE_TO_RED;
             else
             {
-                LOG_WARN("Unknown command");
+                WRN("Unknown command");
             }
         }
         if(cmd != ZG_IPC_COMMAND_NONE && _command_cb)
@@ -78,6 +79,18 @@ static void _process_ipc_message_cb(uv_poll_t *handler __attribute__((unused)), 
 /********************************
  *             API              *
  *******************************/
+
+int zg_ipc_init()
+{
+    _log_domain = zg_logs_domain_register("zg_ipc", ZG_COLOR_BLACK);
+    INF("IPC module initialized");
+    return 0;
+}
+
+void zg_ipc_shutdown()
+{
+    INF("IPC module shut down");
+}
 
 ipc_fd_cb zg_ipc_get_ipc_main_callback()
 {

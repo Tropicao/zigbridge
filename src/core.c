@@ -1,11 +1,11 @@
 #include <stdlib.h>
-#include <znp.h>
 #include "core.h"
 #include "zdp.h"
 #include "zha.h"
 #include "zll.h"
 #include "action_list.h"
 #include "aps.h"
+#include "mt.h"
 #include "mt_af.h"
 #include "mt_sys.h"
 #include "mt_zdo.h"
@@ -14,6 +14,7 @@
 #include "device.h"
 #include "keys.h"
 #include "sm.h"
+#include "logs.h"
 
 /********************************
  *     Constants and macros     *
@@ -30,6 +31,12 @@
 #define Y_BLUE      0
 
 /********************************
+ *       Local variables        *
+ *******************************/
+
+static int _log_domain = -1;
+
+/********************************
  * Initialization state machine *
  *******************************/
 
@@ -43,7 +50,7 @@ static void _general_init_cb(void)
 {
     if(zg_al_continue(_init_sm) != 0)
     {
-        LOG_INF("Core application is initialized");
+        INF("Core application is initialized");
         _initialized = 1;
     }
 }
@@ -51,59 +58,59 @@ static void _general_init_cb(void)
 static void _write_clear_flag(SyncActionCb cb)
 {
     if(_reset_network)
-        mt_sys_nv_write_startup_options(STARTUP_CLEAR_STATE|STARTUP_CLEAR_CONFIG,cb);
+        zg_mt_sys_nv_write_startup_options(STARTUP_CLEAR_STATE|STARTUP_CLEAR_CONFIG,cb);
     else
         cb();
 }
 
 static void _write_channel(SyncActionCb cb)
 {
-    mt_sys_nv_write_channel(GATEWAY_CHANNEL, cb);
+    zg_mt_sys_nv_write_channel(GATEWAY_CHANNEL, cb);
 }
 
 static void _announce_gateway(SyncActionCb cb)
 {
-    mt_zdo_device_annce(GATEWAY_ADDR, mt_sys_get_ext_addr(), cb);
+    zg_mt_zdo_device_annce(GATEWAY_ADDR, zg_mt_sys_get_ext_addr(), cb);
 }
 
 
 static void _get_demo_device_route(SyncActionCb cb)
 {
-    mt_zdo_ext_route_disc_request(zg_device_get_short_addr(DEMO_DEVICE_ID), cb);
+    zg_mt_zdo_ext_route_disc_request(zg_device_get_short_addr(DEMO_DEVICE_ID), cb);
 }
 
 
 static ZgAlState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
-    {mt_sys_reset_dongle, _general_init_cb},
-    {mt_sys_nv_write_nwk_key, _general_init_cb},
-    {mt_sys_reset_dongle, _general_init_cb},
-    {mt_sys_check_ext_addr, _general_init_cb},
-    {mt_sys_nv_write_coord_flag, _general_init_cb},
-    {mt_sys_nv_set_pan_id, _general_init_cb},
+    {zg_mt_sys_reset_dongle, _general_init_cb},
+    {zg_mt_sys_nv_write_nwk_key, _general_init_cb},
+    {zg_mt_sys_reset_dongle, _general_init_cb},
+    {zg_mt_sys_check_ext_addr, _general_init_cb},
+    {zg_mt_sys_nv_write_coord_flag, _general_init_cb},
+    {zg_mt_sys_nv_set_pan_id, _general_init_cb},
     {_write_channel, _general_init_cb},
-    {mt_sys_ping_dongle, _general_init_cb},
-    {mt_util_af_subscribe_cmd, _general_init_cb},
+    {zg_mt_sys_ping, _general_init_cb},
+    {zg_mt_util_af_subscribe_cmd, _general_init_cb},
     {zg_zll_init, _general_init_cb},
     {zg_zha_init, _general_init_cb},
     {zg_zdp_init, _general_init_cb},
-    {mt_zdo_startup_from_app, _general_init_cb},
-    {mt_sys_nv_write_enable_security, _general_init_cb},
+    {zg_mt_zdo_startup_from_app, _general_init_cb},
+    {zg_mt_sys_nv_write_enable_security, _general_init_cb},
     {_announce_gateway, _general_init_cb},
 };
 
 static int _init_reset_nb_states = sizeof(_init_states_reset)/sizeof(ZgAlState);
 
 static ZgAlState _init_states_restart[] = {
-    {mt_sys_reset_dongle, _general_init_cb},
-    {mt_sys_check_ext_addr, _general_init_cb},
-    {mt_sys_ping_dongle, _general_init_cb},
-    {mt_util_af_subscribe_cmd, _general_init_cb},
+    {zg_mt_sys_reset_dongle, _general_init_cb},
+    {zg_mt_sys_check_ext_addr, _general_init_cb},
+    {zg_mt_sys_ping, _general_init_cb},
+    {zg_mt_util_af_subscribe_cmd, _general_init_cb},
     {zg_zll_init, _general_init_cb},
     {zg_zha_init, _general_init_cb},
     {zg_zdp_init, _general_init_cb},
-    {mt_zdo_startup_from_app, _general_init_cb},
-    {mt_sys_nv_write_enable_security, _general_init_cb},
+    {zg_mt_zdo_startup_from_app, _general_init_cb},
+    {zg_mt_sys_nv_write_enable_security, _general_init_cb},
     {_get_demo_device_route, _general_init_cb},
     {_announce_gateway, _general_init_cb}
 };
@@ -151,7 +158,7 @@ static void _query_simple_desc(void)
 
 static void _shutdown_new_device_sm(void)
 {
-    LOG_INF("Learning device process finished");
+    INF("Learning device process finished");
     _current_learning_device_addr = 0xFFFD;
     zg_sm_destroy(_new_device_sm);
 }
@@ -180,11 +187,11 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
     if(!zg_device_is_device_known(ext_addr))
     {
-        LOG_INF("Seen device is a new device");
+        INF("Seen device is a new device");
         zg_add_device(short_addr, ext_addr);
         if(_new_device_sm)
         {
-            LOG_WARN("Already learning a new device, cannot learn newly visible device");
+            WRN("Already learning a new device, cannot learn newly visible device");
             return;
         }
         _new_device_sm = zg_sm_create(  "New device",
@@ -194,26 +201,26 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
                                         _new_device_nb_transitions);
         if(!_new_device_sm)
         {
-            LOG_ERR("Abort new device learning");
+            ERR("Abort new device learning");
             return;
         }
-        LOG_INF("Start learning new device properties");
+        INF("Start learning new device properties");
         _current_learning_device_addr = short_addr;
         zg_sm_start(_new_device_sm);
     }
     else
     {
-        LOG_INF("Visible device is already learnt");
+        INF("Visible device is already learnt");
     }
 }
 
 static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list)
 {
     uint8_t index = 0;
-    LOG_INF("Device 0x%04X has %d active endpoints :", short_addr, nb_ep);
+    INF("Device 0x%04X has %d active endpoints :", short_addr, nb_ep);
     for(index = 0; index < nb_ep; index++)
     {
-        LOG_INF("Active endpoint 0x%02X", ep_list[index]);
+        INF("Active endpoint 0x%02X", ep_list[index]);
     }
     zg_device_update_endpoints(short_addr, nb_ep, ep_list);
     zg_sm_send_event(_new_device_sm, EVENT_ACTIVE_ENDPOINTS_RESP);
@@ -222,7 +229,7 @@ static void _active_endpoints_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep
 static void _simple_desc_cb(uint8_t endpoint, uint16_t profile, uint16_t device_id)
 {
     uint8_t next_endpoint;
-    LOG_INF("Endpoint 0x%02X of device 0x%04X has profile 0x%04X",
+    INF("Endpoint 0x%02X of device 0x%04X has profile 0x%04X",
             endpoint, _current_learning_device_addr, profile);
     zg_device_update_endpoint_data(_current_learning_device_addr, endpoint, profile, device_id);
 
@@ -241,18 +248,18 @@ static void _button_change_cb(void)
 {
     uint16_t addr = 0xFFFD;
 
-    LOG_INF("Button pressed, toggling the light");
+    INF("Button pressed, toggling the light");
     if(_initialized)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
         if(addr != 0xFFFD)
             zg_zha_switch_bulb_state(addr);
         else
-            LOG_WARN("Device is not installed, cannot switch light");
+            WRN("Device is not installed, cannot switch light");
     }
     else
     {
-        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+        WRN("Core application has not finished initializing, cannot switch bulb state");
     }
 }
 
@@ -279,7 +286,7 @@ static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
 
     if(ref_temp == 0 || temp < ref_temp)
     {
-        LOG_DBG("Setting new temperature reference (%s)", ref_temp ? "New temp below ref temp":"No ref temp yet");
+        DBG("Setting new temperature reference (%s)", ref_temp ? "New temp below ref temp":"No ref temp yet");
         ref_temp = temp;
         *y = 0;
         *x = 0;
@@ -288,11 +295,11 @@ static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
     }
     else
     {
-        LOG_DBG("Updating temperature color");
+        DBG("Updating temperature color");
         *y=0;
         *x= a*temp + b;
     }
-    LOG_DBG("X : 0x%04X - Y : 0x%04X", *x, *y);
+    DBG("X : 0x%04X - Y : 0x%04X", *x, *y);
 }
 
 
@@ -301,7 +308,7 @@ static void _temperature_cb(uint16_t temp)
     uint16_t addr = 0xFFFD;
     uint16_t x, y;
 
-    LOG_INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
+    INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
     if(_initialized)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
@@ -311,11 +318,11 @@ static void _temperature_cb(uint16_t temp)
             zg_zha_move_to_color(addr, x, y, 5);
         }
         else
-            LOG_WARN("Device is not installed, cannot switch light");
+            WRN("Device is not installed, cannot switch light");
     }
     else
     {
-        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+        WRN("Core application has not finished initializing, cannot switch bulb state");
     }
 }
 
@@ -326,7 +333,7 @@ static void _process_command_touchlink()
     if(_initialized)
         zg_zll_start_touchlink();
     else
-        LOG_WARN("Core application has not finished initializing, cannot start touchlink");
+        WRN("Core application has not finished initializing, cannot start touchlink");
 }
 
 static void _process_command_switch_light()
@@ -338,11 +345,11 @@ static void _process_command_switch_light()
         if(addr != 0xFFFD)
             zg_zha_switch_bulb_state(addr);
         else
-            LOG_WARN("Device is not installed, cannot switch light");
+            WRN("Device is not installed, cannot switch light");
     }
     else
     {
-        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+        WRN("Core application has not finished initializing, cannot switch bulb state");
     }
 
 }
@@ -356,18 +363,18 @@ static void _process_command_move_predefined_color(uint16_t x, uint16_t y)
         if(addr != 0xFFFD)
             zg_zha_move_to_color(addr, x, y, 1);
         else
-            LOG_WARN("Device is not installed, cannot switch light to predefined color");
+            WRN("Device is not installed, cannot switch light to predefined color");
     }
     else
     {
-        LOG_WARN("Core application has not finished initializing, cannot switch bulb state");
+        WRN("Core application has not finished initializing, cannot switch bulb state");
     }
 }
 
 static void _process_command_open_network(void)
 {
-    LOG_INF("Opening network to allow new devices to join");
-    mt_zdo_permit_join(NULL);
+    INF("Opening network to allow new devices to join");
+    zg_mt_zdo_permit_join(NULL);
 }
 
 static void _process_user_command(IpcCommand cmd)
@@ -390,7 +397,7 @@ static void _process_user_command(IpcCommand cmd)
             _process_command_move_predefined_color(X_RED, Y_RED);
             break;
         default:
-            LOG_WARN("Unsupported command");
+            WRN("Unsupported command");
             break;
     }
 }
@@ -402,16 +409,15 @@ static void _process_user_command(IpcCommand cmd)
 
 void zg_core_init(uint8_t reset_network)
 {
-    LOG_INF("Initializing core application");
+    _log_domain = zg_logs_domain_register("zg_core", ZG_COLOR_BLACK);
+    INF("Initializing core application");
     _reset_network = reset_network;
     _reset_network |= !zg_keys_check_network_key_exists();
-    mt_af_register_callbacks();
-    mt_sys_register_callbacks();
-    mt_zdo_register_callbacks();
-    mt_util_register_callbacks();
     if(reset_network)
         zg_keys_network_key_del();
+    zg_mt_init();
     zg_aps_init();
+    zg_ipc_init();
     zg_ipc_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
@@ -432,6 +438,8 @@ void zg_core_shutdown(void)
     zg_device_shutdown();
     zg_zha_shutdown();
     zg_zll_shutdown();
+    zg_ipc_shutdown();
     zg_aps_shutdown();
+    zg_mt_shutdown();
 }
 

@@ -17,6 +17,8 @@ typedef enum
 typedef void (*ipc_fd_cb)(uv_poll_t *handler, int status, int events);
 typedef void (*ipc_command_cb)(IpcCommand command);
 
+int zg_ipc_init();
+void zg_ipc_shutdown();
 ipc_fd_cb zg_ipc_get_ipc_main_callback();
 void zg_ipc_register_command_cb(ipc_command_cb cb);
 
