@@ -1,4 +1,3 @@
-#include <znp.h>
 #include <stdlib.h>
 #include <uv.h>
 #include <string.h>
@@ -7,6 +6,7 @@
 #include "zcl.h"
 #include "action_list.h"
 #include "mt_zdo.h"
+#include "logs.h"
 
 /********************************
  *          Constants           *
@@ -34,6 +34,7 @@
  *          Local variables     *
  *******************************/
 
+static int _log_domain = -1;
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _init_complete_cb = NULL;
 static ActiveEpRspCb _active_ep_cb = NULL;
@@ -61,11 +62,11 @@ static void _zdp_message_cb(uint16_t cluster __attribute__((unused)), void *data
     if(!buffer || len <= 0)
         return;
 
-    LOG_DBG("Received ZDP data (%d bytes)", len);
+    DBG("Received ZDP data (%d bytes)", len);
     switch(buffer[2])
     {
         default:
-            LOG_WARN("Unsupported ZDP command %02X", buffer[2]);
+            WRN("Unsupported ZDP command %02X", buffer[2]);
             break;
     }
     _transaction_sequence_number++;
@@ -81,7 +82,7 @@ static void _general_init_cb(void)
 {
     if(zg_al_continue(_init_sm) != 0)
     {
-        LOG_INF("ZDP application is initialized");
+        INF("ZDP application is initialized");
         if(_init_complete_cb)
         {
             zg_al_destroy(_init_sm);
@@ -116,7 +117,8 @@ static uint8_t _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 void zg_zdp_init(SyncActionCb cb)
 {
-    LOG_INF("Initializing ZDP");
+    _log_domain = zg_logs_domain_register("zg_zdp", ZG_COLOR_GREEN);
+    INF("Initializing ZDP");
 
     if(cb)
         _init_complete_cb = cb;
@@ -135,7 +137,7 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 {
     char zdp_data[LEN_ACTIVE_ENDPOINT_REQ] = {0};
 
-    LOG_INF("Sending active endpoint request to device 0x%04X", short_addr);
+    INF("Sending active endpoint request to device 0x%04X", short_addr);
     memcpy(zdp_data+INDEX_TRANSACTION_SEQ_NUMBER,
             &_transaction_sequence_number,
             sizeof(_transaction_sequence_number));
@@ -159,7 +161,7 @@ void zg_zdp_query_simple_descriptor(uint16_t short_addr, uint8_t endpoint, SyncA
 {
     char zdp_data[LEN_SIMPLE_DESC_REQ] = {0};
 
-    LOG_INF("Sending simple descriptor request to device 0x%04X for endpoint 0x%02X", short_addr, endpoint);
+    INF("Sending simple descriptor request to device 0x%04X for endpoint 0x%02X", short_addr, endpoint);
     memcpy(zdp_data+INDEX_TRANSACTION_SEQ_NUMBER,
             &_transaction_sequence_number,
             sizeof(_transaction_sequence_number));
