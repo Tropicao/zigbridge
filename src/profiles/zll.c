@@ -1,4 +1,3 @@
-#include <znp.h>
 #include <stdlib.h>
 #include <uv.h>
 #include <string.h>
@@ -9,6 +8,7 @@
 #include "mt_af.h"
 #include "mt_sys.h"
 #include "sm.h"
+#include "logs.h"
 
 /********************************
  *          Constants           *
@@ -71,6 +71,7 @@
  *          Local variables     *
  *******************************/
 
+static int _log_domain = -1;
 static uint16_t _zll_in_clusters[] = {
     ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
 static uint8_t _zll_in_clusters_num = sizeof(_zll_in_clusters)/sizeof(uint8_t);
@@ -127,7 +128,7 @@ void _zll_send_identify_request(SyncActionCb cb)
     char zll_data[LEN_IDENTIFY_REQUEST] = {0};
     uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
 
-    LOG_INF("Sending identify request");
+    INF("Sending identify request");
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
@@ -148,7 +149,7 @@ void _zll_send_factory_reset_request(SyncActionCb cb)
 {
     char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
 
-    LOG_INF("Sending factory reset request");
+    INF("Sending factory reset request");
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
@@ -211,7 +212,7 @@ enum
 
 static void _init_touchlink(void)
 {
-    LOG_INF("Initializing touchlink state machine");
+    INF("Initializing touchlink state machine");
     _interpan_transaction_identifier = _generate_new_interpan_transaction_identifier();
     uv_timer_init(uv_default_loop(), &_scan_timeout_timer);
     uv_timer_init(uv_default_loop(), &_identify_timer);
@@ -224,7 +225,7 @@ static void _shutdown_touchlink(void)
     uv_unref((uv_handle_t *)&_scan_timeout_timer);
     uv_unref((uv_handle_t *)&_identify_timer);
     zg_sm_destroy(_touchlink_sm);
-    LOG_INF("Touchlink procedure finished");
+    INF("Touchlink procedure finished");
 }
 
 static void _security_disabled_cb(void)
@@ -234,7 +235,7 @@ static void _security_disabled_cb(void)
 
 static void _disable_security(void)
 {
-    mt_sys_nv_write_disable_security(_security_disabled_cb);
+    zg_mt_sys_nv_write_disable_security(_security_disabled_cb);
 }
 
 static void _security_enabled_cb(void)
@@ -244,7 +245,7 @@ static void _security_enabled_cb(void)
 
 static void _enable_security(void)
 {
-    mt_sys_nv_write_enable_security(_security_enabled_cb);
+    zg_mt_sys_nv_write_enable_security(_security_enabled_cb);
 }
 
 static void _scan_request_sent(void)
@@ -336,7 +337,7 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
 
 static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
 {
-    LOG_INF("A device has sent a scan response");
+    INF("A device has sent a scan response");
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
 }
@@ -347,15 +348,15 @@ static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data
     if(!buffer || len <= 0)
         return;
 
-    LOG_DBG("Received ZLL data (%d bytes)", len);
+    DBG("Received ZLL data (%d bytes)", len);
     switch(buffer[2])
     {
         case COMMAND_SCAN_RESPONSE:
-            LOG_INF("Received scan response");
+            INF("Received scan response");
             _process_scan_response(buffer, len);
             break;
         default:
-            LOG_WARN("Unsupported ZLL commissionning commande %02X", buffer[2]);
+            WRN("Unsupported ZLL commissionning commande %02X", buffer[2]);
             break;
     }
 }
@@ -373,7 +374,7 @@ static void _general_init_cb(void)
 {
     if(zg_al_continue(_init_sm) != 0)
     {
-        LOG_INF("ZLL application is initialized");
+        INF("ZLL application is initialized");
         if(_init_complete_cb)
         {
             zg_al_destroy(_init_sm);
@@ -419,7 +420,8 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 void zg_zll_init(InitCompleteCb cb)
 {
-    LOG_INF("Initializing ZLL");
+    _log_domain = zg_logs_domain_register("zg_zll", ZG_COLOR_LIGHTMAGENTA);
+    INF("Initializing ZLL");
     if(cb)
         _init_complete_cb = cb;
     _init_sm = zg_al_create(_init_states, _init_nb_states);
@@ -435,7 +437,7 @@ void zg_zll_start_touchlink(void)
 {
     if(_touchlink_sm)
     {
-        LOG_WARN("A touchlink procedure is already in progress");
+        WRN("A touchlink procedure is already in progress");
         return;
     }
 
@@ -446,11 +448,11 @@ void zg_zll_start_touchlink(void)
                                     _touchlink_nb_transtitions);
     if(!_touchlink_sm)
     {
-        LOG_ERR("Abort touchlink procedure");
+        ERR("Abort touchlink procedure");
         return;
     }
 
-    LOG_INF("Starting touchlink procedure");
+    INF("Starting touchlink procedure");
     if(zg_sm_start(_touchlink_sm) != 0)
-        LOG_ERR("Error encountered while starting touchlink state machine");
+        ERR("Error encountered while starting touchlink state machine");
 }

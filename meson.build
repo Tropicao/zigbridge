@@ -16,7 +16,7 @@ src = ['src/main.c',
         'src/mt/mt_util.c',
         'src/profiles/zdp.c',
         'src/profiles/zha.c',
-        #'src/profiles/zll.c',
+        'src/profiles/zll.c',
         'src/utils/sm.c',
         'src/utils/action_list.c',
         'src/devices/device.c']
