@@ -172,10 +172,7 @@ static void _read_znp_data(void)
 
 znp_read_err:
     DBG("Purging invalid ZNP data");
-    do
-    {
-        len = read(_znp_fd, buffer, RPC_MAX_DATA_SIZE);
-    }while(len > 0);
+	tcflush(_znp_fd, TCIFLUSH);
 }
 
 /********************************
