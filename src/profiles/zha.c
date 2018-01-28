@@ -1,4 +1,3 @@
-#include <znp.h>
 #include <stdlib.h>
 #include <uv.h>
 #include <string.h>
@@ -9,6 +8,7 @@
 #include "mt_zdo.h"
 #include "mt_sys.h"
 #include "action_list.h"
+#include "logs.h"
 
 /********************************
  *          Constants           *
@@ -59,6 +59,8 @@
  *          Local variables     *
  *******************************/
 
+static int _log_domain = -1;
+
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
 static void (*_button_change_cb)(void) = NULL;
@@ -79,17 +81,17 @@ static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t)
 static void _process_on_off_command(void *data, int len __attribute__((unused)))
 {
     uint8_t *buffer = (uint8_t *) data;
-    LOG_INF("Processing command on On/Off cluster");
+    INF("Processing command on On/Off cluster");
 
     if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
     {
-        LOG_INF("Received new switch status : %s", buffer[6] ? "Released":"Pushed");
+        INF("Received new switch status : %s", buffer[6] ? "Released":"Pushed");
         if(_button_change_cb && buffer[6] == 0x00)
             _button_change_cb();
     }
     else
     {
-        LOG_WARN("Unuspported On/Off command/status 0x%02X", buffer[2]);
+        WRN("Unuspported On/Off command/status 0x%02X", buffer[2]);
     }
 }
 
@@ -99,7 +101,7 @@ static void _process_temperature_measurement_command(void *data, int len __attri
     uint16_t temp;
     if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
     {
-        LOG_INF("Received new temperature status");
+        INF("Received new temperature status");
         if(_temperature_cb)
         {
             memcpy(&temp, buffer+6, 2);
@@ -108,7 +110,7 @@ static void _process_temperature_measurement_command(void *data, int len __attri
     }
     else
     {
-        LOG_WARN("Unuspported temperature measurement command/status 0x%02X", buffer[2]);
+        WRN("Unuspported temperature measurement command/status 0x%02X", buffer[2]);
     }
 }
 
@@ -118,7 +120,7 @@ static void _zha_message_cb(uint16_t cluster, void *data, int len)
     if(!buffer || len <= 0)
         return;
 
-    LOG_DBG("Received ZHA data (%d bytes)", len);
+    DBG("Received ZHA data (%d bytes)", len);
     switch(cluster)
     {
         case ZCL_CLUSTER_ON_OFF:
@@ -128,14 +130,14 @@ static void _zha_message_cb(uint16_t cluster, void *data, int len)
             _process_temperature_measurement_command(data, len);
             break;
         default:
-            LOG_WARN("Unsupported ZHA cluster 0x%04X", cluster);
+            WRN("Unsupported ZHA cluster 0x%04X", cluster);
             break;
     }
 }
 
 static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 {
-    LOG_INF("New device joined network with address 0x%04X !", addr);
+    INF("New device joined network with address 0x%04X !", addr);
     if(_new_device_ind_cb)
         _new_device_ind_cb(addr, ext_addr);
 
@@ -159,7 +161,7 @@ static void _general_init_cb(void)
 {
     if(zg_al_continue(_init_sm) != 0)
     {
-        LOG_INF("ZHA application is initialized");
+        INF("ZHA application is initialized");
         if(_init_complete_cb)
             _init_complete_cb();
     }
@@ -191,7 +193,8 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
 
 void zg_zha_init(InitCompleteCb cb)
 {
-    LOG_INF("Initializing ZHA");
+    _log_domain = zg_logs_domain_register("zg_zha", ZG_COLOR_LIGHTCYAN);
+    INF("Initializing ZHA");
     if(cb)
         _init_complete_cb = cb;
 
@@ -211,9 +214,9 @@ void zg_zha_switch_bulb_state(uint16_t short_addr)
 
     if(!sec_enabled)
     {
-        LOG_INF("Re-enabling security before sending command");
+        INF("Re-enabling security before sending command");
         _pending_command_addr = short_addr;
-        mt_sys_nv_write_enable_security(_security_disabled_cb);
+        zg_mt_sys_nv_write_enable_security(_security_disabled_cb);
         sec_enabled = 1;
         return;
     }
@@ -221,7 +224,7 @@ void zg_zha_switch_bulb_state(uint16_t short_addr)
     if(short_addr != 0xFFFD)
     {
         _demo_bulb_state = !_demo_bulb_state;
-        LOG_INF("Switch : Bulb 0x%4X - State %s", short_addr, _demo_bulb_state ? "ON":"OFF");
+        INF("Switch : Bulb 0x%4X - State %s", short_addr, _demo_bulb_state ? "ON":"OFF");
         zg_zha_set_bulb_state(short_addr, _demo_bulb_state);
     }
 }
@@ -244,16 +247,6 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
 void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb)
 {
     _new_device_ind_cb = cb;
-}
-
-void zha_ask_node_descriptor(uint16_t short_addr)
-{
-    NodeDescReqFormat_t req;
-
-    LOG_INF("Sending Node descriptor request to 0x%04X", short_addr);
-    req.DstAddr = 0x0000;
-    req.NwkAddrOfInterest = short_addr;
-    zdoNodeDescReq(&req);
 }
 
 void zg_zha_register_button_state_cb(void (*cb)(void))
