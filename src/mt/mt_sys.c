@@ -1,18 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uv.h>
-#include <znp.h>
 #include "mt_sys.h"
 #include "keys.h"
-
-static uint8_t nv_coord_data[] = {0};
-static uint8_t nv_disable_sec_data[] = {0};
-static uint8_t nv_enable_sec_data[] = {1};
-static uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
-
-/* Callback set for any synchronous operation (see SREQ in MT specification) */
-static SyncActionCb sync_action_cb = NULL;
-static uint64_t _ext_addr = 0x0000000000000000;
+#include "logs.h"
+#include "rpc.h"
 
 /********************************
  *       Constant data          *
@@ -32,14 +24,31 @@ static uint64_t _ext_addr = 0x0000000000000000;
 #define MT_CAP_APP      0x0100
 #define MT_CAP_ZOAD     0x0200
 
+/********************************
+ *       Local variables        *
+ *******************************/
+
+static int _log_domain = -1;
+/*
+static uint8_t nv_coord_data[] = {0};
+static uint8_t nv_disable_sec_data[] = {0};
+static uint8_t nv_enable_sec_data[] = {1};
+static uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
+*/
+
+/* Callback set for any synchronous operation (see SREQ in MT specification) */
+/*
+static SyncActionCb sync_action_cb = NULL;
+static uint64_t _ext_addr = 0x0000000000000000;
+*/
 
 /********************************
  *     MT SYS callbacks         *
  *******************************/
-
+/*
 static uint8_t _ping_srsp_cb(PingSrspFormat_t *msg)
 {
-    LOG_INF("System ping SRSP received. Capabilities : %04X",
+    INF("System ping SRSP received. Capabilities : %04X",
             msg->Capabilities);
     if(sync_action_cb)
         sync_action_cb();
@@ -49,7 +58,7 @@ static uint8_t _ping_srsp_cb(PingSrspFormat_t *msg)
 
 static uint8_t _get_ext_addr_srsp_cb(GetExtAddrSrspFormat_t *msg)
 {
-    LOG_INF("Received extended address (0x%016X)", msg->ExtAddr);
+    INF("Received extended address (0x%016X)", msg->ExtAddr);
     _ext_addr = msg->ExtAddr;
 
     if(sync_action_cb)
@@ -59,12 +68,12 @@ static uint8_t _get_ext_addr_srsp_cb(GetExtAddrSrspFormat_t *msg)
 
 static uint8_t _reset_ind_cb(ResetIndFormat_t *msg)
 {
-    LOG_INF("System reset ind. received. Reason : %s ",
+    INF("System reset ind. received. Reason : %s ",
             msg->Reason == 0 ? "power up":(msg->Reason == 1 ?
                 "External":"Watchdog"));
-    LOG_INF("Transport version : %d", msg->TransportRev);
-    LOG_INF("Product ID : %d", msg->ProductId);
-    LOG_INF("ZNP version : %d.%d.%d", msg->MajorRel, msg->MinorRel, msg->HwRev);
+    INF("Transport version : %d", msg->TransportRev);
+    INF("Product ID : %d", msg->ProductId);
+    INF("ZNP version : %d.%d.%d", msg->MajorRel, msg->MinorRel, msg->HwRev);
     if(sync_action_cb)
         sync_action_cb();
 
@@ -74,9 +83,9 @@ static uint8_t _reset_ind_cb(ResetIndFormat_t *msg)
 static uint8_t _osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
 {
     if(msg->Status != ZSuccess)
-        LOG_ERR("Error writing NV element : %s", znp_strerror(msg->Status));
+        ERR("Error writing NV element : %s", znp_strerror(msg->Status));
     else
-        LOG_INF("NV element written");
+        INF("NV element written");
 
     if(sync_action_cb)
         sync_action_cb();
@@ -84,24 +93,6 @@ static uint8_t _osal_nv_write_srsp_cb(OsalNvWriteSrspFormat_t *msg)
     return 0;
 }
 
-
-static mtSysCb_t mt_sys_cb = {
-    _ping_srsp_cb,
-    _get_ext_addr_srsp_cb,
-    NULL,
-    _reset_ind_cb,
-    NULL,
-    NULL,
-    _osal_nv_write_srsp_cb,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-};
 
 static void mt_sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint8_t *data)
 {
@@ -115,19 +106,49 @@ static void mt_sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, ui
     memcpy(req.Value, data, length);
     sysOsalNvWrite(&req);
 }
+*/
+
+static void _process_mt_sys_cb(ZgMtMsg *msg)
+{
+    if(msg->type == ZG_MT_CMD_POLL)
+        DBG("Received SYS POLL command");
+    else if(msg->type == ZG_MT_CMD_SREQ)
+        DBG("Received SYS SREQ request");
+    else if(msg->type == ZG_MT_CMD_AREQ)
+        DBG("Received SYS AREQ request");
+    else if(msg->type == ZG_MT_CMD_SRSP)
+        DBG("Received SYS SRSP response");
+
+    switch(msg->cmd)
+    {
+        default:
+            WRN("Unsupported SYS command 0x%02X", msg->type);
+            break;
+    }
+}
+
 
 /********************************
  *          API                 *
  *******************************/
 
-void mt_sys_register_callbacks(void)
+int zg_mt_sys_init(void)
 {
-    sysRegisterCallbacks(mt_sys_cb);
+    _log_domain = zg_logs_domain_register("zg_mt_sys", ZG_COLOR_LIGHTRED);
+    zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_SYS, _process_mt_sys_cb);
+    INF("MT SYS module initialized");
+    return 0;
 }
 
+void zg_mt_sys_shutdown(void)
+{
+    INF("MT SYS module shut down");
+}
+
+/*
 void mt_sys_reset_dongle (SyncActionCb cb)
 {
-    LOG_INF("Resetting ZNP");
+    INF("Resetting ZNP");
     sync_action_cb = cb;
     ResetReqFormat_t resReq;
     resReq.Type = 1;
@@ -136,7 +157,7 @@ void mt_sys_reset_dongle (SyncActionCb cb)
 
 void mt_sys_ping_dongle(SyncActionCb cb)
 {
-    LOG_INF("Ping dongle");
+    INF("Ping dongle");
     sync_action_cb = cb;
     sysPing();
 }
@@ -144,7 +165,7 @@ void mt_sys_ping_dongle(SyncActionCb cb)
 void mt_sys_nv_write_startup_options(MtSysStartupOptions options,SyncActionCb cb)
 {
     uint8_t nv_options = 0x00;
-    LOG_INF("Writing startup options");
+    INF("Writing startup options");
     sync_action_cb = cb;
 
     if(options & STARTUP_CLEAR_NWK_FRAME_COUNTER)
@@ -159,35 +180,35 @@ void mt_sys_nv_write_startup_options(MtSysStartupOptions options,SyncActionCb cb
 
 void mt_sys_nv_write_coord_flag(SyncActionCb cb)
 {
-    LOG_INF("Setting device as coordinator");
+    INF("Setting device as coordinator");
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x87, 0, 1, nv_coord_data);
 }
 
 void mt_sys_nv_write_disable_security(SyncActionCb cb)
 {
-    LOG_INF("Disabling NWK security");
+    INF("Disabling NWK security");
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x64, 0, 1, nv_disable_sec_data);
 }
 
 void mt_sys_nv_write_enable_security(SyncActionCb cb)
 {
-    LOG_INF("Enabling NWK security");
+    INF("Enabling NWK security");
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x64, 0, 1, nv_enable_sec_data);
 }
 
 void mt_sys_nv_set_pan_id(SyncActionCb cb)
 {
-    LOG_INF("Setting PAN ID");
+    INF("Setting PAN ID");
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x83, 0, 2, nv_set_pan_id);
 }
 
 void mt_sys_nv_write_nwk_key(SyncActionCb cb)
 {
-    LOG_INF("Setting network key");
+    INF("Setting network key");
 
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x62, 0, zg_keys_network_key_size_get(), zg_keys_network_key_get());
@@ -195,7 +216,7 @@ void mt_sys_nv_write_nwk_key(SyncActionCb cb)
 
 void mt_sys_check_ext_addr(SyncActionCb cb)
 {
-    LOG_INF("Retrieving extended address");
+    INF("Retrieving extended address");
 
     sync_action_cb = cb;
     sysGetExtAddr();
@@ -261,14 +282,14 @@ void mt_sys_nv_write_channel(uint8_t channel, SyncActionCb cb)
             channel_mask = 0x04000000;
             break;
         default:
-            LOG_ERR("Cannot set channel %d (not a proper channel value)", channel);
+            ERR("Cannot set channel %d (not a proper channel value)", channel);
             if(cb)
                 cb();
             return;
             break;
     }
-    LOG_INF("Setting radio to operate on channel %d", channel);
+    INF("Setting radio to operate on channel %d", channel);
     sync_action_cb = cb;
     mt_sys_osal_nv_write(0x84, 0, sizeof(channel_mask), (uint8_t *)&channel_mask);
 }
-
+*/

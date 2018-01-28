@@ -216,7 +216,7 @@ uint8_t zg_rpc_init(const char *device)
 }
 
 
-void zg_rpc_shutdown(char *device __attribute__((unused)))
+void zg_rpc_shutdown(void)
 {
     if(_znp_fd > 0)
     {

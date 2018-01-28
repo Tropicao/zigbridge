@@ -11,7 +11,20 @@ typedef enum
     STARTUP_CLEAR_CONFIG =              0x04,
 } MtSysStartupOptions;
 
-void mt_sys_register_callbacks(void);
+/**
+ * \brief Initialize the MT SYS module
+ *
+ * This function registers mandatory callbacks to RPC system to receive MT SYS
+ * messages
+ * \return 0 if initialization has passed properly, otherwise 1
+ */
+int zg_mt_sys_init(void);
+
+/**
+ * \brief Terminate the MT SYS module
+ */
+void zg_mt_sys_shutdown(void);
+
 void mt_sys_reset_dongle(SyncActionCb cb);
 void mt_sys_ping_dongle(SyncActionCb cb);
 void mt_sys_nv_write_startup_options(MtSysStartupOptions options, SyncActionCb cb);

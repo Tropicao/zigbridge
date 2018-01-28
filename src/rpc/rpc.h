@@ -50,7 +50,7 @@ uint8_t zg_rpc_init(const char *device);
 /**
  * \brief Close the ZNP medium.
  */
-void zg_rpc_shutdown(char *device);
+void zg_rpc_shutdown();
 
 /**
  * \brief Manually read data on znp medium. must be used each time that znp fd
@@ -78,6 +78,17 @@ uint8_t zg_rpc_write(ZgMtCmd cmd, ZgMtSubSys subsys, uint8_t id, uint8_t *data, 
  */
 int zg_rpc_get_fd(void);
 
+/**
+ * \brief Subscribe to RPC messages targeted to a specific MT subsystem
+ *
+ * This function allow to trigger a specific callback to process the messages
+ * targeted to a subsystem defined by the MT protocol. If a callback is already
+ * registered for the targeted MT subsystem, it will be overwritten.
+ * \param subsys The MT subsystem to subscribe to (cf ZgMtSubSys enumeration for
+ * possible values)
+ * \param cb The callback to associate to targeted subsystem messages
+ */
+void zg_rpc_subsys_cb_set(ZgMtSubSys subsys, mt_subsys_cb_t cb);
 
 #endif
 

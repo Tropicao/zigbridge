@@ -7,6 +7,7 @@
 #include "core.h"
 #include "conf.h"
 #include "types.h"
+#include "mt.h"
 #include "rpc.h"
 #include "logs.h"
 
@@ -36,13 +37,6 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
         zg_rpc_read();
     }
 }
-
-static void _test_ping(void)
-{
-    INF("Sending ping to module");
-    zg_rpc_write(ZG_MT_CMD_SREQ, ZG_MT_SUBSYS_SYS, 0x01, NULL, 0);
-}
-
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
@@ -91,7 +85,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     loop = uv_default_loop();
 
-    if(zg_rpc_init(zg_conf_get_znp_device_path()) != 0)
+    if(zg_mt_init() != 0)
     {
         CRI("Cannot initialize ZNP medium");
         goto main_end;
@@ -112,7 +106,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     uv_signal_init(loop, &sig_int);
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    _test_ping();
+    zg_mt_test_ping();
     INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
@@ -122,6 +116,7 @@ main_end:
     uv_signal_stop(&sig_int);
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
+    zg_mt_shutdown();
     zg_conf_shutdown();
     zg_logs_shutdown();
     exit(0);
