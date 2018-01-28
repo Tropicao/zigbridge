@@ -81,6 +81,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         ERR("Cannot load configuration, abort");
         goto main_end;
     }
+    
+    if(zg_rpc_init(zg_conf_get_znp_device_path()) != 0)
+    {
+        ERR("Cannot initialize ZNP medium, abort");
+        goto main_end;
+    }
 
     loop = uv_default_loop();
     znp_fd = zg_rpc_get_fd();
@@ -107,6 +113,7 @@ main_end:
     uv_signal_stop(&sig_int);
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
+    zg_rpc_shutdown();
     zg_conf_shutdown();
     zg_logs_shutdown();
     exit(0);
