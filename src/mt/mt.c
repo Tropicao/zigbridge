@@ -24,5 +24,5 @@ void zg_mt_shutdown()
 
 void zg_mt_test_ping(void)
 {
-    zg_rpc_write(ZG_MT_CMD_SREQ, ZG_MT_SUBSYS_SYS, 0x01, NULL, 0);
+    zg_mt_sys_ping(NULL);
 }

@@ -232,7 +232,7 @@ void zg_rpc_read(void)
     _read_znp_data();
 }
 
-uint8_t zg_rpc_write(ZgMtCmd cmd, ZgMtSubSys subsys, uint8_t id, uint8_t *data, int len)
+uint8_t zg_rpc_write(ZgMtMsg *msg)
 {
     uint8_t buf[RPC_FRAME_MAX_SIZE] = {0};
     uint16_t total_size = 0;
@@ -243,20 +243,27 @@ uint8_t zg_rpc_write(ZgMtCmd cmd, ZgMtSubSys subsys, uint8_t id, uint8_t *data, 
         ERR("Cannot send data to ZNP, medium not initialized");
         return 1;
     }
-    if(len > RPC_MAX_DATA_SIZE)
+    if(!msg)
     {
-        ERR("Cannot send data to ZNP, data is too large (%d)", len);
+        ERR("Cannot send data to ZNP, message object is empty");
         return 1;
     }
 
-    total_size = FRAME_SIZE(len);
+    if(msg->len > RPC_MAX_DATA_SIZE)
+    {
+        ERR("Cannot send data to ZNP, data is too large (%d)", msg->len);
+        return 1;
+    }
+
+    total_size = FRAME_SIZE(msg->len);
     buf[RPC_SOF_INDEX] = RPC_SOF;
-    buf[RPC_DATA_LEN_INDEX] = len;
-    buf[RPC_CMD0_INDEX] = cmd|subsys;
-    buf[RPC_CMD1_INDEX] = id;
-    if(len && data)
-        memcpy(buf+RPC_DATA_INDEX, data, len);
-    buf[RPC_FCS_INDEX(len)] = _compute_frame_fcs(buf + RPC_DATA_LEN_INDEX, RPC_DATA_LEN_SIZE +RPC_CMD0_SIZE + RPC_CMD1_SIZE + len);
+    buf[RPC_DATA_LEN_INDEX] = msg->len;
+    buf[RPC_CMD0_INDEX] = msg->type|msg->subsys;
+    buf[RPC_CMD1_INDEX] = msg->cmd;
+    if(msg->len && msg->data)
+        memcpy(buf+RPC_DATA_INDEX, msg->data, msg->len);
+    buf[RPC_FCS_INDEX(msg->len)] = _compute_frame_fcs(buf + RPC_DATA_LEN_INDEX,
+            RPC_DATA_LEN_SIZE + RPC_CMD0_SIZE + RPC_CMD1_SIZE + msg->len);
 
     INF("Writing %d bytes to ZNP", total_size);
     for(i = 0; i < total_size; i++)

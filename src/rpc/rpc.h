@@ -60,17 +60,11 @@ void zg_rpc_read(void);
 
 /**
  * \brief Write data to ZNP medium
- * \param cmd The command type between POLL, SREQ, AREQ or SRSP (cf
- * enumeration in rpc.h)
- * \param subsys The MT subystem targeted by the command, cf rpc.h for
- * enumeration
- * \brief id The command id, defined by the targeted subsystem
- * \param data The corresponding data to send
- * \param len The data buffer size. This value is only for data buffer, it does
- * not take cmd and subsys size in account.
+ * \param msg A ZNP message object holding all data about the message (command
+ * type, subsystem, command, data, and data len)
  * \return 0 if success, otherwise 1
  */
-uint8_t zg_rpc_write(ZgMtCmd cmd, ZgMtSubSys subsys, uint8_t id, uint8_t *data, int len);
+uint8_t zg_rpc_write(ZgMtMsg *msg);
 
 /**
  * \brief Return the filed descriptor of ZNP medium
