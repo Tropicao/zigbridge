@@ -155,7 +155,7 @@ static void _process_aps_msg(uint8_t endpoint_num, uint16_t cluster, void *data,
 int zg_aps_init()
 {
     _log_domain = zg_logs_domain_register("zg_aps", ZG_COLOR_YELLOW);
-    mt_af_register_incoming_message_callback(_process_aps_msg);
+    zg_mt_af_register_incoming_message_callback(_process_aps_msg);
     return 0;
 }
 
@@ -186,7 +186,7 @@ void zg_aps_register_endpoint(  uint8_t endpoint,
         return;
     }
 
-    mt_af_register_endpoint(endpoint,
+    zg_mt_af_register_endpoint(endpoint,
             profile,
             device_id,
             device_ver,
@@ -235,7 +235,7 @@ void zg_aps_send_data(  uint16_t dst_addr,
         memcpy(aps_data, data, len);
     }
 
-    mt_af_send_data_request_ext(dst_addr,
+    zg_mt_af_send_data_request_ext(dst_addr,
             dst_pan,
             src_endpoint,
             dst_endpoint,

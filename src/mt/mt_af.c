@@ -407,7 +407,7 @@ void zg_mt_af_shutdown(void)
     INF("MT AF module shut down");
 }
 
-void mt_af_register_endpoint(   uint8_t endpoint,
+void zg_mt_af_register_endpoint(   uint8_t endpoint,
                                 uint16_t profile,
                                 uint16_t device_id,
                                 uint8_t device_ver,
@@ -465,7 +465,7 @@ void mt_af_register_endpoint(   uint8_t endpoint,
     ZG_VAR_FREE(buffer);
 }
 
-void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
+void zg_mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t interpan_command_data = INTER_PAN_REGISTER;
@@ -480,7 +480,7 @@ void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
     zg_rpc_write(&msg);
 }
 
-void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
+void zg_mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t interpan_command_data = INTER_PAN_SET;
@@ -495,12 +495,12 @@ void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
     zg_rpc_write(&msg);
 }
 
-void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
+void zg_mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
 {
     _af_incoming_msg_cb = cb;
 }
 
-void mt_af_send_data_request_ext(   uint64_t dst_addr,
+void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
                                     uint8_t dst_endpoint,

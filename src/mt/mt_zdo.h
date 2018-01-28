@@ -26,14 +26,14 @@ void zg_mt_zdo_shutdown(void);
  * \param cb The callback triggered when ZNP has received and processed the
  * command
  */
-void mt_zdo_startup_from_app(SyncActionCb);
+void zg_mt_zdo_startup_from_app(SyncActionCb);
 
 /**
  * \brief Register a callback to be called when a device issue a DEVICE_ANNCE
  * message
  * \param cb The callback to be called on new DEVICE_ANNCE message.
  */
-void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr));
+void zg_mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr));
 
 /**
  * \brief Ask ZNP to send a DEVICE_ANNCE message on network, to announce gateway
@@ -41,7 +41,7 @@ void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_ad
  * \param cb The callback triggered when ZNP has received and processed the
  * command
  */
-void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb);
+void zg_mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb);
 
 
 /**
@@ -51,7 +51,7 @@ void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb);
  * \param cb The callback triggered when ZNP has received and processed the
  * command
  */
-void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb);
+void zg_mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb);
 
 /**
  * \brief Ask ZNP to send an ACTIVE ENDPOINTS REQUEST message on network, to get
@@ -64,7 +64,7 @@ void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb);
  * \param cb The callback triggered when ZNP has received and processed the
  * command
  */
-void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb);
+void zg_mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb);
 
 /**
  * \brief Register a callback on active endpoints response
@@ -73,7 +73,7 @@ void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb);
  * \param cb The callback which will be called when a new device sends its
  * endpoint list
  */
-void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list));
+void zg_mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list));
 
 /**
  * \brief Register a callback on simple descriptor response
@@ -82,7 +82,7 @@ void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint
  * \param cb The callback which will be called when a new device sends a
  * description of a queried endpoint
  */
-void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id));
+void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id));
 
 /**
  * \brief Open the network to allow new devices to join
@@ -90,7 +90,7 @@ void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t pr
  * \param cb The callback triggered when ZNP has received and processed the
  * command
  */
-void mt_zdo_permit_join(SyncActionCb cb);
+void zg_mt_zdo_permit_join(SyncActionCb cb);
 
 #endif
 

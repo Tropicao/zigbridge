@@ -549,7 +549,7 @@ void zg_mt_zdo_shutdown(void)
 {
     INF("MT ZDO module shut down");
 }
-void mt_zdo_nwk_discovery_req(SyncActionCb cb)
+void zg_mt_zdo_nwk_discovery_req(SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint32_t scan_param = SCAN_ALL_CHANNELS_VALUE;
@@ -575,7 +575,7 @@ void mt_zdo_nwk_discovery_req(SyncActionCb cb)
     ZG_VAR_FREE(buffer);
 }
 
-void mt_zdo_startup_from_app(SyncActionCb cb)
+void zg_mt_zdo_startup_from_app(SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint16_t startup_delay = ZDO_DEFAULT_STARTUP_DELAY;
@@ -590,12 +590,12 @@ void mt_zdo_startup_from_app(SyncActionCb cb)
     zg_rpc_write(&msg);
 }
 
-void mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr))
+void zg_mt_zdo_register_visible_device_cb(void (*cb)(uint16_t addr, uint64_t ext_addr))
 {
     _zdo_tc_dev_ind_cb = cb;
 }
 
-void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
+void zg_mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t *buffer;
@@ -621,7 +621,7 @@ void mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
     ZG_VAR_FREE(buffer);
 }
 
-void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
+void zg_mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t options = ROUTE_REQ_OPTIONS;
@@ -648,7 +648,7 @@ void mt_zdo_ext_route_disc_request(uint16_t addr, SyncActionCb cb)
     ZG_VAR_FREE(buffer);
 }
 
-void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
+void zg_mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint16_t src_addr;
@@ -674,17 +674,17 @@ void mt_zdo_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
 
 }
 
-void mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list))
+void zg_mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list))
 {
     _zdo_active_ep_rsp_cb = cb;
 }
 
-void mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id))
+void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id))
 {
     _zdo_simple_desc_rsp_cb = cb;
 }
 
-void mt_zdo_permit_join(SyncActionCb cb)
+void zg_mt_zdo_permit_join(SyncActionCb cb)
 {
     uint8_t addr_mode = 0x02;
     uint16_t dst_addr = 0x0000;

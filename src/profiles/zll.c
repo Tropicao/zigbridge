@@ -385,12 +385,12 @@ static void _general_init_cb(void)
 
 static void _set_inter_pan_endpoint(SyncActionCb cb)
 {
-    mt_af_set_inter_pan_endpoint(ZLL_ENDPOINT, cb);
+    zg_mt_af_set_inter_pan_endpoint(ZLL_ENDPOINT, cb);
 }
 
 static void _set_inter_pan_channel(SyncActionCb cb)
 {
-    mt_af_set_inter_pan_channel(ZLL_CHANNEL, cb);
+    zg_mt_af_set_inter_pan_channel(ZLL_CHANNEL, cb);
 }
 
 void _register_zll_endpoint(SyncActionCb cb)

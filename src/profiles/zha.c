@@ -198,7 +198,7 @@ void zg_zha_init(InitCompleteCb cb)
     if(cb)
         _init_complete_cb = cb;
 
-    mt_zdo_register_visible_device_cb(_zha_visible_device_cb);
+    zg_mt_zdo_register_visible_device_cb(_zha_visible_device_cb);
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
 }

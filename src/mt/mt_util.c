@@ -129,12 +129,12 @@ void zg_mt_util_shutdown(void)
 }
 
 
-void mt_util_af_subscribe_cmd (SyncActionCb cb)
+void zg_mt_util_af_subscribe_cmd (SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t subscribe_data[] = {
         0x04, /* Subscribe to MT_AF subsystem */
-        0x00, 
+        0x00,
         0x01}; /* Action : enable */
 
     INF("Subscribing to MT_AF callbacks");

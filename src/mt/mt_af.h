@@ -40,7 +40,7 @@ void zg_mt_af_shutdown(void);
  * \param cb The callback to trigger when ZNP has received and processed the
  * register command
  */
-void mt_af_register_endpoint(   uint8_t endpoint,
+void zg_mt_af_register_endpoint(   uint8_t endpoint,
                                 uint16_t profile,
                                 uint16_t device_id,
                                 uint8_t device_ver,
@@ -59,7 +59,7 @@ void mt_af_register_endpoint(   uint8_t endpoint,
  * \param cb The callback to trigger when ZNP has received and processed the
  * command
  */
-void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb);
+void zg_mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb);
 
 /**
  * \brief Set targeted channel as inter-pan channel
@@ -71,7 +71,7 @@ void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb);
  * \param cb The callback to trigger when ZNP has received and processed the
  * command
  */
-void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb);
+void zg_mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb);
 
 /**
  * \brief Register the callback to which module will transmit incoming
@@ -81,7 +81,7 @@ void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb);
  * callback will have to process and dispatch the message to proper application
  * layer
  */
-void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb);
+void zg_mt_af_register_incoming_message_callback(AfIncomingMessageCb cb);
 
 /**
  * \brief Send an extended data request to ZNP
@@ -100,7 +100,7 @@ void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb);
  * \param cb The callback to trigger when ZNP ahs received and processed the
  * data sending request
  */
-void mt_af_send_data_request_ext(   uint64_t dst_addr,
+void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
                                     uint8_t dst_endpoint,

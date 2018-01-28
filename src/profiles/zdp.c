@@ -123,8 +123,8 @@ void zg_zdp_init(SyncActionCb cb)
     if(cb)
         _init_complete_cb = cb;
 
-    mt_zdo_register_active_ep_rsp_callback(_zdo_active_ep_rsp_cb);
-    mt_zdo_register_simple_desc_rsp_cb(_zdo_simple_desc_rsp_cb);
+    zg_mt_zdo_register_active_ep_rsp_callback(_zdo_active_ep_rsp_cb);
+    zg_mt_zdo_register_simple_desc_rsp_cb(_zdo_simple_desc_rsp_cb);
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
 }
