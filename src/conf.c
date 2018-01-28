@@ -107,6 +107,7 @@ static void _load_value(dictionary *ini, char *section, char *key, void *var, Va
 
 static void _print_configuration()
 {
+    PRINT_STRING_VALUE(SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, _configuration.znp_device_path);
     PRINT_STRING_VALUE(SECTION_SECURITY, KEY_NETWORK_KEY_PATH, _configuration.network_key_path);
     PRINT_STRING_VALUE(SECTION_DEVICES, KEY_DEVICE_LIST_PATH, _configuration.device_list_path);
 }
