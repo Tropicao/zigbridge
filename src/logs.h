@@ -38,6 +38,7 @@
 #define ZG_COLOR_YELLOW         "\033[33m"
 #define ZG_COLOR_LIGHTYELLOW    "\033[33;1m"
 #define ZG_COLOR_MAGENTA        "\033[35;1m"
+#define ZG_COLOR_CYAN           "\033[96;1m"
 
 
 typedef enum

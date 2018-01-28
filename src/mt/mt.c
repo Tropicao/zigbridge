@@ -3,6 +3,7 @@
 #include "mt_af.h"
 #include "mt_sys.h"
 #include "mt_util.h"
+#include "mt_zdo.h"
 #include "rpc.h"
 #include "conf.h"
 
@@ -16,12 +17,14 @@ int zg_mt_init()
     res |= zg_mt_af_init();
     res |= zg_mt_sys_init();
     res |= zg_mt_util_init();
+    res |= zg_mt_zdo_init();
 
     return res;
 }
 
 void zg_mt_shutdown()
 {
+    zg_mt_zdo_shutdown();
     zg_mt_util_shutdown();
     zg_mt_sys_shutdown();
     zg_mt_af_shutdown();
