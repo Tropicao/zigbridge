@@ -35,7 +35,8 @@
 #define ZG_COLOR_LIGHTGREEN     "\033[32;1m"
 #define ZG_COLOR_BLUE           "\033[34m"
 #define ZG_COLOR_LIGHTBLUE      "\033[34;1m"
-#define ZG_COLOR_YELLOW         "\033[33;1m"
+#define ZG_COLOR_YELLOW         "\033[33m"
+#define ZG_COLOR_LIGHTYELLOW    "\033[33;1m"
 #define ZG_COLOR_MAGENTA        "\033[35;1m"
 
 

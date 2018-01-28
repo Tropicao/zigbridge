@@ -1,23 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uv.h>
-#include <znp.h>
 #include "mt_af.h"
-
-static AfIncomingMessageCb _af_incoming_msg_cb = NULL;
-static SyncActionCb sync_action_cb = NULL;
-static uint8_t _transaction_id = 0;
-
-/********************************
- *          Data Types          *
- *******************************/
-
-typedef enum
-{
-    SHORT_ADDR_MODE = 2,
-    EXT_ADDR_MODE = 3,
-}DstAddrMode;
-
+#include "rpc.h"
+#include "logs.h"
+#include "utils.h"
 
 /********************************
  *       Constant data          *
@@ -33,62 +20,63 @@ typedef enum
 #define INTER_PAN_REGISTER                  0x02
 #define INTER_PAN_CHK                       0x03
 
+/* MT AF commands */
+#define AF_REGISTER                         0x00
+#define AF_DATA_REQUEST                     0x01
+#define AF_DATA_REQUEST_EXT                 0x02
+#define AF_DATA_REQUEST_SRC_RTG             0x03
+#define AF_INTER_PAN_CTL                    0x10
+#define AF_DATA_STORE                       0x11
+#define AF_DATA_RETRIEVE                    0x12
+#define AF_APSF_CONFIG_SET                  0x13
+
+/* MT AF callbacks */
+#define AF_DATA_CONFIRM                     0x80
+#define AF_REFLECT_ERROR                    0x83
+#define AF_INCOMING_MSG                     0x81
+#define AF_INCOMING_MSG_EXT                 0x82
+
+/********************************
+ *          Data Types          *
+ *******************************/
+
+typedef enum
+{
+    SHORT_ADDR_MODE = 2,
+    EXT_ADDR_MODE = 3,
+}DstAddrMode;
+
+/********************************
+ *       Static variables       *
+ *******************************/
+
+static AfIncomingMessageCb _af_incoming_msg_cb = NULL;
+static SyncActionCb sync_action_cb = NULL;
+static uint8_t _transaction_id = 0;
+static int _log_domain = -1;
+
+
 /********************************
  *      MT AF callbacks         *
  *******************************/
 
-static uint8_t _register_srsp_cb(RegisterSrspFormat_t *msg)
-{
-    if(msg->Status != ZSuccess)
-        LOG_ERR("Error registering new enpdoint : %s", znp_strerror(msg->Status));
-    else
-        LOG_INF("New endpoint registered");
-    if(sync_action_cb)
-        sync_action_cb();
+/* MT AF SRSP callbacks */
 
-    return 0;
-}
-
-static uint8_t _data_request_srsp_cb(DataRequestSrspFormat_t *msg)
+static uint8_t _register_srsp_cb(ZgMtMsg *msg)
 {
-    if(msg->Status != ZSuccess)
+    uint8_t status = 0;
+    if(!msg || !msg->data)
     {
-        LOG_ERR("Error sending data to remote device : %s", znp_strerror(msg->Status));
+        WRN("Cannot extract AF_REGISTER SRSP data");
     }
     else
     {
-        LOG_INF("Data request sent to remote device");
-        _transaction_id++;
+        status = msg->data[0];
+        if(status != ZSUCCESS)
+            ERR("Error registering new enpdoint : %s", zg_logs_znp_strerror(status));
+        else
+            INF("New endpoint registered");
     }
-    if(sync_action_cb)
-        sync_action_cb();
-
-    return 0;
-}
-
-static uint8_t _data_request_ext_srsp_cb(DataRequestExtSrspFormat_t *msg)
-{
-    if(msg->Status != ZSuccess)
-    {
-        LOG_ERR("Error sending extending data request to remote device : %s", znp_strerror(msg->Status));
-    }
-    else
-    {
-        LOG_INF("Extended data request sent to remote device");
-        _transaction_id++;
-    }
-    if(sync_action_cb)
-        sync_action_cb();
-
-    return 0;
-}
-
-static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
-{
-    if(msg->Status != ZSuccess)
-        LOG_ERR("Error sending interpan control command : %s", znp_strerror(msg->Status));
-    else
-        LOG_INF("Inter-pan command applied");
 
     if(sync_action_cb)
         sync_action_cb();
@@ -96,83 +84,327 @@ static uint8_t _inter_pan_ctl_srsp_cb(InterPanCtlSrspFormat_t *msg)
     return 0;
 }
 
-static uint8_t _incoming_msg_cb(IncomingMsgFormat_t *msg)
+static uint8_t _data_request_srsp_cb(ZgMtMsg *msg)
 {
-    LOG_INF("Extended AF message received");
-    LOG_INF("Group id : 0x%04X", msg->GroupId);
-    LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
-    LOG_INF("Source addr : 0x%016X", msg->SrcAddr);
-    LOG_INF("Source Endpoint : 0x%02X", msg->SrcEndpoint);
-    LOG_INF("Dest Endpoint : 0x%02X", msg->DstEndpoint);
-    LOG_INF("Was Broadcast : 0x%02X", msg->WasBroadcast);
-    LOG_INF("Link Quality : 0x%02X", msg->LinkQuality);
-    LOG_INF("Security Use : 0x%02X", msg->SecurityUse);
-    LOG_INF("Timestamp : 0x%08X", msg->TimeStamp);
-    LOG_INF("Transaction sequence num : 0x%02X", msg->TransSeqNum);
-    LOG_INF("Length : %d", msg->Len);
-
-    if(_af_incoming_msg_cb)
-        _af_incoming_msg_cb(msg->DstEndpoint, msg->ClusterId, msg->Data, msg->Len);
-
-    return 0;
-}
-
-static uint8_t _incoming_msg_ext_cb(IncomingMsgExtFormat_t *msg)
-{
-    LOG_INF("AF message received");
-    LOG_INF("Group id : 0x%04X", msg->GroupId);
-    LOG_INF("Cluster id : 0x%04X", msg->ClusterId);
-    LOG_INF("Source addr mode : 0x%02X", msg->SrcAddrMode);
-    LOG_INF("Source addr : 0x%016X", msg->SrcAddr);
-    LOG_INF("Source Endpoint : 0x%02X", msg->SrcEndpoint);
-    LOG_INF("Source PAN id : 0x%04X", msg->SrcPanId);
-    LOG_INF("Dest Endpoint : 0x%02X", msg->DstEndpoint);
-    LOG_INF("Was Broadcast : 0x%02X", msg->WasBroadcast);
-    LOG_INF("Link Quality : 0x%02X", msg->LinkQuality);
-    LOG_INF("Security Use : 0x%02X", msg->SecurityUse);
-    LOG_INF("Timestamp : 0x%08X", msg->TimeStamp);
-    LOG_INF("Transaction sequence num : 0x%02X", msg->TransSeqNum);
-    LOG_INF("Length : %d", msg->Len);
-
-    /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
-    */
-    if(_af_incoming_msg_cb)
-        _af_incoming_msg_cb(msg->DstEndpoint, msg->ClusterId, msg->Data, msg->Len);
-
-    return 0;
-}
-
-static uint8_t _data_confirm_cb(DataConfirmFormat_t *msg)
-{
-    if(msg->Status != ZSuccess)
-        LOG_ERR("Error sending data request : %s", znp_strerror(msg->Status));
+    uint8_t status = 0;
+    if(!msg || !msg->data)
+    {
+        WRN("Cannot extract AF_DATA_REQUEST SRSP data");
+    }
     else
-        LOG_INF("Data request sent");
+    {
+        status = msg->data[0];
+        if(status != ZSUCCESS)
+        {
+            ERR("Error sending data to remote device : %s", zg_logs_znp_strerror(status));
+        }
+        else
+        {
+            INF("Data request sent to remote device");
+            _transaction_id++;
+        }
+    }
+
+    if(sync_action_cb)
+        sync_action_cb();
 
     return 0;
 }
 
+static uint8_t _data_request_ext_srsp_cb(ZgMtMsg *msg)
+{
+    uint8_t status = 0;
+    if(!msg || !msg->data)
+    {
+        WRN("Cannot extract AF_DATA_REQUEST_EXT SRSP data");
+    }
+    else
+    {
+        status = msg->data[0];
+        if(status != ZSUCCESS)
+        {
+            ERR("Error sending extending data request to remote device : %s", zg_logs_znp_strerror(status));
+        }
+        else
+        {
+            INF("Extended data request sent to remote device");
+            _transaction_id++;
+        }
+    }
 
+    if(sync_action_cb)
+        sync_action_cb();
 
-static mtAfCb_t mt_af_cb = {
-    _register_srsp_cb,
-    _data_request_srsp_cb,
-    _data_request_ext_srsp_cb,
-    _data_confirm_cb,
-    _incoming_msg_cb,
-    _incoming_msg_ext_cb,
-    NULL,
-    NULL,
-    _inter_pan_ctl_srsp_cb,
-};
+    return 0;
+}
+
+static uint8_t _inter_pan_ctl_srsp_cb(ZgMtMsg *msg)
+{
+    uint8_t status = 0;
+    if(!msg || !msg->data)
+    {
+        WRN("Cannot extract AF_INTER_PAN_CTL SRSP data");
+    }
+    else
+    {
+        status = msg->data[0];
+        if(status != ZSUCCESS)
+            ERR("Error sending interpan control command : %s", zg_logs_znp_strerror(status));
+        else
+            INF("Inter-pan command applied");
+    }
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+}
+
+/* MT AF AREQ callbacks */
+
+static uint8_t _incoming_msg_cb(ZgMtMsg *msg)
+{
+    uint16_t group_id;
+    uint16_t cluster;
+    uint64_t src_addr;
+    uint8_t src_endpoint;
+    uint8_t dst_endpoint;
+    uint8_t was_broadcast;
+    uint8_t link_quality;
+    uint8_t sec;
+    uint32_t timestamp;
+    uint8_t trans;
+    uint8_t len;
+    uint8_t index = 0;
+    if(!msg || !msg->data)
+    {
+        WRN("Cannot extract AF_INCOMING_MSG AREQ data");
+    }
+    else
+    {
+        memcpy(&group_id, msg->data + index, sizeof(group_id));
+        index += sizeof(group_id);
+        memcpy(&cluster, msg->data + index, sizeof(cluster));
+        index += sizeof(cluster);
+        memcpy(&src_addr, msg->data + index, sizeof(src_addr));
+        index += sizeof(src_addr);
+        memcpy(&src_endpoint, msg->data + index, sizeof(src_endpoint));
+        index += sizeof(src_endpoint);
+        memcpy(&dst_endpoint, msg->data + index, sizeof(dst_endpoint));
+        index += sizeof(dst_endpoint);
+        memcpy(&was_broadcast, msg->data + index, sizeof(was_broadcast));
+        index += sizeof(was_broadcast);
+        memcpy(&link_quality, msg->data + index, sizeof(link_quality));
+        index += sizeof(link_quality);
+        memcpy(&sec, msg->data + index, sizeof(sec));
+        index += sizeof(sec);
+        memcpy(&timestamp, msg->data + index, sizeof(timestamp));
+        index += sizeof(timestamp);
+        memcpy(&trans, msg->data + index, sizeof(trans));
+        index += sizeof(trans);
+        memcpy(&len, msg->data + index, sizeof(len));
+        index += sizeof(len);
+        INF("Extended AF message received");
+        INF("Group id : 0x%04X", group_id);
+        INF("Cluster id : 0x%04X", cluster);
+        INF("Source addr : 0x%016lX", src_addr);
+        INF("Source Endpoint : 0x%02X", src_endpoint);
+        INF("Dest Endpoint : 0x%02X", dst_endpoint);
+        INF("Was Broadcast : 0x%02X", was_broadcast);
+        INF("Link Quality : 0x%02X", link_quality);
+        INF("Security Use : 0x%02X", sec);
+        INF("Timestamp : 0x%08X", timestamp);
+        INF("Transaction sequence num : 0x%02X", trans);
+        INF("Length : %d", len);
+
+        if(_af_incoming_msg_cb)
+            _af_incoming_msg_cb(dst_endpoint, cluster, msg->data + index, len);
+   }
+
+    return 0;
+}
+
+static uint8_t _incoming_msg_ext_cb(ZgMtMsg *msg)
+{
+    uint16_t group_id;
+    uint16_t cluster;
+    uint8_t src_addr_mode;
+    uint64_t src_addr;
+    uint8_t src_endpoint;
+    uint16_t pan_id;
+    uint8_t dst_endpoint;
+    uint8_t was_broadcast;
+    uint8_t link_quality;
+    uint8_t sec;
+    uint32_t timestamp;
+    uint8_t trans;
+    uint8_t len;
+    uint8_t index = 0;
+
+    if(!msg || !msg->data)
+    {
+        WRN("Cannot extract AF_INCOMING_MSG AREQ data");
+    }
+    else
+    {
+        memcpy(&group_id, msg->data + index, sizeof(group_id));
+        index += sizeof(group_id);
+        memcpy(&cluster, msg->data + index, sizeof(cluster));
+        index += sizeof(cluster);
+        memcpy(&src_addr_mode, msg->data + index, sizeof(src_addr_mode));
+        index += sizeof(src_addr_mode);
+        memcpy(&src_addr, msg->data + index, sizeof(src_addr));
+        index += sizeof(src_addr);
+        memcpy(&src_endpoint, msg->data + index, sizeof(src_endpoint));
+        index += sizeof(src_endpoint);
+        memcpy(&pan_id, msg->data + index, sizeof(pan_id));
+        index += sizeof(pan_id);
+        memcpy(&dst_endpoint, msg->data + index, sizeof(dst_endpoint));
+        index += sizeof(dst_endpoint);
+        memcpy(&was_broadcast, msg->data + index, sizeof(was_broadcast));
+        index += sizeof(was_broadcast);
+        memcpy(&link_quality, msg->data + index, sizeof(link_quality));
+        index += sizeof(link_quality);
+        memcpy(&sec, msg->data + index, sizeof(sec));
+        index += sizeof(sec);
+        memcpy(&timestamp, msg->data + index, sizeof(timestamp));
+        index += sizeof(timestamp);
+        memcpy(&trans, msg->data + index, sizeof(trans));
+        index += sizeof(trans);
+        memcpy(&len, msg->data + index, sizeof(len));
+        index += sizeof(len);
+        INF("AF message received");
+        INF("Group id : 0x%04X", group_id);
+        INF("Cluster id : 0x%04X", cluster);
+        INF("Source addr mode : 0x%02X", src_addr_mode);
+        INF("Source addr : 0x%016lX", src_addr);
+        INF("Source Endpoint : 0x%02X", src_endpoint);
+        INF("Source PAN id : 0x%04X", pan_id);
+        INF("Dest Endpoint : 0x%02X", dst_endpoint);
+        INF("Was Broadcast : 0x%02X", was_broadcast);
+        INF("Link Quality : 0x%02X", link_quality);
+        INF("Security Use : 0x%02X", sec);
+        INF("Timestamp : 0x%08X", timestamp);
+        INF("Transaction sequence num : 0x%02X", trans);
+        INF("Length : %d", len);
+        /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
+        */
+        if(_af_incoming_msg_cb)
+            _af_incoming_msg_cb(dst_endpoint, cluster, msg->data, len);
+    }
+
+    return 0;
+}
+
+static uint8_t _data_confirm_cb(ZgMtMsg *msg)
+{
+    uint8_t status;
+    uint8_t endpoint;
+    uint8_t trans;
+    uint8_t index = 0;
+
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract AF_INCOMING_MSG AREQ data");
+    }
+    else
+    {
+        memcpy(&status, msg->data + index, sizeof(status));
+        index += sizeof(status);
+        memcpy(&endpoint, msg->data + index, sizeof(endpoint));
+        index += sizeof(endpoint);
+        memcpy(&trans, msg->data + index, sizeof(trans));
+        index += sizeof(trans);
+
+        if(status != ZSUCCESS)
+        {
+            ERR("Data error for transaction 0x%02X - endpoint 0x%02X : %s",
+                    endpoint, trans, zg_logs_znp_strerror(status));
+        }
+        else
+        {
+            INF("AF_DATA_CONFIRM received for transaction 0x%02X - endpoint 0x%02X", trans, endpoint);
+        }
+    }
+    return 0;
+}
+
+/* General MT AF frames processing callbacks */
+
+static void _process_mt_af_srsp(ZgMtMsg *msg)
+{
+    switch(msg->cmd)
+    {
+        case AF_REGISTER:
+            _register_srsp_cb(msg);
+            break;
+        case AF_DATA_REQUEST:
+            _data_request_srsp_cb(msg);
+            break;
+        case AF_DATA_REQUEST_EXT:
+            _data_request_ext_srsp_cb(msg);
+            break;
+        case AF_INTER_PAN_CTL:
+            _inter_pan_ctl_srsp_cb(msg);
+            break;
+        default:
+            WRN("Unknown SRSP command 0x%02X", msg->cmd);
+            break;
+    }
+}
+
+static void _process_mt_af_areq(ZgMtMsg *msg)
+{
+    switch(msg->cmd)
+    {
+        case AF_INCOMING_MSG:
+            _incoming_msg_cb(msg);
+            break;
+        case AF_INCOMING_MSG_EXT:
+            _incoming_msg_ext_cb(msg);
+            break;
+        case AF_DATA_CONFIRM:
+            _data_confirm_cb(msg);
+            break;
+        default:
+            WRN("Unknown AREQ command 0x%02X", msg->cmd);
+            break;
+    }
+}
+
+static void _process_mt_af_cb(ZgMtMsg *msg)
+{
+    switch(msg->type)
+    {
+        case ZG_MT_CMD_AREQ:
+            DBG("Received AF AREQ request");
+            _process_mt_af_areq(msg);
+            break;
+        case ZG_MT_CMD_SRSP:
+            DBG("Received AF SRSP response");
+            _process_mt_af_srsp(msg);
+            break;
+        default:
+            WRN("Unsupported MT AF message type 0x%02X", msg->type);
+            break;
+    }
+}
 
 /********************************
  *          API                 *
  *******************************/
 
-void mt_af_register_callbacks(void)
+int zg_mt_af_init(void)
 {
-    afRegisterCallbacks(mt_af_cb);
+    _log_domain = zg_logs_domain_register("zg_mt_af", ZG_COLOR_LIGHTYELLOW);
+    zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_AF, _process_mt_af_cb);
+    INF("MT AF module initialized");
+    return 0;
+}
+
+void zg_mt_af_shutdown(void)
+{
+    INF("MT AF module shut down");
 }
 
 void mt_af_register_endpoint(   uint8_t endpoint,
@@ -185,45 +417,82 @@ void mt_af_register_endpoint(   uint8_t endpoint,
                                 uint16_t *out_clusters_list,
                                 SyncActionCb cb)
 {
-    RegisterFormat_t req;
-    uint8_t index;
+    ZgMtMsg msg;
+    uint8_t index = 0;
+    uint8_t *buffer;
+    uint8_t default_latency = 0x00;
 
-    LOG_INF("Registering new endpoint with profile 0x%4X", profile);
+    INF("Registering new endpoint with profile 0x%4X", profile);
     sync_action_cb = cb;
-    req.EndPoint = endpoint;
-    req.AppProfId = profile;
-    req.AppDeviceId = device_id;
-    req.AppDevVer = device_ver;
-    req.LatencyReq = DEFAULT_LATENCY;
-    req.AppNumInClusters = in_clusters_num;
-    for(index = 0; index < in_clusters_num; index++)
-        req.AppInClusterList[index] = in_clusters_list[index];
-    req.AppNumOutClusters = out_clusters_num;
-    for(index = 0; index < out_clusters_num; index++)
-        req.AppOutClusterList[index] = out_clusters_list[index];
-    afRegister(&req);
+    msg.type = ZG_MT_CMD_SREQ;
+    msg.subsys = ZG_MT_SUBSYS_AF;
+    msg.cmd = AF_REGISTER;
+    msg.len = sizeof(endpoint) \
+              + sizeof (profile) \
+              + sizeof (device_id) \
+              + sizeof (device_ver) \
+              + sizeof(default_latency) \
+              + sizeof(in_clusters_num) \
+              + (sizeof(*in_clusters_list) * in_clusters_num) \
+              + sizeof(out_clusters_num) \
+              + (sizeof(*out_clusters_list) * out_clusters_num);
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory to send AF_REGISTER command");
+        return;
+    }
+    memcpy(buffer + index, &endpoint, sizeof(endpoint));
+    index += sizeof(endpoint);
+    memcpy(buffer + index , &profile, sizeof(profile));
+    index += sizeof(profile);
+    memcpy(buffer + index , &device_id, sizeof(device_id));
+    index += sizeof(device_id);
+    memcpy(buffer + index , &device_ver, sizeof(device_ver));
+    index += sizeof(device_ver);
+    memcpy(buffer + index , &default_latency, sizeof(default_latency));
+    index += sizeof(default_latency);
+    memcpy(buffer + index , &in_clusters_num, sizeof(in_clusters_num));
+    index += sizeof(in_clusters_num);
+    memcpy(buffer + index , in_clusters_list, in_clusters_num * sizeof(uint16_t));
+    index += in_clusters_num * sizeof(uint16_t);
+    memcpy(buffer + index , &out_clusters_num, sizeof(out_clusters_num));
+    index += sizeof(out_clusters_num);
+    memcpy(buffer + index , out_clusters_list, out_clusters_num * sizeof(uint16_t));
+    index += out_clusters_num * sizeof(uint16_t);
+    msg.data = buffer;
+    zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
 }
 
 void mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
 {
-    InterPanCtlFormat_t req;
+    ZgMtMsg msg;
+    uint8_t interpan_command_data = INTER_PAN_REGISTER;
 
-    LOG_INF("Setting inter-pan endpoint 0x%02X", endpoint);
+    INF("Setting inter-pan endpoint 0x%02X", endpoint);
     sync_action_cb = cb;
-    req.Command = INTER_PAN_REGISTER;
-    memcpy(req.Data, &endpoint, sizeof(endpoint));
-    afInterPanCtl(&req);
+    msg.type = ZG_MT_CMD_SREQ;
+    msg.subsys = ZG_MT_SUBSYS_AF;
+    msg.cmd = AF_INTER_PAN_CTL;
+    msg.len = sizeof(interpan_command_data);
+    msg.data = & interpan_command_data;
+    zg_rpc_write(&msg);
 }
 
 void mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
 {
-    InterPanCtlFormat_t req;
+    ZgMtMsg msg;
+    uint8_t interpan_command_data = INTER_PAN_SET;
 
-    LOG_INF("Setting inter-pan channel 0x%02X", channel);
+    INF("Setting inter-pan channel 0x%02X", channel);
     sync_action_cb = cb;
-    req.Command = INTER_PAN_SET;
-    memcpy(req.Data, &channel, sizeof(channel));
-    afInterPanCtl(&req);
+    msg.type = ZG_MT_CMD_SREQ;
+    msg.subsys = ZG_MT_SUBSYS_AF;
+    msg.cmd = AF_INTER_PAN_CTL;
+    msg.len = sizeof(interpan_command_data);
+    msg.data = & interpan_command_data;
+    zg_rpc_write(&msg);
 }
 
 void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
@@ -231,7 +500,7 @@ void mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
     _af_incoming_msg_cb = cb;
 }
 
-void mt_af_send_data_request_ext(   uint16_t dst_addr,
+void mt_af_send_data_request_ext(   uint64_t dst_addr,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
                                     uint8_t dst_endpoint,
@@ -240,28 +509,64 @@ void mt_af_send_data_request_ext(   uint16_t dst_addr,
                                     void *data,
                                     SyncActionCb cb)
 {
+    uint8_t addr_mode = SHORT_ADDR_MODE;
+    uint8_t options = DATA_REQUEST_DEFAULT_OPTIONS;
+    uint8_t radius = DATA_REQUEST_DEFAULT_RADIUS;
+    uint8_t *buffer = NULL;
+    uint8_t index = 0;
+    ZgMtMsg msg;
 
     if(len == 0 || !data)
     {
-        LOG_ERR("Cannot send AF_DATA_REQUEST_EXT (%s)", data ? "length is invalid":"no data provided");
+        ERR("Cannot send AF_DATA_REQUEST_EXT (%s)", data ? "length is invalid":"no data provided");
         return;
     }
 
-    LOG_DBG("Sending AF_DATA_REQUEST_EXT");
+    DBG("Sending AF_DATA_REQUEST_EXT");
     sync_action_cb = cb;
-    DataRequestExtFormat_t req;
-    req.DstAddrMode = SHORT_ADDR_MODE;
-    memset(req.DstAddr, 0, sizeof(req.DstAddr));
-    req.DstAddr[0] = dst_addr & 0xFF;
-    req.DstAddr[1] = (dst_addr >> 8) & 0xFF;
-    req.DstEndpoint = dst_endpoint;
-    req.DstPanID = dst_pan;
-    req.SrcEndpoint = src_endpoint;
-    req.ClusterId = cluster;
-    req.TransId = _transaction_id;
-    req.Options = DATA_REQUEST_DEFAULT_OPTIONS;
-    req.Radius = DATA_REQUEST_DEFAULT_RADIUS;
-    req.Len = len;
-    memcpy(req.Data, data, len);
-    afDataRequestExt(&req);
+    msg.type = ZG_MT_CMD_SREQ;
+    msg.subsys = ZG_MT_SUBSYS_AF;
+    msg.cmd = AF_DATA_REQUEST_EXT;
+    msg.len = sizeof(addr_mode) \
+              + sizeof(dst_addr) \
+              + sizeof(dst_endpoint) \
+              + sizeof(dst_pan) \
+              + sizeof(src_endpoint) \
+              + sizeof(cluster) \
+              + sizeof(_transaction_id) \
+              + sizeof(options) \
+              + sizeof(radius) \
+              + sizeof(len) \
+              + len;
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory to send AF_REGISTER command");
+        return;
+    }
+
+    memcpy(buffer + index, &addr_mode, sizeof(addr_mode));
+    index += sizeof(addr_mode);
+    memcpy(buffer + index , &dst_addr, sizeof(dst_addr));
+    index += sizeof(dst_addr);
+    memcpy(buffer + index , &dst_endpoint, sizeof(dst_endpoint));
+    index += sizeof(dst_endpoint);
+    memcpy(buffer + index , &dst_pan, sizeof(dst_pan));
+    index += sizeof(dst_pan);
+    memcpy(buffer + index , &src_endpoint, sizeof(src_endpoint));
+    index += sizeof(src_endpoint);
+    memcpy(buffer + index , &cluster, sizeof(cluster));
+    index += sizeof(cluster);
+    memcpy(buffer + index , &_transaction_id, sizeof(_transaction_id));
+    index += sizeof(_transaction_id);
+    memcpy(buffer + index , &options, sizeof(options));
+    index += sizeof(options);
+    memcpy(buffer + index , &radius, sizeof(radius));
+    index += sizeof(radius);
+    memcpy(buffer + index , &len, sizeof(len));
+    index += sizeof(len);
+    memcpy(buffer + index , data, len);
+    msg.data = buffer;
+    zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
 }
