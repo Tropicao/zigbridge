@@ -425,6 +425,7 @@ void zg_core_init(uint8_t reset_network)
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_device_init(reset_network);
+    zg_keys_init();
 
     if(reset_network)
         _init_sm = zg_al_create(_init_states_reset, _init_reset_nb_states);
@@ -435,6 +436,7 @@ void zg_core_init(uint8_t reset_network)
 
 void zg_core_shutdown(void)
 {
+    zg_keys_shutdown();
     zg_device_shutdown();
     zg_zha_shutdown();
     zg_zll_shutdown();

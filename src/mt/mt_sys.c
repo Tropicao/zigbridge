@@ -230,7 +230,10 @@ static void _process_mt_sys_cb(ZgMtMsg *msg)
 static void _sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint8_t *data)
 {
     if(!data)
+    {
+        ERR("Cannot write OSAL NV element : data is empty");
         return;
+    }
 
     ZgMtMsg msg;
 
