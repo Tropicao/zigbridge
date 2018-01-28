@@ -136,9 +136,22 @@ static void _read_znp_data(void)
         goto znp_read_err;
     }
 
-    read(_znp_fd, buffer + RPC_DATA_LEN_INDEX, RPC_DATA_LEN_SIZE);
-    read(_znp_fd, buffer + RPC_CMD0_INDEX, RPC_CMD0_SIZE);
-    read(_znp_fd, buffer + RPC_CMD1_INDEX, RPC_CMD1_SIZE);
+    if(read(_znp_fd, buffer + RPC_DATA_LEN_INDEX, RPC_DATA_LEN_SIZE) != RPC_DATA_LEN_INDEX)
+    {
+        ERR("Error reading Length field in incoming frame");
+        goto znp_read_err;
+    }
+    if(read(_znp_fd, buffer + RPC_CMD0_INDEX, RPC_CMD0_SIZE) != RPC_CMD1_SIZE)
+    {
+        ERR("Error reading CMD0 field in incoming frame");
+        goto znp_read_err;
+    }
+
+    if(read(_znp_fd, buffer + RPC_CMD1_INDEX, RPC_CMD1_SIZE) != RPC_CMD1_SIZE)
+    {
+        ERR("Error reading CMD1 field in incoming frame");
+        goto znp_read_err;
+    }
     len = buffer[RPC_DATA_LEN_INDEX];
     DBG("Data size is %d", len);
     bytes_read = read(_znp_fd, buffer + RPC_DATA_INDEX, len);
@@ -154,7 +167,7 @@ static void _read_znp_data(void)
     for(i = 0; i < FRAME_SIZE(len); i++)
         DBG("Data %d : 0x%02X", i, buffer[i]);
 
-    fcs_computed = _compute_frame_fcs(buffer + RPC_DATA_LEN_INDEX, RPC_CMD0_SIZE + RPC_CMD1_SIZE + len);
+    fcs_computed = _compute_frame_fcs(buffer + RPC_DATA_LEN_INDEX, RPC_DATA_LEN_SIZE + RPC_CMD0_SIZE + RPC_CMD1_SIZE + len);
     if(fcs_computed != buffer[RPC_FCS_INDEX(len)])
     {
         ERR("Error : invalid frame check (should be 0x%02X, got 0x%02X)", fcs_computed, buffer[RPC_FCS_INDEX(len)]);
