@@ -149,16 +149,18 @@ static void _read_znp_data(void)
     }
 
     read(_znp_fd, buffer + RPC_FCS_INDEX(len), RPC_FCS_SIZE);
+
+    /* Display complete frame in debug log */
+    for(i = 0; i < FRAME_SIZE(len); i++)
+        DBG("Data %d : 0x%02X", i, buffer[i]);
+
     fcs_computed = _compute_frame_fcs(buffer + RPC_DATA_LEN_INDEX, RPC_CMD0_SIZE + RPC_CMD1_SIZE + len);
     if(fcs_computed != buffer[RPC_FCS_INDEX(len)])
     {
         ERR("Error : invalid frame check (should be 0x%02X, got 0x%02X)", fcs_computed, buffer[RPC_FCS_INDEX(len)]);
         goto znp_read_err;
     }
-
     INF("ZNP has sent %d bytes", FRAME_SIZE(len));
-    for(i = 0; i < FRAME_SIZE(len); i++)
-        DBG("Data %d : 0x%02X", i, buffer[i]);
     msg.type = buffer[RPC_CMD0_INDEX] & RPC_CMD0_TYPE_MASK;
     msg.subsys = buffer[RPC_CMD0_INDEX] & RPC_CMD0_SUBSYS_MASK;
     msg.cmd = buffer[RPC_CMD1_INDEX];
