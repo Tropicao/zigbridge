@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
-#include <znp.h>
 #include "aps.h"
 #include "mt_af.h"
 #include "utils.h"
 #include "zcl.h"
+#include "logs.h"
 
 /********************************
  *          Data types          *
@@ -51,6 +51,7 @@ typedef struct ApsEndpoint
  *******************************/
 
 static ApsEndpoint *_endpoints_list = NULL;
+static int _log_domain = -1;
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _current_cb = NULL;
 
@@ -74,14 +75,14 @@ static ApsEndpoint *_add_new_endpoint(uint8_t endpoint, ApsMsgCb cb)
 
     if(buffer)
     {
-        LOG_ERR("Required endpoint is already registered");
+        ERR("Required endpoint is already registered");
         return NULL;
     }
 
     buffer = calloc(1, sizeof(ApsEndpoint));
     if(!buffer)
     {
-        LOG_CRI("Cannot allocate memory to register new endpoint");
+        CRI("Cannot allocate memory to register new endpoint");
         return NULL;
     }
     buffer->endpoint = endpoint;
@@ -137,23 +138,25 @@ static void _process_aps_msg(uint8_t endpoint_num, uint16_t cluster, void *data,
     uint8_t *aps_data = data;
     if(!aps_data || len <= 0)
     {
-        LOG_WARN("Received empty APS message");
+        WRN("Received empty APS message");
         return;
     }
     endpoint = _find_endpoint(endpoint_num);
     if(endpoint)
         endpoint->cb(cluster, aps_data, len);
     else
-        LOG_WARN("Received message is not for one of registered endpoint (0x%02X)", endpoint_num);
+        WRN("Received message is not for one of registered endpoint (0x%02X)", endpoint_num);
 }
 
 /************************************
  *          APS API                 *
  ***********************************/
 
-void zg_aps_init()
+int zg_aps_init()
 {
+    _log_domain = zg_logs_domain_register("zg_aps", ZG_COLOR_YELLOW);
     mt_af_register_incoming_message_callback(_process_aps_msg);
+    return 0;
 }
 
 void zg_aps_shutdown()
@@ -213,7 +216,7 @@ void zg_aps_send_data(  uint16_t dst_addr,
     aps_data = calloc(aps_data_len, sizeof(uint8_t));
     if(!aps_data)
     {
-        LOG_CRI("Cannot allocate memory for AF request");
+        CRI("Cannot allocate memory for AF request");
         return;
     }
 

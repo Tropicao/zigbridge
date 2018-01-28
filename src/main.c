@@ -7,6 +7,7 @@
 #include "core.h"
 #include "conf.h"
 #include "types.h"
+#include "aps.h"
 #include "mt.h"
 #include "rpc.h"
 #include "logs.h"
@@ -92,6 +93,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
     znp_fd = zg_rpc_get_fd();
 
+    if(zg_aps_init() != 0)
+    {
+        CRI("Cannot initialize APS layer");
+        goto main_end;
+    }
+
     status = uv_poll_init(loop, &znp_poll, znp_fd);
     if(status < 0)
     {
@@ -116,6 +123,7 @@ main_end:
     uv_signal_stop(&sig_int);
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
+    zg_aps_shutdown();
     zg_mt_shutdown();
     zg_conf_shutdown();
     zg_logs_shutdown();
