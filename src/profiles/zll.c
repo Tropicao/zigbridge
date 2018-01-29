@@ -61,7 +61,7 @@
 
 
 /* App data */
-#define SCAN_TIMEOUT                            0.25
+#define ZLL_SCAN_TIMEOUT_MS                     250
 #define ZLL_PROFIL_ID                           0xC05E  /* ZLL */
 #define ZLL_DEVICE_ID                           0X0210  /* Extended color light */
 #define ZLL_DEVICE_VERSION                      0x2     /* Version 2 */
@@ -108,6 +108,7 @@ void _zll_send_scan_request(SyncActionCb cb)
 {
     char zll_data[LEN_SCAN_REQUEST] = {0};
 
+    INF("Sending Scan Request");
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
@@ -282,7 +283,7 @@ static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
 
 static void _wait_scan_response(void)
 {
-    uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, ZLL_IDENTIFY_DELAY_MS, 0);
+    uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, ZLL_SCAN_TIMEOUT_MS, 0);
 }
 
 static void _identify_request_sent_cb(void)
