@@ -107,6 +107,7 @@ main_end:
     uv_signal_stop(&sig_int);
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
+    zg_core_shutdown();
     zg_conf_shutdown();
     zg_logs_shutdown();
     exit(0);

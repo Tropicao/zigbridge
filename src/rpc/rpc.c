@@ -233,6 +233,7 @@ void zg_rpc_shutdown(void)
     if(_znp_fd > 0)
     {
         INF("Closing ZNP medium");
+        tcflush(_znp_fd, TCIFLUSH);
         close(_znp_fd);
         _znp_fd = -1;
     }
