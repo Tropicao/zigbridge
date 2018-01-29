@@ -9,6 +9,8 @@
 #include "mt_sys.h"
 #include "sm.h"
 #include "logs.h"
+#include <jansson.h>
+#include "ipc.h"
 
 /********************************
  *          Constants           *
@@ -220,12 +222,23 @@ static void _init_touchlink(void)
     zg_sm_send_event(_touchlink_sm, EVENT_INIT_DONE);
 }
 
+static void _send_ipc_event_touchlink_end()
+{
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "status", json_string("finished"));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_TOUCHLINK_FINISHED, root);
+    json_decref(root);
+}
+
 static void _shutdown_touchlink(void)
 {
     uv_unref((uv_handle_t *)&_scan_timeout_timer);
     uv_unref((uv_handle_t *)&_identify_timer);
     zg_sm_destroy(_touchlink_sm);
     INF("Touchlink procedure finished");
+    _send_ipc_event_touchlink_end();
 }
 
 static void _security_disabled_cb(void)
@@ -335,14 +348,14 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
  *   ZLL messages callbacks     *
  *******************************/
 
-static uint8_t _process_scan_response(void *data __attribute__((unused)), int len __attribute__((unused)))
+static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data __attribute__((unused)), int len __attribute__((unused)))
 {
     INF("A device has sent a scan response");
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
 }
 
-static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data, int len)
+static void _zll_message_cb(uint16_t short_addr, uint16_t cluster __attribute__((unused)), void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
@@ -353,7 +366,7 @@ static void _zll_message_cb(uint16_t cluster __attribute__((unused)), void *data
     {
         case COMMAND_SCAN_RESPONSE:
             INF("Received scan response");
-            _process_scan_response(buffer, len);
+            _process_scan_response(short_addr, buffer, len);
             break;
         default:
             WRN("Unsupported ZLL commissionning commande %02X", buffer[2]);
@@ -433,12 +446,12 @@ void zg_zll_shutdown(void)
     zg_al_destroy(_init_sm);
 }
 
-void zg_zll_start_touchlink(void)
+uint8_t zg_zll_start_touchlink(void)
 {
     if(_touchlink_sm)
     {
         WRN("A touchlink procedure is already in progress");
-        return;
+        return 1;
     }
 
     _touchlink_sm = zg_sm_create(   "touchlink",
@@ -449,10 +462,14 @@ void zg_zll_start_touchlink(void)
     if(!_touchlink_sm)
     {
         ERR("Abort touchlink procedure");
-        return;
+        return 1;
     }
 
     INF("Starting touchlink procedure");
     if(zg_sm_start(_touchlink_sm) != 0)
+    {
         ERR("Error encountered while starting touchlink state machine");
+        return 1;
+    }
+    return 0;
 }

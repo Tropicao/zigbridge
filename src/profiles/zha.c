@@ -63,8 +63,8 @@ static int _log_domain = -1;
 
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
-static void (*_button_change_cb)(void) = NULL;
-static void (*_temperature_cb)(uint16_t temp) = NULL;
+static void (*_button_change_cb)(uint16_t short_addr, uint8_t state) = NULL;
+static void (*_temperature_cb)(uint16_t short_addr, uint16_t temp) = NULL;
 static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
@@ -78,7 +78,7 @@ static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t)
 /********************************
  *   ZHA messages callbacks     *
  *******************************/
-static void _process_on_off_command(void *data, int len __attribute__((unused)))
+static void _process_on_off_command(uint16_t addr, void *data, int len __attribute__((unused)))
 {
     uint8_t *buffer = (uint8_t *) data;
     INF("Processing command on On/Off cluster");
@@ -87,7 +87,7 @@ static void _process_on_off_command(void *data, int len __attribute__((unused)))
     {
         INF("Received new switch status : %s", buffer[6] ? "Released":"Pushed");
         if(_button_change_cb && buffer[6] == 0x00)
-            _button_change_cb();
+            _button_change_cb(addr, buffer[6]);
     }
     else
     {
@@ -95,7 +95,7 @@ static void _process_on_off_command(void *data, int len __attribute__((unused)))
     }
 }
 
-static void _process_temperature_measurement_command(void *data, int len __attribute__((unused)))
+static void _process_temperature_measurement_command(uint16_t addr, void *data, int len __attribute__((unused)))
 {
     uint8_t *buffer = (uint8_t *)data;
     uint16_t temp;
@@ -105,7 +105,7 @@ static void _process_temperature_measurement_command(void *data, int len __attri
         if(_temperature_cb)
         {
             memcpy(&temp, buffer+6, 2);
-            _temperature_cb(temp);
+            _temperature_cb(addr, temp);
         }
     }
     else
@@ -114,7 +114,7 @@ static void _process_temperature_measurement_command(void *data, int len __attri
     }
 }
 
-static void _zha_message_cb(uint16_t cluster, void *data, int len)
+static void _zha_message_cb(uint16_t addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
@@ -124,10 +124,10 @@ static void _zha_message_cb(uint16_t cluster, void *data, int len)
     switch(cluster)
     {
         case ZCL_CLUSTER_ON_OFF:
-            _process_on_off_command(data, len);
+            _process_on_off_command(addr, data, len);
             break;
         case ZCL_CLUSTER_TEMPERATURE_MEASUREMENT:
-            _process_temperature_measurement_command(data, len);
+            _process_temperature_measurement_command(addr, data, len);
             break;
         default:
             WRN("Unsupported ZHA cluster 0x%04X", cluster);
@@ -254,7 +254,7 @@ void zg_zha_register_button_state_cb(void (*cb)(void))
     _button_change_cb = cb;
 }
 
-void zg_zha_register_temperature_cb(void (*cb)(uint16_t temp))
+void zg_zha_register_temperature_cb(void (*cb)(uint16_t short_addr, uint16_t temp))
 {
     _temperature_cb = cb;
 }

@@ -132,7 +132,7 @@ uint8_t _build_frame_control()
  *     APS msg callbacks            *
  ***********************************/
 
-static void _process_aps_msg(uint8_t endpoint_num, uint16_t cluster, void *data, int len)
+static void _process_aps_msg(uint16_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len)
 {
     ApsEndpoint *endpoint = NULL;
     uint8_t *aps_data = data;
@@ -143,7 +143,7 @@ static void _process_aps_msg(uint8_t endpoint_num, uint16_t cluster, void *data,
     }
     endpoint = _find_endpoint(endpoint_num);
     if(endpoint)
-        endpoint->cb(cluster, aps_data, len);
+        endpoint->cb(addr, cluster, aps_data, len);
     else
         WRN("Received message is not for one of registered endpoint (0x%02X)", endpoint_num);
 }

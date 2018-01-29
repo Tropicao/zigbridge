@@ -56,7 +56,7 @@ static void _zdo_simple_desc_rsp_cb(uint8_t endpoint, uint16_t profile, uint16_t
         _simple_desc_rsp_cb(endpoint, profile, device_id);
 }
 
-static void _zdp_message_cb(uint16_t cluster __attribute__((unused)), void *data, int len)
+static void _zdp_message_cb(uint16_t addr __attribute__((unused)), uint16_t cluster __attribute__((unused)), void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)

@@ -10,6 +10,7 @@
 #include "mt_sys.h"
 #include "mt_zdo.h"
 #include "mt_util.h"
+#include "stdin.h"
 #include "ipc.h"
 #include "device.h"
 #include "keys.h"
@@ -183,12 +184,28 @@ static ZgSmTransitionNb _new_device_nb_transitions = sizeof(_new_device_transiti
  *  Network Events processing   *
  *******************************/
 
+static void _send_ipc_event_new_device(DeviceId id)
+{
+    json_t *root = NULL;
+
+    root = json_object();
+    if(root)
+        json_object_set_new(root, "id", json_integer(id));
+    else
+        return;
+
+    zg_ipc_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
+    json_decref(root);
+}
+
 static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
+    DeviceId id = 0;
     if(!zg_device_is_device_known(ext_addr))
     {
         INF("Seen device is a new device");
-        zg_add_device(short_addr, ext_addr);
+        id = zg_add_device(short_addr, ext_addr);
+        _send_ipc_event_new_device(id);
         if(_new_device_sm)
         {
             WRN("Already learning a new device, cannot learn newly visible device");
@@ -244,15 +261,29 @@ static void _simple_desc_cb(uint8_t endpoint, uint16_t profile, uint16_t device_
  *     Commands processing      *
  *******************************/
 
-static void _button_change_cb(void)
+
+static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
 {
-    uint16_t addr = 0xFFFD;
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "state", json_integer(state));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
+    json_decref(root);
+}
+
+
+static void _button_change_cb(uint16_t addr, uint8_t state)
+{
+    DeviceId id = 0;
 
     INF("Button pressed, toggling the light");
     if(_initialized)
     {
-        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
-        if(addr != 0xFFFD)
+        id = zg_device_get_id(addr);
+        _send_ipc_event_button_state_change(id, state);
+        if(addr != 0xFFFD && state == 0)
             zg_zha_switch_bulb_state(addr);
         else
             WRN("Device is not installed, cannot switch light");
@@ -303,15 +334,27 @@ static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
 }
 
 
-static void _temperature_cb(uint16_t temp)
+static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
 {
-    uint16_t addr = 0xFFFD;
+    json_t *root;
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "temperature", json_integer(temp));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
+    json_decref(root);
+}
+
+static void _temperature_cb(uint16_t addr, uint16_t temp)
+{
+    DeviceId id = 0xFF;
     uint16_t x, y;
 
     INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
     if(_initialized)
     {
-        addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
+        id = zg_device_get_id(addr);
+        _send_ipc_event_temperature(id, temp);
         if(addr != 0xFFFD)
         {
             _compute_new_color(temp, &x, &y);
@@ -377,23 +420,23 @@ static void _process_command_open_network(void)
     zg_mt_zdo_permit_join(NULL);
 }
 
-static void _process_user_command(IpcCommand cmd)
+static void _process_user_command(StdinCommand cmd)
 {
     switch(cmd)
     {
-        case ZG_IPC_COMMAND_TOUCHLINK:
+        case ZG_STDIN_COMMAND_TOUCHLINK:
             _process_command_touchlink();
             break;
-        case ZG_IPC_COMMAND_SWITCH_DEMO_LIGHT:
+        case ZG_STDIN_COMMAND_SWITCH_DEMO_LIGHT:
             _process_command_switch_light();
             break;
-        case ZG_IPC_COMMAND_OPEN_NETWORK:
+        case ZG_STDIN_COMMAND_OPEN_NETWORK:
             _process_command_open_network();
             break;
-        case ZG_IPC_COMMAND_MOVE_TO_BLUE:
+        case ZG_STDIN_COMMAND_MOVE_TO_BLUE:
             _process_command_move_predefined_color(X_BLUE, Y_BLUE);
             break;
-        case ZG_IPC_COMMAND_MOVE_TO_RED:
+        case ZG_STDIN_COMMAND_MOVE_TO_RED:
             _process_command_move_predefined_color(X_RED, Y_RED);
             break;
         default:
@@ -419,15 +462,18 @@ void zg_core_init(uint8_t reset_network)
     zg_aps_init();
     zg_ipc_init();
     zg_ipc_register_command_cb(_process_user_command);
+    if(_reset_network)
+        zg_keys_network_key_del();
+    zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
     zg_zha_register_temperature_cb(_temperature_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
-    zg_device_init(reset_network);
     zg_keys_init();
+    zg_device_init(_reset_network);
 
-    if(reset_network)
+    if(_reset_network)
         _init_sm = zg_al_create(_init_states_reset, _init_reset_nb_states);
     else
         _init_sm = zg_al_create(_init_states_restart, _init_restart_nb_states);

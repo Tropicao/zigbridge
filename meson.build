@@ -4,6 +4,7 @@ project('ZLL Gateway' , 'c')
 src = ['src/main.c',
         'src/core.c',
         'src/ipc.c',
+        'src/stdin.c',
         'src/aps.c',
         'src/conf.c',
         'src/keys.c',
