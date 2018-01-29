@@ -440,6 +440,8 @@ void zg_core_shutdown(void)
     zg_device_shutdown();
     zg_zha_shutdown();
     zg_zll_shutdown();
+    zg_zha_shutdown();
+    zg_zdp_shutdown();
     zg_ipc_shutdown();
     zg_aps_shutdown();
     zg_mt_shutdown();
