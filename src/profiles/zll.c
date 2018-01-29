@@ -275,6 +275,7 @@ static void _send_single_scan_request()
 
 static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
 {
+    INF("Scan response timeout");
     if(_scan_count < 5)
         zg_sm_send_event(_touchlink_sm, EVENT_SCAN_TIMEOUT_RESCAN);
     else
@@ -283,6 +284,7 @@ static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
 
 static void _wait_scan_response(void)
 {
+    INF("Waiting for a scan response...");
     uv_timer_start(&_scan_timeout_timer, _scan_timeout_cb, ZLL_SCAN_TIMEOUT_MS, 0);
 }
 
