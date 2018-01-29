@@ -462,6 +462,34 @@ static uint8_t _tc_dev_ind_cb(ZgMtMsg *msg)
     return 0;
 }
 
+uint8_t _permit_join_rsp_cb(ZgMtMsg *msg)
+{
+    uint16_t addr;
+    uint8_t status;
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract ZDO_MGMT_PERMIT_JOIN_RSP data");
+    }
+    else
+    {
+        memcpy(&addr, msg->data, sizeof(addr));
+        status = msg->data[2];
+        if(status == 0 && addr == 0x0000)
+        {
+            INF("Gateway has opened network for new devices to join");
+        }
+        else if(status && addr != 0x0000)
+        {
+            INF("Router 0x%04X has opened network for new devices to join", addr);
+        }
+        else
+        {
+            WRN("Error on ZDO_MGMT_PERMIT_JOIN_RSP");
+        }
+    }
+    return 0;
+}
+
 /* General MT ZDO frames processing callbacks */
 
 static void _process_mt_zdo_srsp(ZgMtMsg *msg)
@@ -507,6 +535,9 @@ static void _process_mt_zdo_areq(ZgMtMsg *msg)
             break;
         case ZDO_TC_DEV_IND:
             _tc_dev_ind_cb(msg);
+            break;
+        case ZDO_MGMT_PERMIT_JOIN_RSP:
+            _permit_join_rsp_cb(msg);
             break;
         default:
             WRN("Unknown AREQ command 0x%02X", msg->cmd);
