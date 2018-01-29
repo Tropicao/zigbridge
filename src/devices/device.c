@@ -450,7 +450,7 @@ static json_t *_get_device_list_json(void)
             json_array_append(array, device);
             json_decref(device);
         }
-        LOG_INF("Stored data for device 0x%04X", data->short_addr);
+        INF("Stored data for device 0x%04X", data->short_addr);
     }
 
     root = json_object();

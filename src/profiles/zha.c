@@ -249,7 +249,7 @@ void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb)
     _new_device_ind_cb = cb;
 }
 
-void zg_zha_register_button_state_cb(void (*cb)(void))
+void zg_zha_register_button_state_cb(void (*cb)(uint16_t short_addr, uint8_t state))
 {
     _button_change_cb = cb;
 }

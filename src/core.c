@@ -461,7 +461,6 @@ void zg_core_init(uint8_t reset_network)
     zg_mt_init();
     zg_aps_init();
     zg_ipc_init();
-    zg_ipc_register_command_cb(_process_user_command);
     if(_reset_network)
         zg_keys_network_key_del();
     zg_stdin_register_command_cb(_process_user_command);

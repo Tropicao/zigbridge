@@ -218,7 +218,7 @@ static uint8_t _incoming_msg_cb(ZgMtMsg *msg)
         INF("Length : %d", len);
 
         if(_af_incoming_msg_cb)
-            _af_incoming_msg_cb(dst_endpoint, cluster, msg->data + index, len);
+            _af_incoming_msg_cb(src_addr, dst_endpoint, cluster, msg->data + index, len);
    }
 
     return 0;
@@ -290,7 +290,7 @@ static uint8_t _incoming_msg_ext_cb(ZgMtMsg *msg)
         /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
         */
         if(_af_incoming_msg_cb)
-            _af_incoming_msg_cb(dst_endpoint, cluster, msg->data, len);
+            _af_incoming_msg_cb(src_addr, dst_endpoint, cluster, msg->data, len);
     }
 
     return 0;

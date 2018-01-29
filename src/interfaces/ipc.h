@@ -27,7 +27,6 @@ typedef void (*ipc_command_cb)(IpcCommand command);
 
 int zg_ipc_init();
 void zg_ipc_shutdown();
-ipc_fd_cb zg_ipc_get_ipc_main_callback();
 void zg_ipc_register_command_cb(ipc_command_cb cb);
 void zg_ipc_send_event(ZgIpcEvent event, json_t *data);
 

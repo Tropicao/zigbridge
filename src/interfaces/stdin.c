@@ -1,10 +1,10 @@
-#include <znp.h>
 #include <unistd.h>
 #include <string.h>
 #include "stdin.h"
 #include "zha.h"
 #include "zll.h"
 #include "core.h"
+#include "logs.h"
 
 /********************************
  *          Constants           *
@@ -15,8 +15,8 @@
  *      Local variables         *
  *******************************/
 
+int _log_domain = -1;
 static stdin_command_cb _command_cb = NULL;
-
 
 /********************************
  *            Internal          *
@@ -35,7 +35,7 @@ static void _process_stdin_message_cb(uv_poll_t *handler __attribute__((unused))
 
     if(status < 0)
     {
-        LOG_ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
+        ERR("User socket error %s (%s)", uv_err_name(status), uv_strerror(status));
         return;
     }
 
@@ -67,7 +67,7 @@ static void _process_stdin_message_cb(uv_poll_t *handler __attribute__((unused))
                 cmd = ZG_STDIN_COMMAND_MOVE_TO_RED;
             else
             {
-                LOG_WARN("Unknown command");
+                WRN("Unknown command");
             }
         }
         if(cmd != ZG_STDIN_COMMAND_NONE && _command_cb)
@@ -78,6 +78,18 @@ static void _process_stdin_message_cb(uv_poll_t *handler __attribute__((unused))
 /********************************
  *             API              *
  *******************************/
+
+int zg_stdin_init(void)
+{
+    _log_domain = zg_logs_domain_register("zg_ztdin", ZG_COLOR_BLACK);
+    INF("STDIN module initialized");
+    return 0;
+}
+
+void zg_stdin_shutdown(void)
+{
+    INF("STDIN module shut down");
+}
 
 stdin_fd_cb zg_stdin_get_stdin_main_callback()
 {

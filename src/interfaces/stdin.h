@@ -17,6 +17,8 @@ typedef enum
 typedef void (*stdin_fd_cb)(uv_poll_t *handler, int status, int events);
 typedef void (*stdin_command_cb)(StdinCommand command);
 
+int zg_stdin_init(void);
+void zg_stdin_shutdown(void);
 stdin_fd_cb zg_stdin_get_stdin_main_callback();
 void zg_stdin_register_command_cb(stdin_command_cb cb);
 
