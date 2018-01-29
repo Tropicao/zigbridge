@@ -4,6 +4,7 @@
 #include "mt_util.h"
 #include "rpc.h"
 #include "logs.h"
+#include "utils.h"
 
 
 /********************************
@@ -132,17 +133,23 @@ void zg_mt_util_shutdown(void)
 void zg_mt_util_af_subscribe_cmd (SyncActionCb cb)
 {
     ZgMtMsg msg;
-    uint8_t subscribe_data[] = {
-        0x04, /* Subscribe to MT_AF subsystem */
-        0x00,
-        0x01}; /* Action : enable */
+    uint16_t mt_af_subsys = 0x0400;
+    uint8_t status = 0x1;
+    uint8_t *buffer = NULL;
 
     INF("Subscribing to MT_AF callbacks");
     sync_action_cb = cb;
     msg.type = ZG_MT_CMD_SRSP;
     msg.subsys = ZG_MT_SUBSYS_UTIL;
     msg.cmd = UTIL_CALLBACK_SUB_CMD;
-    msg.len = sizeof(subscribe_data);
-    msg.data = subscribe_data;
+    msg.len = sizeof(mt_af_subsys)+sizeof(status);
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory for UTIL_CALLBACK_SUB_CMD command");
+        return;
+    }
+    msg.data = buffer;
     zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
 }
