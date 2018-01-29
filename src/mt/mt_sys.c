@@ -236,17 +236,24 @@ static void _sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint
     }
 
     ZgMtMsg msg;
+    uint8_t *buffer = NULL;
 
     msg.type = ZG_MT_CMD_SREQ;
     msg.subsys = ZG_MT_SUBSYS_SYS;
     msg.cmd = SYS_OSAL_NV_WRITE;
-    msg.data = calloc(sizeof(id) + sizeof(offset) + sizeof(length) + length, sizeof(uint8_t));
-    memcpy(msg.data, &id, sizeof(id));
-    memcpy(msg.data + sizeof(id), &offset, sizeof(offset));
-    memcpy(msg.data + sizeof(id) + sizeof(offset), &length, sizeof(length));
-    memcpy(msg.data + sizeof(id) + sizeof(offset) + sizeof(length),
+    msg.len = sizeof(id) + sizeof(offset) + sizeof(length) + length;
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        ERR("Cannot allocate memory for SYS_OSAL_NV_WRITE");
+        return;
+    }
+    memcpy(buffer, &id, sizeof(id));
+    memcpy(buffer + sizeof(id), &offset, sizeof(offset));
+    memcpy(buffer + sizeof(id) + sizeof(offset), &length, sizeof(length));
+    memcpy(buffer + sizeof(id) + sizeof(offset) + sizeof(length),
             data, length);
-    msg.len = length;
+    msg.data = buffer;
     zg_rpc_write(&msg);
     ZG_VAR_FREE(msg.data);
 }
