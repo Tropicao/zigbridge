@@ -492,15 +492,23 @@ void zg_mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
 {
     ZgMtMsg msg;
     uint8_t interpan_command_data = INTER_PAN_SET;
+    uint8_t *buffer = NULL;
 
     INF("Setting inter-pan channel 0x%02X", channel);
     sync_action_cb = cb;
     msg.type = ZG_MT_CMD_SREQ;
     msg.subsys = ZG_MT_SUBSYS_AF;
     msg.cmd = AF_INTER_PAN_CTL;
-    msg.len = sizeof(interpan_command_data);
-    msg.data = & interpan_command_data;
+    msg.len = sizeof(interpan_command_data) + sizeof(channel);
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory for AF_INTER_PAN_CTL command");
+        return;
+    }
+    msg.data = buffer;
     zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
 }
 
 void zg_mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
