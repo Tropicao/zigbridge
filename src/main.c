@@ -82,6 +82,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         goto main_end;
     }
 
+    zg_core_init(_reset_network);
     loop = uv_default_loop();
     znp_fd = zg_rpc_get_fd();
     status = uv_poll_init(loop, &znp_poll, znp_fd);
@@ -97,7 +98,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     uv_signal_init(loop, &sig_int);
     uv_signal_start(&sig_int, signal_handler, SIGINT);
 
-    zg_core_init(_reset_network);
     INF("Starting main loop");
     uv_run(loop, UV_RUN_DEFAULT);
 
