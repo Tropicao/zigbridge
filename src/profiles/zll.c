@@ -358,21 +358,36 @@ static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)
     return 0;
 }
 
-static void _zll_message_cb(uint16_t short_addr, uint16_t cluster __attribute__((unused)), void *data, int len)
+static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_t *data, int len)
+{
+    int i;
+    for (i = 0; i< len; i++)
+        INF("Data %d : 0x%02X", i, data[i]);
+    switch(data[3])
+    {
+        case COMMAND_SCAN_RESPONSE:
+            _process_scan_response(short_addr, data, len);
+            break;
+        default:
+            WRN("Unsupported ZLL touchlink commissioning command 0x%02X", data[2]);
+            break;
+    }
+}
+
+static void _zll_message_cb(uint16_t short_addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
         return;
 
     DBG("Received ZLL data (%d bytes)", len);
-    switch(buffer[2])
+    switch(cluster)
     {
-        case COMMAND_SCAN_RESPONSE:
-            INF("Received scan response");
-            _process_scan_response(short_addr, buffer, len);
+        case ZCL_CLUSTER_TOUCHLINK_COMMISSIONING:
+            _process_touchlink_commissioning_command(short_addr, data, len);
             break;
         default:
-            WRN("Unsupported ZLL commissionning commande %02X", buffer[2]);
+            WRN("Unsupported ZLL cluster 0x%04X", cluster);
             break;
     }
 }
