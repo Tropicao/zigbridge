@@ -38,6 +38,14 @@ would not be relevant to provide installation instructions. Just remember, if
 you decide to install it in non standard paths, to indicate those to the main
 binary using the LD_LIBRARY_PATH variable.
 
+## Static analysis on code
+
+It is one good practice (and not only on this project !) to run a static
+analyzer on all sources to get design warnings and errors. To do so, install
+clang and then run the following commands :    
+```meson builddir;
+ninja -C builddir scan-build```
+
 ## How to run it
 The gateway software can be run with the following arguments :
 * -c <config_path> : specify a custom configuration file. Without this argument, the gateway expects to find a configuration file under /etc/<app_name>/config.ini.
@@ -49,7 +57,7 @@ domain has a level. You can set the global log level for all domains with the
 EINA_LOG_LEVELS_GLOB variable, and you can set specific log level per domain
 with the EINA_LOG_LEVEL variable. Please see [Eina Log documentation](https://docs.enlightenment.org/api/eina/doc/html/group__Eina__Log__Group.html) for
 further details on logs management
-  
+
 ## I want to report an issue or a feature request !
 
 First of all, thank you for using this software ! Please feel free to fill an issue on the project Github and I will gladly take a look at it, even if it is only a suggestion. However, keep in mind that any development I do is conditioned by the availability of devices to test it.
