@@ -358,7 +358,7 @@ static void _temperature_cb(uint16_t addr, uint16_t temp)
         if(addr != 0xFFFD)
         {
             _compute_new_color(temp, &x, &y);
-            zg_zha_move_to_color(addr, x, y, 5);
+            zg_zha_move_to_color(zg_device_get_short_addr(DEMO_DEVICE_ID), x, y, 5);
         }
         else
             WRN("Device is not installed, cannot switch light");
