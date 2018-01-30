@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "aps.h"
+#include "mt.h"
 #include "mt_af.h"
 #include "utils.h"
 #include "zcl.h"
 #include "logs.h"
+
 
 /********************************
  *          Data types          *
@@ -52,6 +54,7 @@ typedef struct ApsEndpoint
 
 static ApsEndpoint *_endpoints_list = NULL;
 static int _log_domain = -1;
+static int _init_count = 0;
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _current_cb = NULL;
 
@@ -154,6 +157,8 @@ static void _process_aps_msg(uint16_t addr, uint8_t endpoint_num, uint16_t clust
 
 int zg_aps_init()
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_mt_init();
     _log_domain = zg_logs_domain_register("zg_aps", ZG_COLOR_YELLOW);
     zg_mt_af_register_incoming_message_callback(_process_aps_msg);
     return 0;
@@ -161,6 +166,8 @@ int zg_aps_init()
 
 void zg_aps_shutdown()
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_mt_shutdown();
     _clear_endpoint_list();
 }
 

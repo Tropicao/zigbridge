@@ -55,6 +55,7 @@
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;
 static int _log_domain = -1;
+static int _init_count = 0;
 
 /********************************
  *     MT UTIL callbacks         *
@@ -118,6 +119,8 @@ static void _process_mt_util_cb(ZgMtMsg *msg)
 
 int zg_mt_util_init(void)
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_rpc_init();
     _log_domain = zg_logs_domain_register("zg_mt_util", ZG_COLOR_MAGENTA);
     zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_UTIL, _process_mt_util_cb);
     INF("MT UTIL module initialized");
@@ -126,6 +129,8 @@ int zg_mt_util_init(void)
 
 void zg_mt_util_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_rpc_shutdown();
     INF("MT UTIL module shut down");
 }
 

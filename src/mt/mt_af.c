@@ -54,7 +54,7 @@ static AfIncomingMessageCb _af_incoming_msg_cb = NULL;
 static SyncActionCb sync_action_cb = NULL;
 static uint8_t _transaction_id = 0;
 static int _log_domain = -1;
-
+static int _init_count = 0;
 
 /********************************
  *      MT AF callbacks         *
@@ -396,7 +396,9 @@ static void _process_mt_af_cb(ZgMtMsg *msg)
 
 int zg_mt_af_init(void)
 {
+    ENSURE_SINGLE_INIT(_init_count);
     _log_domain = zg_logs_domain_register("zg_mt_af", ZG_COLOR_LIGHTYELLOW);
+    zg_rpc_init();
     zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_AF, _process_mt_af_cb);
     INF("MT AF module initialized");
     return 0;
@@ -404,6 +406,8 @@ int zg_mt_af_init(void)
 
 void zg_mt_af_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_rpc_shutdown();
     INF("MT AF module shut down");
 }
 

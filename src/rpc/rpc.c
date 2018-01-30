@@ -7,6 +7,8 @@
 #include "types.h"
 #include "rpc.h"
 #include "logs.h"
+#include "utils.h"
+#include "conf.h"
 
 /********************************
  *          Constants           *
@@ -65,6 +67,7 @@ typedef struct
 static const char *_device = NULL;
 static int _znp_fd = -1;
 static int _log_domain = -1;
+static int _init_count = 0;
 /* Callbacks table for MT subsystems */
 static mt_subsys_t _mt_subsys_table[] = {
     {"RESERVED", ZG_MT_SUBSYS_RESERVED, NULL},
@@ -192,10 +195,12 @@ znp_read_err:
  *              API             *
  *******************************/
 
-uint8_t zg_rpc_init(const char *device)
+uint8_t zg_rpc_init(void)
 {
     struct termios tio;
+    const char *device = zg_conf_get_znp_device_path();
 
+    ENSURE_SINGLE_INIT(_init_count);
     _log_domain = zg_logs_domain_register("zg_rpc", EINA_COLOR_BLUE);
     if(!device)
     {
@@ -230,6 +235,7 @@ uint8_t zg_rpc_init(const char *device)
 
 void zg_rpc_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
     if(_znp_fd > 0)
     {
         INF("Closing ZNP medium");

@@ -135,6 +135,7 @@ typedef struct __attribute__((packed))
  *******************************/
 
 static int _log_domain = -1;
+static int _init_count = 0;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 static void (*_zdo_active_ep_rsp_cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list) = NULL;
@@ -570,6 +571,8 @@ static void _process_mt_zdo_cb(ZgMtMsg *msg)
 
 int zg_mt_zdo_init(void)
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_rpc_init();
     _log_domain = zg_logs_domain_register("zg_mt_zdo", ZG_COLOR_CYAN);
     zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_ZDO, _process_mt_zdo_cb);
     INF("MT ZDO module initialized");
@@ -578,6 +581,8 @@ int zg_mt_zdo_init(void)
 
 void zg_mt_zdo_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_rpc_shutdown();
     INF("MT ZDO module shut down");
 }
 void zg_mt_zdo_nwk_discovery_req(SyncActionCb cb)

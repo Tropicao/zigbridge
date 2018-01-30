@@ -45,7 +45,7 @@ typedef void (*mt_subsys_cb_t)(ZgMtMsg *msg);
  * provided, it will try to open the device defined in configuration
  * \return 0 if init is successfull, otherwise 1;
  */
-uint8_t zg_rpc_init(const char *device);
+uint8_t zg_rpc_init(void);
 
 /**
  * \brief Close the ZNP medium.

@@ -7,6 +7,7 @@
 #include "action_list.h"
 #include "mt_zdo.h"
 #include "logs.h"
+#include "utils.h"
 
 /********************************
  *          Constants           *
@@ -35,6 +36,7 @@
  *******************************/
 
 static int _log_domain = -1;
+static int _init_count = 0;
 static uint8_t _transaction_sequence_number = 0;
 static SyncActionCb _init_complete_cb = NULL;
 static ActiveEpRspCb _active_ep_cb = NULL;
@@ -86,6 +88,7 @@ static void _general_init_cb(void)
         if(_init_complete_cb)
         {
             zg_al_destroy(_init_sm);
+            _init_sm = NULL;
             _init_complete_cb();
         }
     }
@@ -115,8 +118,10 @@ static uint8_t _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
  *          ZLL API             *
  *******************************/
 
-void zg_zdp_init(SyncActionCb cb)
+uint8_t zg_zdp_init(SyncActionCb cb)
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_aps_init();
     _log_domain = zg_logs_domain_register("zg_zdp", ZG_COLOR_GREEN);
     INF("Initializing ZDP");
 
@@ -127,10 +132,14 @@ void zg_zdp_init(SyncActionCb cb)
     zg_mt_zdo_register_simple_desc_rsp_cb(_zdo_simple_desc_rsp_cb);
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
+    return 0;
 }
 
 void zg_zdp_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_aps_shutdown();
+    zg_al_destroy(_init_sm);
 }
 
 void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)

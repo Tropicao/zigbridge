@@ -9,6 +9,7 @@
 #include "mt_sys.h"
 #include "action_list.h"
 #include "logs.h"
+#include "utils.h"
 
 /********************************
  *          Constants           *
@@ -59,6 +60,7 @@
  *          Local variables     *
  *******************************/
 
+static int _init_count = 0;
 static int _log_domain = -1;
 
 static uint8_t _demo_bulb_state = 0x1;
@@ -162,6 +164,8 @@ static void _general_init_cb(void)
     if(zg_al_continue(_init_sm) != 0)
     {
         INF("ZHA application is initialized");
+        zg_al_destroy(_init_sm);
+        _init_sm = NULL;
         if(_init_complete_cb)
             _init_complete_cb();
     }
@@ -191,8 +195,10 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
  *          ZLL API             *
  *******************************/
 
-void zg_zha_init(InitCompleteCb cb)
+uint8_t zg_zha_init(InitCompleteCb cb)
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_aps_init();
     _log_domain = zg_logs_domain_register("zg_zha", ZG_COLOR_LIGHTCYAN);
     INF("Initializing ZHA");
     if(cb)
@@ -201,10 +207,13 @@ void zg_zha_init(InitCompleteCb cb)
     zg_mt_zdo_register_visible_device_cb(_zha_visible_device_cb);
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
+    return 0;
 }
 
 void zg_zha_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_aps_shutdown();
     zg_al_destroy(_init_sm);
 }
 

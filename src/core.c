@@ -80,6 +80,23 @@ static void _get_demo_device_route(SyncActionCb cb)
     zg_mt_zdo_ext_route_disc_request(zg_device_get_short_addr(DEMO_DEVICE_ID), cb);
 }
 
+static void _zll_init(SyncActionCb cb)
+{
+    if(zg_zll_init(cb) != 0)
+        ERR("Error initializing ZLL profile");
+}
+static void _zha_init(SyncActionCb cb)
+{
+    if(zg_zha_init(cb) != 0)
+        ERR("Error initializing ZHA profile");
+}
+
+static void _zdp_init(SyncActionCb cb)
+{
+    if(zg_zdp_init(cb) != 0)
+        ERR("Error initializing ZDP profile");
+}
+
 
 static ZgAlState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
@@ -92,9 +109,9 @@ static ZgAlState _init_states_reset[] = {
     {_write_channel, _general_init_cb},
     {zg_mt_sys_ping, _general_init_cb},
     {zg_mt_util_af_subscribe_cmd, _general_init_cb},
-    {zg_zll_init, _general_init_cb},
-    {zg_zha_init, _general_init_cb},
-    {zg_zdp_init, _general_init_cb},
+    {_zll_init, _general_init_cb},
+    {_zha_init, _general_init_cb},
+    {_zdp_init, _general_init_cb},
     {zg_mt_zdo_startup_from_app, _general_init_cb},
     {zg_mt_sys_nv_write_enable_security, _general_init_cb},
     {_announce_gateway, _general_init_cb},
@@ -107,9 +124,9 @@ static ZgAlState _init_states_restart[] = {
     {zg_mt_sys_check_ext_addr, _general_init_cb},
     {zg_mt_sys_ping, _general_init_cb},
     {zg_mt_util_af_subscribe_cmd, _general_init_cb},
-    {zg_zll_init, _general_init_cb},
-    {zg_zha_init, _general_init_cb},
-    {zg_zdp_init, _general_init_cb},
+    {_zll_init, _general_init_cb},
+    {_zha_init, _general_init_cb},
+    {_zdp_init, _general_init_cb},
     {zg_mt_zdo_startup_from_app, _general_init_cb},
     {zg_mt_sys_nv_write_enable_security, _general_init_cb},
     {_get_demo_device_route, _general_init_cb},
@@ -456,11 +473,6 @@ void zg_core_init(uint8_t reset_network)
     INF("Initializing core application");
     _reset_network = reset_network;
     _reset_network |= !zg_keys_check_network_key_exists();
-    if(reset_network)
-        zg_keys_network_key_del();
-    zg_mt_init();
-    zg_aps_init();
-    zg_ipc_init();
     if(_reset_network)
         zg_keys_network_key_del();
     zg_stdin_register_command_cb(_process_user_command);
@@ -469,6 +481,8 @@ void zg_core_init(uint8_t reset_network)
     zg_zha_register_temperature_cb(_temperature_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
+    zg_mt_init();
+    zg_ipc_init();
     zg_keys_init();
     zg_device_init(_reset_network);
 
@@ -481,14 +495,12 @@ void zg_core_init(uint8_t reset_network)
 
 void zg_core_shutdown(void)
 {
-    zg_keys_shutdown();
     zg_device_shutdown();
-    zg_zha_shutdown();
+    zg_keys_shutdown();
     zg_zll_shutdown();
     zg_zha_shutdown();
     zg_zdp_shutdown();
     zg_ipc_shutdown();
-    zg_aps_shutdown();
-    zg_mt_shutdown();
+    zg_mt_init();
 }
 

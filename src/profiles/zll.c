@@ -11,6 +11,7 @@
 #include "logs.h"
 #include <jansson.h>
 #include "ipc.h"
+#include "utils.h"
 
 /********************************
  *          Constants           *
@@ -74,6 +75,7 @@
  *******************************/
 
 static int _log_domain = -1;
+static int _init_count = 0;
 static uint16_t _zll_in_clusters[] = {
     ZCL_CLUSTER_TOUCHLINK_COMMISSIONING};
 static uint8_t _zll_in_clusters_num = sizeof(_zll_in_clusters)/sizeof(uint8_t);
@@ -450,18 +452,23 @@ static int _init_nb_states = sizeof(_init_states)/sizeof(ZgAlState);
  *          ZLL API             *
  *******************************/
 
-void zg_zll_init(InitCompleteCb cb)
+uint8_t zg_zll_init(InitCompleteCb cb)
 {
+    ENSURE_SINGLE_INIT(_init_count);
+    zg_aps_init();
     _log_domain = zg_logs_domain_register("zg_zll", ZG_COLOR_LIGHTMAGENTA);
     INF("Initializing ZLL");
     if(cb)
         _init_complete_cb = cb;
     _init_sm = zg_al_create(_init_states, _init_nb_states);
     zg_al_continue(_init_sm);
+    return 0;
 }
 
 void zg_zll_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_aps_shutdown();
     zg_al_destroy(_init_sm);
 }
 

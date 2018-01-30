@@ -71,6 +71,7 @@
  *******************************/
 
 static int _log_domain = -1;
+static int _init_count = 0;
 
 /* Callback set for any synchronous operation (see SREQ in MT specification) */
 static SyncActionCb sync_action_cb = NULL;
@@ -264,7 +265,9 @@ static void _sys_osal_nv_write(uint16_t id, uint8_t offset, uint8_t length, uint
 
 int zg_mt_sys_init(void)
 {
+    ENSURE_SINGLE_INIT(_init_count);
     _log_domain = zg_logs_domain_register("zg_mt_sys", ZG_COLOR_LIGHTRED);
+    zg_rpc_init();
     zg_rpc_subsys_cb_set(ZG_MT_SUBSYS_SYS, _process_mt_sys_cb);
     INF("MT SYS module initialized");
     return 0;
@@ -272,6 +275,8 @@ int zg_mt_sys_init(void)
 
 void zg_mt_sys_shutdown(void)
 {
+    ENSURE_SINGLE_SHUTDOWN(_init_count);
+    zg_rpc_shutdown();
     INF("MT SYS module shut down");
 }
 
