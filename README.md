@@ -11,6 +11,7 @@ As you may see, this software is still under heavy development. The target for v
 * devices installation
 * report of installed devices
 * execution of basic commands on devices (light, switches, sensors)
+* supported devices types : ZLL compatible lamps, temperature sensors, etc.
 Even if this scope is still not reached, some nice showcases are available if you have the necessary devices (see README_demo.md)
 
 ## How to build it
@@ -28,30 +29,27 @@ Then you can build and execute the project with the following commands :
 * ./builddir/zll-gateway
 
 The project currently have the following dependencies :
-* libznp
+* libuv
 * iniparser
 * jansson
 * eina
-
-ZNP library is basically the ZNP framework which has been built as a dynamic library. You can find on Github, following this link : [ZNP Library](https://github.com/Tropicao/znp-host-framework). Refer to ZNP library README for instructions about how to build it.
-If not installed in standard library path, you will need to indicate ZNP library path, as following :  
-``` export LD_LIBRARY_PATH=YOUR_CUSTOM_PATH```  
-(On most common hosts, if you have installed ZNP library on default path, it will be located in /usr/local/lib)
+Installing those library is specific to the distribution you are using, so it
+would not be relevant to provide installation instructions. Just remember, if
+you decide to install it in non standard paths, to indicate those to the main
+binary using the LD_LIBRARY_PATH variable.
 
 ## How to run it
 The gateway software can be run with the following arguments :
 * -c <config_path> : specify a custom configuration file. Without this argument, the gateway expects to find a configuration file under /etc/<app_name>/config.ini.
 * -r : during startup, completely reset the gateway state. It means that all devices and network configuration will be cleaned
 
-You can also specify the logging level of application with the following :  
-``` export LOG_LEVEL=YOUR_LOG_LEVEL ```  
-The values of log level can be one between this ones :
-* LOG_CRI
-* LOG_ERR
-* LOG_WARN
-* LOG_INF
-* LOG_DBG
-
+The verbosity of logs is set thanks to Eina_Log mechanisms, through environment
+variables. Each module of the gateway has its own "log domain", and each log
+domain has a level. You can set the global log level for all domains with the
+EINA_LOG_LEVELS_GLOB variable, and you can set specific log level per domain
+with the EINA_LOG_LEVEL variable. Please see [Eina Log documentation](https://docs.enlightenment.org/api/eina/doc/html/group__Eina__Log__Group.html) for
+further details on logs management
+  
 ## I want to report an issue or a feature request !
 
 First of all, thank you for using this software ! Please feel free to fill an issue on the project Github and I will gladly take a look at it, even if it is only a suggestion. However, keep in mind that any development I do is conditioned by the availability of devices to test it.
