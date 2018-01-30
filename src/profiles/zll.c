@@ -409,6 +409,7 @@ static void _general_init_cb(void)
         if(_init_complete_cb)
         {
             zg_al_destroy(_init_sm);
+            _init_sm = NULL;
             _init_complete_cb();
         }
     }
