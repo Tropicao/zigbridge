@@ -476,13 +476,15 @@ void zg_mt_af_set_inter_pan_endpoint(uint8_t endpoint, SyncActionCb cb)
     msg.type = ZG_MT_CMD_SREQ;
     msg.subsys = ZG_MT_SUBSYS_AF;
     msg.cmd = AF_INTER_PAN_CTL;
-    msg.len = sizeof(interpan_command_data + sizeof(endpoint));
+    msg.len = sizeof(interpan_command_data) + sizeof(endpoint);
     buffer = calloc(msg.len, sizeof(uint8_t));
     if(!buffer)
     {
         ERR("Cannot allocate memory for AF_INTER_PAN_CTL command");
         return;
     }
+    buffer[0] = interpan_command_data;
+    buffer[1] = endpoint;
     msg.data = buffer;
     zg_rpc_write(&msg);
     ZG_VAR_FREE(buffer);
@@ -506,6 +508,8 @@ void zg_mt_af_set_inter_pan_channel(uint8_t channel, SyncActionCb cb)
         CRI("Cannot allocate memory for AF_INTER_PAN_CTL command");
         return;
     }
+    buffer[0] = interpan_command_data;
+    buffer[1] = channel;
     msg.data = buffer;
     zg_rpc_write(&msg);
     ZG_VAR_FREE(buffer);
