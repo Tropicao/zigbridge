@@ -284,7 +284,7 @@ static void _button_change_cb(uint16_t addr, uint8_t state)
         id = zg_device_get_id(addr);
         _send_ipc_event_button_state_change(id, state);
         if(addr != 0xFFFD && state == 0)
-            zg_zha_switch_bulb_state(addr);
+            zg_zha_switch_bulb_state(zg_device_get_short_addr(DEMO_DEVICE_ID));
         else
             WRN("Device is not installed, cannot switch light");
     }
