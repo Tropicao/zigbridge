@@ -166,7 +166,7 @@ static uint8_t _incoming_msg_cb(ZgMtMsg *msg)
 {
     uint16_t group_id;
     uint16_t cluster;
-    uint64_t src_addr;
+    uint16_t src_addr;
     uint8_t src_endpoint;
     uint8_t dst_endpoint;
     uint8_t was_broadcast;
@@ -207,7 +207,7 @@ static uint8_t _incoming_msg_cb(ZgMtMsg *msg)
         INF("Extended AF message received");
         INF("Group id : 0x%04X", group_id);
         INF("Cluster id : 0x%04X", cluster);
-        INF("Source addr : 0x%016lX", src_addr);
+        INF("Source addr : 0x%04X", src_addr);
         INF("Source Endpoint : 0x%02X", src_endpoint);
         INF("Dest Endpoint : 0x%02X", dst_endpoint);
         INF("Was Broadcast : 0x%02X", was_broadcast);
