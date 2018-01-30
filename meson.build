@@ -36,11 +36,10 @@ incdir = [znpinc, localinc]
 # Libraries
 cc = meson.get_compiler('c')
 uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
-ptdep = dependency('threads')
 iniparserdep = cc.find_library('iniparser')
 einadep = dependency('eina')
 janssondep = dependency('jansson')
-dep = [uvdep, ptdep, iniparserdep, einadep, janssondep]
+dep = [uvdep, iniparserdep, einadep, janssondep]
 
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']
