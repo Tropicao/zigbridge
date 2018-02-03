@@ -85,7 +85,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
 
     if(zg_rpc_init() != 0)
-        goto main_end;
+        goto rpc_end;
     zg_core_init(_reset_network);
     loop = uv_default_loop();
     znp_fd = zg_rpc_get_fd();
@@ -112,8 +112,9 @@ main_end:
     uv_signal_stop(&sig_int);
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
-    zg_rpc_shutdown();
     zg_core_shutdown();
+rpc_end:
+    zg_rpc_shutdown();
     zg_conf_shutdown();
     zg_logs_shutdown();
     exit(0);
