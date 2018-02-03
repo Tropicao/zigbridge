@@ -84,8 +84,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         goto main_end;
     }
 
+    if(zg_rpc_init() != 0)
+        goto main_end;
     zg_core_init(_reset_network);
-    zg_rpc_init();
     loop = uv_default_loop();
     znp_fd = zg_rpc_get_fd();
     status = uv_poll_init(loop, &znp_poll, znp_fd);
