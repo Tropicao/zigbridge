@@ -34,7 +34,7 @@ incdir = include_directories(  'src',
 # Libraries
 cc = meson.get_compiler('c')
 uvdep = cc.find_library('uv', dirs: ['/usr/local/lib', '/usr/lib'])
-iniparserdep = cc.find_library('iniparser')
+iniparserdep = dependency('iniparser')
 einadep = dependency('eina')
 janssondep = dependency('jansson')
 dep = [uvdep, iniparserdep, einadep, janssondep]
