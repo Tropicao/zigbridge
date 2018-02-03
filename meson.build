@@ -23,15 +23,13 @@ src = ['src/main.c',
         'src/devices/device.c']
 
 # Includes
-znpinc = include_directories('/usr/local/include/libznp')
-localinc = include_directories( 'src',
+incdir = include_directories(  'src',
                                 'src/utils',
                                 'src/devices',
                                 'src/profiles',
                                 'src/interfaces',
                                 'src/mt',
                                 'src/rpc')
-incdir = [znpinc, localinc]
 
 # Libraries
 cc = meson.get_compiler('c')
