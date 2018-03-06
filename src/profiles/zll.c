@@ -298,6 +298,7 @@ static void _identify_request_sent_cb(void)
 
 static void _send_identify_request(void)
 {
+    uv_timer_stop(&_scan_timeout_timer);
     _zll_send_identify_request(_identify_request_sent_cb);
 }
 
