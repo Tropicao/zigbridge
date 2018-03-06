@@ -240,6 +240,7 @@ static void _shutdown_touchlink(void)
     uv_unref((uv_handle_t *)&_scan_timeout_timer);
     uv_unref((uv_handle_t *)&_identify_timer);
     zg_sm_destroy(_touchlink_sm);
+    _touchlink_sm = NULL;
     INF("Touchlink procedure finished");
     _send_ipc_event_touchlink_end();
 }
