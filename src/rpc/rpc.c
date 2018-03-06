@@ -113,7 +113,7 @@ static void _process_rpc_frame(ZgMtMsg *msg)
         }
     }
     if(index == _mt_subsys_table_size)
-        WRN("No registered callback found for incoming RPC message");
+        ERR("No registered callback found for incoming RPC message (subsys 0x%02X)", msg->subsys);
 }
 
 
