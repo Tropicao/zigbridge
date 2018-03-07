@@ -157,13 +157,21 @@ static void _read_znp_data(void)
     }
     len = buffer[RPC_DATA_LEN_INDEX];
     DBG("Data size is %d", len);
-    bytes_read = read(_znp_fd, buffer + RPC_DATA_INDEX, len);
-    if(bytes_read < 0)
+    do
     {
-        ERR("Did not manage to read %d bytes : %s", len, strerror(bytes_read));
-        goto znp_read_err;
-    }
-    else if(bytes_read != len)
+        bytes_read += read(_znp_fd, buffer + RPC_DATA_INDEX + bytes_read, len - bytes_read);
+        if(bytes_read < 0)
+        {
+            ERR("Did not manage to read %d bytes : %s", len, strerror(errno));
+            goto znp_read_err;
+        }
+        else if(bytes_read < len)
+        {
+            usleep(100);
+        }
+    }while(bytes_read != len);
+
+    if(bytes_read != len)
     {
         ERR("Error : did not manage to read %d bytes (only %ld read)", len, bytes_read);
         goto znp_read_err;
