@@ -11,20 +11,22 @@
 
 #define SECTION_GENERAL             "general"
 #define KEY_ZNP_DEVICE_PATH             "znp_device_path"
+#define KEY_ZNP_BAUDRATE                "znp_baudrate"
 #define SECTION_SECURITY            "security"
 #define KEY_NETWORK_KEY_PATH            "network_key_path"
 #define SECTION_DEVICES             "devices"
 #define KEY_DEVICE_LIST_PATH            "device_list_path"
 
 #define PRINT_STRING_VALUE(section, key, val)   {INF("%s/%s : %s", section, key, val?val:"NULL");}
+#define PRINT_INT_VALUE(section, key, val)   {INF("%s/%s : %d", section, key, val);}
 
 /**
  * \brief This module holds all configuration management.
  *
  * Adding a new configuration field require the following steps :
  * * Adding a field in the Configuration structure
- * * Define Section and key used to retrieve the value, use it in zg_conf_load
- * with _load_value
+ * * Define Section and key used to retrieve the value, use it in zg_conf_init
+ *   with _load_value
  * * Add a getter API to allow other modules to retrieve the new configuration
  * * Add print of retrieve value in the print function
  * * If new field is a string, add proper free in _free_configuration
@@ -39,6 +41,7 @@ typedef struct
     char *network_key_path;
     char *device_list_path;
     char *znp_device_path;
+    int znp_baudrate;
 } Configuration;
 
 typedef enum
@@ -108,6 +111,7 @@ static void _load_value(dictionary *ini, char *section, char *key, void *var, Va
 static void _print_configuration()
 {
     PRINT_STRING_VALUE(SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, _configuration.znp_device_path);
+    PRINT_INT_VALUE(SECTION_GENERAL, KEY_ZNP_BAUDRATE, _configuration.znp_baudrate);
     PRINT_STRING_VALUE(SECTION_SECURITY, KEY_NETWORK_KEY_PATH, _configuration.network_key_path);
     PRINT_STRING_VALUE(SECTION_DEVICES, KEY_DEVICE_LIST_PATH, _configuration.device_list_path);
 }
@@ -133,6 +137,7 @@ uint8_t zg_conf_init(char *conf_path)
         _load_value(dict, SECTION_SECURITY, KEY_NETWORK_KEY_PATH, &(_configuration.network_key_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_DEVICES, KEY_DEVICE_LIST_PATH, &(_configuration.device_list_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, &(_configuration.znp_device_path), CONF_VAL_STRING);
+        _load_value(dict, SECTION_GENERAL, KEY_ZNP_BAUDRATE, &(_configuration.znp_baudrate), CONF_VAL_INT);
         iniparser_freedict(dict);
     }
     _print_configuration();
@@ -149,6 +154,11 @@ void zg_conf_shutdown()
 const char *zg_conf_get_znp_device_path()
 {
     return _configuration.znp_device_path;
+}
+
+int zg_conf_get_znp_baudrate()
+{
+    return _configuration.znp_baudrate;
 }
 
 const char *zg_conf_get_network_key_path()
