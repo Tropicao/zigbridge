@@ -46,4 +46,5 @@ executable('zll_gateway',
     sources: src,
     c_args: cflags,
     include_directories: incdir,
-    dependencies: dep)
+    dependencies: dep,
+    install : true)
