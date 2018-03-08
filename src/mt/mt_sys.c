@@ -104,7 +104,7 @@ static uint8_t _get_ext_addr_srsp_cb(ZgMtMsg *msg)
     else
     {
         memcpy(&_ext_addr, msg->data, sizeof(_ext_addr));
-        INF("Received extended address (0x%016lX)", _ext_addr);
+        INF("Received extended address (0x%" PRIx64 ")", _ext_addr);
     }
 
     if(sync_action_cb)

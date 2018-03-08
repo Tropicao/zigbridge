@@ -225,7 +225,7 @@ static void _print_device_list(void)
     DBG(" =============== Device list ===============");
     EINA_LIST_FOREACH(_device_list, l, data)
     {
-        DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%016lX",
+        DBG("[0x%02X] : Short : 0x%04X - Ext : 0x%"PRIx64,
                 data->id, data->short_addr, data->ext_addr);
         EINA_LIST_FOREACH(data->endpoints, l_ep, endpoint)
             DBG("Endpoint : 0x%02X, profile 0x%04X", endpoint->num, endpoint->profile);

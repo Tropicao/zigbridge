@@ -454,7 +454,7 @@ static uint8_t _tc_dev_ind_cb(ZgMtMsg *msg)
         memcpy(&parent_addr, msg->data + index, sizeof(parent_addr));
         index += sizeof(parent_addr);
         INF("============== Device indication ============");
-        INF("Addr : 0x%04X - ExtAddr : 0x%016lX - Parent : 0x%04X",
+        INF("Addr : 0x%04X - ExtAddr : 0x%" PRIx64 " - Parent : 0x%04X",
                 src_nwk_addr, ieee_addr, parent_addr);
         INF("=============================================");
         if(_zdo_tc_dev_ind_cb)
@@ -637,7 +637,7 @@ void zg_mt_zdo_device_annce(uint16_t addr, uint64_t uid, SyncActionCb cb)
     uint8_t *buffer;
     uint8_t cap = DEVICE_ANNCE_CAPABILITIES;
 
-    INF("Announce gateway (0x%04X - 0x%016lX) to network", addr, uid);
+    INF("Announce gateway (0x%04X - 0x%" PRIx64 ") to network", addr, uid);
     sync_action_cb = cb;
     msg.type = ZG_MT_CMD_SRSP;
     msg.subsys = ZG_MT_SUBSYS_ZDO;

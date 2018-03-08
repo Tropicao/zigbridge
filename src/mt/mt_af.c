@@ -277,7 +277,7 @@ static uint8_t _incoming_msg_ext_cb(ZgMtMsg *msg)
         INF("Group id : 0x%04X", group_id);
         INF("Cluster id : 0x%04X", cluster);
         INF("Source addr mode : 0x%02X", src_addr_mode);
-        INF("Source addr : 0x%016lX", src_addr);
+        INF("Source addr : 0x%"PRIx64, src_addr);
         INF("Source Endpoint : 0x%02X", src_endpoint);
         INF("Source PAN id : 0x%04X", pan_id);
         INF("Dest Endpoint : 0x%02X", dst_endpoint);

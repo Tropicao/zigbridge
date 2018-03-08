@@ -173,7 +173,7 @@ static void _read_znp_data(void)
 
     if(bytes_read != len)
     {
-        ERR("Error : did not manage to read %d bytes (only %ld read)", len, bytes_read);
+        ERR("Error : did not manage to read %d bytes (only %zd read)", len, bytes_read);
         goto znp_read_err;
     }
 
@@ -212,7 +212,7 @@ uint8_t zg_rpc_init(void)
 {
     struct termios tio;
     const char *device = zg_conf_get_znp_device_path();
-    int baudrate = 0;
+    //int baudrate = 0;
 
     ENSURE_SINGLE_INIT(_init_count);
     _log_domain = zg_logs_domain_register("zg_rpc", EINA_COLOR_BLUE);
@@ -233,7 +233,7 @@ uint8_t zg_rpc_init(void)
     }
     DBG("ZNP medium opened (fd %d)", _znp_fd);
 
-    switch(zg_conf_get_znp_baudrate())
+    /*switch(zg_conf_get_znp_baudrate())
     {
         case 9600:
             baudrate = B9600;
@@ -241,9 +241,8 @@ uint8_t zg_rpc_init(void)
         default:
             baudrate = B115200;
             break;
-    }
-    DBG("Setting baudrate to %d", zg_conf_get_znp_baudrate());
-	tio.c_cflag = baudrate | CS8 | CLOCAL | CREAD;
+    }*/
+	tio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
 	tio.c_iflag = IGNPAR & ~ICRNL;
 	tio.c_oflag = 0;
 	tio.c_lflag = 0;
