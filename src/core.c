@@ -475,7 +475,7 @@ void zg_core_init(uint8_t reset_network)
     _reset_network |= !zg_keys_check_network_key_exists();
     if(_reset_network)
         zg_keys_network_key_del();
-    zg_stdin_register_command_cb(_process_user_command);
+    //zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
     zg_zha_register_temperature_cb(_temperature_cb);
