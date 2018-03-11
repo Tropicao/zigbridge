@@ -277,8 +277,9 @@ void zg_rpc_read(void)
 uint8_t zg_rpc_write(ZgMtMsg *msg)
 {
     uint8_t buf[RPC_FRAME_MAX_SIZE] = {0};
-    uint16_t total_size = 0;
+    uint16_t total_size = 0, remain = 0 , offset = 0;
     uint8_t i = 0;
+    ssize_t written = 0;
 
     if(_znp_fd < 0)
     {
@@ -311,12 +312,29 @@ uint8_t zg_rpc_write(ZgMtMsg *msg)
     for(i = 0; i < total_size; i++)
         DBG("Data %d : 0x%02X", i, buf[i]);
 
-    if(write(_znp_fd, buf, total_size) != total_size)
+    remain = total_size;
+    while(remain > 0)
+    {
+        written = write(_znp_fd, buf + offset, (remain > 8 ? 8:remain));
+        if(written < 0)
+        {
+            ERR("Cannot write data to ZNP : %s", strerror(errno));
+            break;
+        }
+        else
+        {
+            tcflush(_znp_fd, TCOFLUSH);
+            remain -= written;
+            offset += written;
+        }
+        usleep(500);
+    }
+    /*if(write(_znp_fd, buf, total_size) != total_size)
     {
         ERR("Error writing data to ZNP medium");
         return 1;
     }
-    tcflush(_znp_fd, TCOFLUSH);
+    tcflush(_znp_fd, TCOFLUSH);*/
     return 0;
 }
 
