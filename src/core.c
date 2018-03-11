@@ -388,7 +388,7 @@ static void _temperature_cb(uint16_t addr, uint16_t temp)
 
 
 
-static void _process_command_touchlink()
+/*static void _process_command_touchlink()
 {
     if(_initialized)
         zg_zll_start_touchlink();
@@ -435,9 +435,9 @@ static void _process_command_open_network(void)
 {
     INF("Opening network to allow new devices to join");
     zg_mt_zdo_permit_join(NULL);
-}
+}*/
 
-static void _process_user_command(StdinCommand cmd)
+/*static void _process_user_command(StdinCommand cmd)
 {
     switch(cmd)
     {
@@ -460,7 +460,7 @@ static void _process_user_command(StdinCommand cmd)
             WRN("Unsupported command");
             break;
     }
-}
+}*/
 
 
 /********************************

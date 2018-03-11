@@ -14,7 +14,7 @@
 
 uv_loop_t *loop = NULL;
 uv_poll_t znp_poll;
-uv_poll_t user_poll;
+//uv_poll_t user_poll;
 static uint8_t _reset_network = 0;
 static int _log_domain = -1;
 
@@ -42,7 +42,8 @@ static void znp_poll_cb(uv_poll_t *handle __attribute__((unused)), int status, i
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
     uv_signal_t sig_int;
-    int znp_fd = -1, user_fd =0;
+    int znp_fd = -1;
+    //int user_fd =0;
     int status = -1;
     char config_file_path[PATH_STRING_MAX_SIZE] = {0};
     int c = 0;
@@ -96,9 +97,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
                 znp_fd, uv_err_name(status), uv_strerror(status));
         goto main_end;
     }
-    status = uv_poll_init(loop, &user_poll, user_fd);
+    //status = uv_poll_init(loop, &user_poll, user_fd);
     uv_poll_start(&znp_poll, UV_READABLE, znp_poll_cb);
-    uv_poll_start(&user_poll, UV_READABLE, zg_stdin_get_stdin_main_callback());
+    //uv_poll_start(&user_poll, UV_READABLE, zg_stdin_get_stdin_main_callback());
 
     uv_signal_init(loop, &sig_int);
     uv_signal_start(&sig_int, signal_handler, SIGINT);
@@ -110,7 +111,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 main_end:
     INF("Quitting application");
     uv_signal_stop(&sig_int);
-    uv_poll_stop(&user_poll);
+    //uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
     zg_core_shutdown();
 rpc_end:
