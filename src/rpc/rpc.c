@@ -167,7 +167,7 @@ static void _read_znp_data(void)
         }
         else if(bytes_read < len)
         {
-            usleep(100);
+            usleep(1000);
         }
     }while(bytes_read != len);
 
@@ -327,7 +327,7 @@ uint8_t zg_rpc_write(ZgMtMsg *msg)
             remain -= written;
             offset += written;
         }
-        usleep(500);
+        usleep(1000);
     }
     /*if(write(_znp_fd, buf, total_size) != total_size)
     {
