@@ -136,6 +136,22 @@ static void _start_touchlink(void)
         ERR("Cannot send touchlink status to IPC client");
 }
 
+static void _set_lamp_blue()
+{
+    zg_zha_move_to_color(zg_device_get_short_addr(0), 0, 0, 1);
+}
+
+static void _set_lamp_purple()
+{
+    zg_zha_move_to_color(zg_device_get_short_addr(0), 32767, 32767, 1);
+}
+
+static void _set_lamp_red()
+{
+    zg_zha_move_to_color(zg_device_get_short_addr(0), 65535, 0, 1);
+}
+
+
 
 static void _process_ipc_data(char *data, int len)
 {
@@ -170,6 +186,12 @@ static void _process_ipc_data(char *data, int len)
             _open_network();
         else if(strcmp(json_string_value(command), "touchlink") == 0)
             _start_touchlink();
+        else if(strcmp(json_string_value(command), "set_blue") == 0)
+            _set_lamp_blue();
+        else if(strcmp(json_string_value(command), "set_purple") == 0)
+            _set_lamp_purple();
+        else if(strcmp(json_string_value(command), "set_red") == 0)
+            _set_lamp_red();
         else
         {
             _send_error();
