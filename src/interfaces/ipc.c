@@ -151,6 +151,16 @@ static void _set_lamp_red()
     zg_zha_move_to_color(zg_device_get_short_addr(0), 65535, 0, 1);
 }
 
+static void _set_lamp_on()
+{
+    zg_zha_set_bulb_state(zg_device_get_short_addr(0), 1);
+}
+
+static void _set_lamp_off()
+{
+    zg_zha_set_bulb_state(zg_device_get_short_addr(0), 0);
+}
+
 
 
 static void _process_ipc_data(char *data, int len)
@@ -192,6 +202,10 @@ static void _process_ipc_data(char *data, int len)
             _set_lamp_purple();
         else if(strcmp(json_string_value(command), "set_red") == 0)
             _set_lamp_red();
+        else if(strcmp(json_string_value(command), "set_on") == 0)
+            _set_lamp_on();
+        else if(strcmp(json_string_value(command), "set_off") == 0)
+            _set_lamp_off();
         else
         {
             _send_error();
