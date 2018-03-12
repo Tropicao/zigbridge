@@ -122,7 +122,7 @@ static void _read_znp_data(void)
     uint8_t buffer[RPC_MAX_DATA_SIZE] = {0};
     uint8_t fcs_computed = 0x00;
     uint8_t len = 0;
-    ssize_t bytes_read = 0 , remain = 0, current = 0;
+    ssize_t bytes_read = 0;
     int8_t i;
     ZgMtMsg msg;
 
@@ -156,18 +156,15 @@ static void _read_znp_data(void)
         goto znp_read_err;
     }
     len = buffer[RPC_DATA_LEN_INDEX];
-    remain = len;
     DBG("Data size is %d", len);
     do
     {
-        current = read(_znp_fd, buffer + RPC_DATA_INDEX + bytes_read, remain > 8 ? 8 : remain);
-        bytes_read += current;
-        remain -= current;
-        if(remain > 0)
+        bytes_read += read(_znp_fd, buffer + RPC_DATA_INDEX + bytes_read, len-bytes_read);
+        if((len - bytes_read) > 0)
             usleep(500);
-    }while(remain > 0);
+    }while(len != bytes_read);
 
-    if(remain != 0)
+    if(bytes_read != len)
     {
         ERR("Error : did not manage to read %d bytes (only %zd read)", len, bytes_read);
         goto znp_read_err;
