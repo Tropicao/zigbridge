@@ -8,6 +8,7 @@
 #include "device.h"
 #include "utils.h"
 #include "conf.h"
+#include "unistd.h"
 
 /********************************
  *    Constants and macros      *
