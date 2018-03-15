@@ -4,11 +4,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "logs.h"
 #include "device.h"
 #include "utils.h"
 #include "conf.h"
-#include "unistd.h"
 
 /********************************
  *    Constants and macros      *
