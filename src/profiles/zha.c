@@ -56,6 +56,8 @@
 #define ZHA_DEVICE_ID                           0X0210  /* Extended color light */
 #define ZHA_DEVICE_VERSION                      0x2     /* Version 2 */
 
+#define BULB_POLLING_PERIOD_MS                  1000
+
 /********************************
  *          Local variables     *
  *******************************/
@@ -63,6 +65,7 @@
 static int _init_count = 0;
 static int _log_domain = -1;
 
+static uint16_t _bulb_addr = 0xFFFF;
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
 static void (*_button_change_cb)(uint16_t short_addr, uint8_t state) = NULL;
@@ -76,6 +79,35 @@ static uint8_t _zha_in_clusters_num = sizeof(_zha_in_clusters)/sizeof(uint8_t);
 static uint16_t _zha_out_clusters[] = {
     ZCL_CLUSTER_ON_OFF};
 static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t);
+
+static uv_timer_t bulb_polling_timer;
+
+/********************************
+ *          Internals           *
+ *******************************/
+
+static void _request_bulb_state()
+{
+    uint8_t command[1] = {0};
+
+
+    zg_aps_send_data(_bulb_addr,
+            0xABCD,
+            ZHA_ENDPOINT,
+            0x0B,
+            ZCL_CLUSTER_ON_OFF,
+            0x00,
+            command,
+            2,
+            NULL);
+
+}
+
+static void _bulb_polling_cb(uv_timer_t *s __attribute__((unused)))
+{
+    DBG("Requesting lamp status");
+    _request_bulb_state();
+}
 
 /********************************
  *   ZHA messages callbacks     *
@@ -288,4 +320,10 @@ void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y, uint8_t d
             NULL);
 }
 
+void zg_zha_enable_device_polling(uint16_t short_addr)
+{
+    _bulb_addr = short_addr;
+    uv_timer_init(uv_default_loop(), &bulb_polling_timer);
+    uv_timer_start(&bulb_polling_timer, _bulb_polling_cb, BULB_POLLING_PERIOD_MS, BULB_POLLING_PERIOD_MS);
+}
 

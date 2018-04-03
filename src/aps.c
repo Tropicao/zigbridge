@@ -30,7 +30,7 @@ typedef struct ApsEndpoint
 #define INDEX_TRANS_SEQ_NUM         0x1
 #define INDEX_COMMAND               0x2
 
-#define APS_DEFAULT_FRAME_CONTROL   0x11
+#define APS_DEFAULT_FRAME_CONTROL   0x00
 
 /* APS incoming message format */
 #define INDEX_GROUP_ID              0

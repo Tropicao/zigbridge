@@ -223,6 +223,7 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
         INF("Seen device is a new device");
         id = zg_add_device(short_addr, ext_addr);
         _send_ipc_event_new_device(id);
+        zg_zha_enable_device_polling(short_addr);
         if(_new_device_sm)
         {
             WRN("Already learning a new device, cannot learn newly visible device");
