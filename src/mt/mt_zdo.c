@@ -522,6 +522,42 @@ uint8_t _zdo_end_device_annce_join_cb(ZgMtMsg *msg)
     return 0;
 }
 
+uint8_t _zdo_leave_ind_cb(ZgMtMsg *msg)
+{
+    uint16_t src_addr;
+    uint64_t ieee_addr;
+    uint8_t request;
+    uint8_t remove;
+    uint8_t rejoin;
+    uint8_t current_offset = 0;
+
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract ZDO_MGMT_PERMIT_JOIN_RSP data");
+    }
+    else
+    {
+        INF("A device has leaved network !");
+        memcpy(&src_addr, msg->data + current_offset, sizeof(src_addr));
+        current_offset += sizeof(src_addr);
+        memcpy(&ieee_addr, msg->data + current_offset, sizeof(ieee_addr));
+        current_offset += sizeof(ieee_addr);
+        request = *(msg->data + current_offset);
+        current_offset += sizeof(request);
+        remove = *(msg->data + current_offset);
+        current_offset += sizeof(remove);
+        rejoin = *(msg->data + current_offset);
+        current_offset += sizeof(rejoin);
+        INF("Source address : 0x%04X", src_addr);
+        INF("IEEE address : 0x%016lX", ieee_addr);
+        INF("Request : %s", request ? "this is a command":"this is an indication");
+        INF("Remove : %s", remove ? "removing children":"removing node");
+        INF("Rejoin : %s", rejoin ? "node allowed to rejoin after leaving":"node basnished");
+    }
+
+    return 0;
+}
+
 /* General MT ZDO frames processing callbacks */
 
 static void _process_mt_zdo_srsp(ZgMtMsg *msg)
@@ -573,6 +609,9 @@ static void _process_mt_zdo_areq(ZgMtMsg *msg)
             break;
         case ZDO_END_DEVICE_ANNCE_JOIN:
             _zdo_end_device_annce_join_cb(msg);
+            break;
+        case ZDO_LEAVE_IND:
+            _zdo_leave_ind_cb(msg);
             break;
         default:
             WRN("Unknown AREQ command 0x%02X", msg->cmd);
