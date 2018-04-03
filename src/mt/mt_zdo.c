@@ -491,6 +491,37 @@ uint8_t _permit_join_rsp_cb(ZgMtMsg *msg)
     return 0;
 }
 
+uint8_t _zdo_end_device_annce_join_cb(ZgMtMsg *msg)
+{
+    uint16_t src_addr;
+    uint16_t nwk_addr;
+    uint64_t ieee_addr;
+    uint8_t capabilities;
+    uint8_t current_offset = 0;
+
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract ZDO_MGMT_PERMIT_JOIN_RSP data");
+    }
+    else
+    {
+        INF("A new end device has joined network !");
+        memcpy(&src_addr, msg->data + current_offset, sizeof(src_addr));
+        current_offset += sizeof(src_addr);
+        memcpy(&nwk_addr, msg->data + current_offset, sizeof(nwk_addr));
+        current_offset += sizeof(nwk_addr);
+        memcpy(&ieee_addr, msg->data + current_offset, sizeof(ieee_addr));
+        current_offset += sizeof(ieee_addr);
+        capabilities = *(msg->data + current_offset);
+        INF("Source address : 0x%04X", src_addr);
+        INF("Network address : 0x%04X", nwk_addr);
+        INF("IEEE address : 0x%016lX", ieee_addr);
+        INF("Capabilities : 0x%02X", capabilities);
+    }
+
+    return 0;
+}
+
 /* General MT ZDO frames processing callbacks */
 
 static void _process_mt_zdo_srsp(ZgMtMsg *msg)
@@ -539,6 +570,9 @@ static void _process_mt_zdo_areq(ZgMtMsg *msg)
             break;
         case ZDO_MGMT_PERMIT_JOIN_RSP:
             _permit_join_rsp_cb(msg);
+            break;
+        case ZDO_END_DEVICE_ANNCE_JOIN:
+            _zdo_end_device_annce_join_cb(msg);
             break;
         default:
             WRN("Unknown AREQ command 0x%02X", msg->cmd);
