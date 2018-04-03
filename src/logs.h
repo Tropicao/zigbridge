@@ -56,6 +56,7 @@ typedef enum
     ZUNSUPPORTEDMODE =          0x12,
     ZMACMEMERROR =              0x13,
     ZDOINVALIDREQUESTTYPE =     0x80,
+    ZDODEVICENOTFOUND =         0x81,
     ZDOINVALIDENDPOINT =        0x82,
     ZDOUNSUPPORTED =            0x84,
     ZDOTIMEOUT =                0x85,

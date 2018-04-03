@@ -277,12 +277,6 @@ static uint8_t _active_ep_rsp_cb(ZgMtMsg *msg)
     }
     else
     {
-        status = msg->data[2];
-        if(status != ZSUCCESS)
-        {
-            ERR("Error on ACTIVE ENDPOINTS RSP : %s", zg_logs_znp_strerror(status));
-            return 1;
-        }
         memcpy(&src_addr, msg->data + index, sizeof(src_addr));
         index += sizeof(src_addr);
         memcpy(&status, msg->data + index, sizeof(status));
@@ -291,6 +285,11 @@ static uint8_t _active_ep_rsp_cb(ZgMtMsg *msg)
         index += sizeof(nwk_addr);
         memcpy(&active_ep_count, msg->data + index, sizeof(active_ep_count));
         index += sizeof(active_ep_count);
+        if(status != ZSUCCESS)
+        {
+            ERR("Error on ACTIVE ENDPOINTS RSP : %s (%d)", zg_logs_znp_strerror(status), status);
+            return 1;
+        }
         active_ep_list = calloc(active_ep_count, sizeof(uint8_t));
         if(!active_ep_list)
         {
@@ -526,9 +525,9 @@ uint8_t _zdo_leave_ind_cb(ZgMtMsg *msg)
 {
     uint16_t src_addr;
     uint64_t ieee_addr;
-    uint8_t request;
-    uint8_t remove;
-    uint8_t rejoin;
+    uint8_t request = 0;
+    uint8_t remove = 0;
+    uint8_t rejoin = 0;
     uint8_t current_offset = 0;
 
     if(!msg||!msg->data)
@@ -547,7 +546,6 @@ uint8_t _zdo_leave_ind_cb(ZgMtMsg *msg)
         remove = *(msg->data + current_offset);
         current_offset += sizeof(remove);
         rejoin = *(msg->data + current_offset);
-        current_offset += sizeof(rejoin);
         INF("Source address : 0x%04X", src_addr);
         INF("IEEE address : 0x%016lX", ieee_addr);
         INF("Request : %s", request ? "this is a command":"this is an indication");

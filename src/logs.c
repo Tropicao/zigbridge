@@ -13,6 +13,7 @@ static ZNPStatusString _status_list[] =
     {ZUNSUPPORTEDMODE , "ZNP unsupported mode"},
     {ZMACMEMERROR , "ZNP MAC memory error"},
     {ZDOINVALIDREQUESTTYPE , "ZNP ZDO request is invalid"},
+    {ZDODEVICENOTFOUND , "ZNP ZDO device not found"},
     {ZDOINVALIDENDPOINT , "ZNP ZDO request on invalid endpoint"},
     {ZDOUNSUPPORTED , "ZNP ZDO command is not supported"},
     {ZDOTIMEOUT , "ZNP ZDO timeout"},
