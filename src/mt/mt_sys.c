@@ -366,7 +366,7 @@ void zg_mt_sys_nv_write_nwk_key(SyncActionCb cb)
     INF("Setting network key");
 
     sync_action_cb = cb;
-    _sys_osal_nv_write(0x62, 0, zg_keys_network_key_size_get(), zg_keys_network_key_get());
+    _sys_osal_nv_write(0x62, 0, zg_keys_size_get(), zg_keys_network_key_get());
 }
 
 void zg_mt_sys_check_ext_addr(SyncActionCb cb)

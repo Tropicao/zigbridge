@@ -20,6 +20,7 @@ src = ['src/main.c',
         'src/profiles/zll.c',
         'src/utils/sm.c',
         'src/utils/action_list.c',
+        'src/utils/crypto.c',
         'src/devices/device.c']
 
 # Includes
@@ -37,7 +38,8 @@ uvdep = dependency('libuv')
 iniparserdep = dependency('iniparser')
 einadep = dependency('eina')
 janssondep = dependency('jansson')
-dep = [uvdep, iniparserdep, einadep, janssondep]
+ssldep = dependency('openssl')
+dep = [uvdep, iniparserdep, einadep, janssondep, ssldep]
 
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']

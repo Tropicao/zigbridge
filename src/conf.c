@@ -14,6 +14,7 @@
 #define KEY_ZNP_BAUDRATE                "znp_baudrate"
 #define SECTION_SECURITY            "security"
 #define KEY_NETWORK_KEY_PATH            "network_key_path"
+#define KEY_ZLL_MASTER_KEY_PATH         "zll_master_key_path"
 #define SECTION_DEVICES             "devices"
 #define KEY_DEVICE_LIST_PATH            "device_list_path"
 
@@ -39,6 +40,7 @@
 typedef struct
 {
     char *network_key_path;
+    char *zll_master_key_path;
     char *device_list_path;
     char *znp_device_path;
     int znp_baudrate;
@@ -113,6 +115,7 @@ static void _print_configuration()
     PRINT_STRING_VALUE(SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, _configuration.znp_device_path);
     PRINT_INT_VALUE(SECTION_GENERAL, KEY_ZNP_BAUDRATE, _configuration.znp_baudrate);
     PRINT_STRING_VALUE(SECTION_SECURITY, KEY_NETWORK_KEY_PATH, _configuration.network_key_path);
+    PRINT_STRING_VALUE(SECTION_SECURITY, KEY_ZLL_MASTER_KEY_PATH, _configuration.zll_master_key_path);
     PRINT_STRING_VALUE(SECTION_DEVICES, KEY_DEVICE_LIST_PATH, _configuration.device_list_path);
 }
 /****************************************
@@ -135,6 +138,7 @@ uint8_t zg_conf_init(char *conf_path)
     else
     {
         _load_value(dict, SECTION_SECURITY, KEY_NETWORK_KEY_PATH, &(_configuration.network_key_path), CONF_VAL_STRING);
+        _load_value(dict, SECTION_SECURITY, KEY_ZLL_MASTER_KEY_PATH, &(_configuration.zll_master_key_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_DEVICES, KEY_DEVICE_LIST_PATH, &(_configuration.device_list_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, &(_configuration.znp_device_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_GENERAL, KEY_ZNP_BAUDRATE, &(_configuration.znp_baudrate), CONF_VAL_INT);
@@ -147,6 +151,7 @@ uint8_t zg_conf_init(char *conf_path)
 void zg_conf_shutdown()
 {
     ZG_VAR_FREE(_configuration.network_key_path);
+    ZG_VAR_FREE(_configuration.zll_master_key_path);
     ZG_VAR_FREE(_configuration.device_list_path);
     memset(&_configuration, 0, sizeof(_configuration));
 }
@@ -164,6 +169,11 @@ int zg_conf_get_znp_baudrate()
 const char *zg_conf_get_network_key_path()
 {
     return _configuration.network_key_path;
+}
+
+const char *zg_conf_get_zll_master_key_path()
+{
+    return _configuration.zll_master_key_path;
 }
 
 const char *zg_conf_get_device_list_path()

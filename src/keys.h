@@ -23,11 +23,25 @@ void zg_keys_shutdown();
 uint8_t *zg_keys_network_key_get();
 
 /**
- * \brief Get the size of the network key
- *  This function main purpose is ti be used with zg_keys_network_key_get
+ * \brief Return the ZLL master key, previously loaded by zg_keys_init
+ * \return A pointer on the table containing the ZLL master key if key has been
+ * loaded, otherwise NULL
+ */
+uint8_t *zg_keys_zll_master_key_get();
+
+/**
+ * \brief Return the ZHA master key, previously loaded by zg_keys_init
+ * \return A pointer on the table containing the ZHA master key if key has been
+ * loaded, otherwise NULL
+ */
+uint8_t *zg_keys_zha_master_key_get();
+
+/**
+ * \brief Get the size of keys
+ *  This function main purpose is to be used with zg_keys_network_key_get
  * \return The network key size
  */
-uint8_t zg_keys_network_key_size_get();
+uint8_t zg_keys_size_get();
 
 /**
  * \brief Delete the currently used network key

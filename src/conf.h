@@ -8,6 +8,7 @@ void zg_conf_shutdown();
 const char *zg_conf_get_znp_device_path();
 int zg_conf_get_znp_baudrate();
 const char *zg_conf_get_network_key_path();
+const char *zg_conf_get_zll_master_key_path();
 const char *zg_conf_get_device_list_path();
 
 
