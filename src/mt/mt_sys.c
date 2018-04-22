@@ -369,6 +369,15 @@ void zg_mt_sys_nv_write_nwk_key(SyncActionCb cb)
     _sys_osal_nv_write(0x62, 0, zg_keys_size_get(), zg_keys_network_key_get());
 }
 
+void zg_mt_sys_nv_write_ext_pan_id(SyncActionCb cb)
+{
+    uint64_t ext_pan = 0xabcdabcdabcdabcd;
+    INF("Setting extended PAN ID");
+
+    sync_action_cb = cb;
+    _sys_osal_nv_write(0x2D, 0, 8, (uint8_t *)&ext_pan);
+}
+
 void zg_mt_sys_check_ext_addr(SyncActionCb cb)
 {
     ZgMtMsg msg;

@@ -102,6 +102,7 @@ static ZgAlState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
     {zg_mt_sys_reset_dongle, _general_init_cb},
     {zg_mt_sys_nv_write_nwk_key, _general_init_cb},
+    {zg_mt_sys_nv_write_ext_pan_id, _general_init_cb},
     {zg_mt_sys_reset_dongle, _general_init_cb},
     {zg_mt_sys_check_ext_addr, _general_init_cb},
     {zg_mt_sys_nv_write_coord_flag, _general_init_cb},

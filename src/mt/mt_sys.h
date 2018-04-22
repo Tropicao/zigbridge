@@ -104,5 +104,6 @@ uint64_t zg_mt_sys_get_ext_addr(void);
  */
 void zg_mt_sys_nv_write_channel(uint8_t channel, SyncActionCb cb);
 
+void zg_mt_sys_nv_write_ext_pan_id(SyncActionCb cb);
 #endif
 
