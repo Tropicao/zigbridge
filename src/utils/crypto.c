@@ -32,7 +32,9 @@ void zg_crypto_shutdown(void)
 uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uint8_t *encrypted)
 {
     EVP_CIPHER_CTX *ctx = NULL;
+    int index = 0;
     int outlen;
+    uint8_t buffer[1024] = {0};
 
     if(!data || size <= 0)
     {
@@ -51,12 +53,43 @@ uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uin
         ERR("Cannot encrypt data : provided key is empty");
         return -1;
     }
+    DBG("Data to encrypt :");
+    for(index = 0; index < size; index++)
+        DBG("[%d] 0x%02X", index, data[index]);
+
+    DBG("Key used to encrypt :");
+    for(index = 0; index < size; index++)
+        DBG("[%d] 0x%02X", index, key[index]);
+
     ctx = EVP_CIPHER_CTX_new();
-    EVP_CIPHER_CTX_init(ctx);
-    EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL);
-    EVP_EncryptUpdate(ctx, encrypted, &outlen, data, size);
-    EVP_EncryptFinal_ex(ctx, encrypted + outlen, &outlen);
+    if(!ctx)
+    {
+        ERR("Cannot initialize cryptographic context");
+        return -1;
+    }
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    if(EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL) !=1)
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+
+    if(EVP_EncryptUpdate(ctx, buffer, &outlen, data, size) != 1)
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+
+    if(EVP_EncryptFinal_ex(ctx, buffer + outlen, &outlen)!=1)
+    {
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
+
     DBG("Stored %d bytes of encrypted data", outlen);
+
+    memcpy(encrypted, buffer, zg_keys_size_get());
     EVP_CIPHER_CTX_free(ctx);
 
     return 0;

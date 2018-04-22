@@ -12,6 +12,8 @@
 #include <jansson.h>
 #include "ipc.h"
 #include "utils.h"
+#include "crypto.h"
+#include "keys.h"
 
 /********************************
  *          Constants           *
@@ -85,6 +87,7 @@ static uint16_t _zll_out_clusters[] = {
 static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t);
 
 static uint32_t _interpan_transaction_identifier = 0;
+static uint32_t _touchlink_response_identifier = 0;
 
 /********************************
  *          Internal            *
@@ -355,9 +358,30 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
  *   ZLL messages callbacks     *
  *******************************/
 
-static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data __attribute__((unused)), int len __attribute__((unused)))
+static void _test_encryption()
+{
+    uint8_t nwk_key_encrypted[16] = {0};
+    
+    uint8_t index = 0;
+    if(zg_keys_test_nwk_key_encryption_zll(nwk_key_encrypted) != 0)
+    {
+        ERR("Network key encryption failed");
+        return;
+    }
+
+    DBG("Network key (encrypted) : ");
+    for(index = 0; index < 16; index++)
+        DBG("[%d] 0x%02X", index, nwk_key_encrypted[index]);
+}
+
+
+
+static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
 {
     INF("A device has sent a scan response");
+    memcpy(&_touchlink_response_identifier, data + 3 + 10, sizeof(_touchlink_response_identifier));
+    DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
+    _test_encryption();
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
 }

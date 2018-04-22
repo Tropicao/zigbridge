@@ -10,6 +10,7 @@
 #include "keys.h"
 #include "conf.h"
 #include "utils.h"
+#include "crypto.h"
 
 #define KEY_SIZE            16
 
@@ -84,29 +85,24 @@ uint8_t *_generate_new_network_key()
     return result;
 }
 
-void _load_key(KeyType type)
+uint8_t *_load_key(KeyType type)
 {
     int fd = -1;
-    uint8_t *key_table;
+    uint8_t *key_table = NULL;
     const char *key_path;
 
     switch(type)
     {
         case KEY_NWK_KEY:
-            key_table = nwk_key;
             key_path = zg_conf_get_network_key_path();
             break;
         case KEY_ZLL_MASTER_KEY:
-            key_table = zll_master_key;
             key_path = zg_conf_get_zll_master_key_path();
             break;
         default:
-            return;
+            return NULL;
             break;
     }
-
-    if(key_table)
-        free(key_table);
 
     fd = open(key_path, O_RDONLY);
     if(fd < 0)
@@ -116,12 +112,13 @@ void _load_key(KeyType type)
             WRN("Key file cannot be opened, generating a new one");
             nwk_key = _generate_new_network_key();
             _store_network_key();
+            return nwk_key;
         }
         else
         {
             WRN("No key file found, abort key loading");
         }
-            return;
+        return NULL;
     }
 
     key_table = calloc(KEY_SIZE, sizeof(uint8_t));
@@ -137,22 +134,31 @@ void _load_key(KeyType type)
         ZG_VAR_FREE(key_table);
     }
     close(fd);
-    return;
+    return key_table;
 }
 
 void _load_nwk_key(void)
 {
-    _load_key(KEY_NWK_KEY);
+    nwk_key = _load_key(KEY_NWK_KEY);
+    DBG("Network key loaded");
 }
 
 void _load_zll_master_key(void)
 {
-    _load_key(KEY_ZLL_MASTER_KEY);
+    zll_master_key = _load_key(KEY_ZLL_MASTER_KEY);
+    DBG("ZLL master key loaded");
 }
+
+uint8_t _encrypt_key(uint8_t *payload, uint8_t *key, uint8_t *encrypted)
+{
+    return zg_crypto_encrypt_aes_ecb(payload, KEY_SIZE, key, encrypted);
+}
+
 
 void zg_keys_init()
 {
     _log_domain = zg_logs_domain_register("zg_keys", ZG_COLOR_LIGHTRED);
+    zg_crypto_init();
     if(!nwk_key)
         _load_nwk_key();
     if(!zll_master_key)
@@ -161,6 +167,7 @@ void zg_keys_init()
 
 void zg_keys_shutdown()
 {
+    zg_crypto_init();
     ZG_VAR_FREE(nwk_key);
     ZG_VAR_FREE(zll_master_key);
 }
@@ -194,3 +201,73 @@ uint8_t zg_keys_check_network_key_exists(void)
 {
     return !access(zg_conf_get_network_key_path(), F_OK);
 }
+
+uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint32_t response_id, uint8_t *encrypted)
+{
+    uint8_t transport_key_plain[16] = {0};
+    uint8_t transport_key_encrypted[16] = {0};
+    uint8_t *nwk_key_plain = zg_keys_network_key_get();
+    uint8_t index = 0;
+
+    if(!encrypted)
+    {
+        ERR("Cannot compute encrypted network key : encrypted variable is not allocated");
+        return -1;
+    }
+
+    memcpy(transport_key_plain + index, &transaction_id, sizeof(transaction_id));
+    index += sizeof(transaction_id);
+    memcpy(transport_key_plain + index, &transaction_id, sizeof(transaction_id));
+    index += sizeof(transaction_id);
+    memcpy(transport_key_plain + index, &response_id, sizeof(response_id));
+    index += sizeof(response_id);
+    memcpy(transport_key_plain + index, &response_id, sizeof(response_id));
+
+    if(_encrypt_key(transport_key_plain, zg_keys_zll_master_key_get(), transport_key_encrypted) != 0
+            || _encrypt_key(nwk_key_plain, transport_key_encrypted, encrypted) !=0)
+    {
+        ERR("Network key encryption failed");
+        return 1;
+    }
+
+    return 0;
+
+}
+
+uint8_t zg_keys_test_nwk_key_encryption_zll(uint8_t *encrypted)
+{
+    uint8_t transport_key_plain[16] = {0};
+    uint8_t transport_key_encrypted[16] = {0};
+    uint8_t index = 0;
+
+    /* Test data */
+    uint32_t interpan_transaction_identifier = 0x0920aa3e;
+    uint32_t touchlink_response_identifier = 0xb12f7688;
+    uint8_t nwk_key_plain[16] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00};
+
+    if(!encrypted)
+    {
+        ERR("Cannot compute encrypted network key : encrypted variable is not allocated");
+        return -1;
+    }
+
+    memcpy(transport_key_plain + index, &interpan_transaction_identifier, sizeof(interpan_transaction_identifier));
+    index += sizeof(interpan_transaction_identifier);
+    memcpy(transport_key_plain + index, &interpan_transaction_identifier, sizeof(interpan_transaction_identifier));
+    index += sizeof(interpan_transaction_identifier);
+    memcpy(transport_key_plain + index, &touchlink_response_identifier, sizeof(touchlink_response_identifier));
+    index += sizeof(touchlink_response_identifier);
+    memcpy(transport_key_plain + index, &touchlink_response_identifier, sizeof(touchlink_response_identifier));
+
+    if(_encrypt_key(transport_key_plain, zg_keys_zll_master_key_get(), transport_key_encrypted) != 0
+            || _encrypt_key(nwk_key_plain, transport_key_encrypted, encrypted) !=0)
+    {
+        ERR("Test encryption failed");
+        return 1;
+    }
+
+    return 0;
+}
+
+
+

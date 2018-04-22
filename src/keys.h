@@ -57,5 +57,21 @@ void zg_keys_network_key_del(void);
  */
 uint8_t zg_keys_check_network_key_exists(void);
 
+/**
+ * \brief Return the encrypted version of network key, processed as stated in
+ * Zigbee specification
+ * \param transport_key The key which must be used to encrypt the network key
+ * \param encrypted the variable in which to store the encrypted key
+ * \return 0 if everything went well, otherwise 0
+ */
+uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint32_t response_id, uint8_t *encrypted);
+
+/**
+ * \brief Function used to test network key encryption for a key exchange in ZLL
+ * context. Please refer to "Zigbee Light Link Standard", section 9, Annexe A to
+ * get an overview of the test
+ */
+uint8_t zg_keys_test_nwk_key_encryption_zll(uint8_t *encrypted);
+
 #endif
 
