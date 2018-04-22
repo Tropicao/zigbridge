@@ -32,7 +32,6 @@ void zg_crypto_shutdown(void)
 uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uint8_t *encrypted)
 {
     EVP_CIPHER_CTX *ctx = NULL;
-    int index = 0;
     int outlen;
     uint8_t buffer[1024] = {0};
 
@@ -53,13 +52,6 @@ uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uin
         ERR("Cannot encrypt data : provided key is empty");
         return -1;
     }
-    DBG("Data to encrypt :");
-    for(index = 0; index < size; index++)
-        DBG("[%d] 0x%02X", index, data[index]);
-
-    DBG("Key used to encrypt :");
-    for(index = 0; index < size; index++)
-        DBG("[%d] 0x%02X", index, key[index]);
 
     ctx = EVP_CIPHER_CTX_new();
     if(!ctx)

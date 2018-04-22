@@ -25,15 +25,17 @@
 /********** Format **********/
 
 /* ZLL command list */
-#define COMMAND_SCAN_REQUEST                    0x00
-#define COMMAND_SCAN_RESPONSE                   0x01
-#define COMMAND_DEVICE_INFORMATION_REQUEST      0x02
-#define COMMAND_IDENTIFY_REQUEST                0x06
-#define COMMAND_FACTORY_NEW_REQUEST             0x07
-#define COMMAND_NETWORK_START_REQUEST           0x10
-#define COMMAND_NETWORK_JOIN_ROUTER_REQUEST     0x12
-#define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST 0x14
-#define COMMAND_NETWORK_UPDATE_REQUEST          0x16
+#define COMMAND_SCAN_REQUEST                        0x00
+#define COMMAND_SCAN_RESPONSE                       0x01
+#define COMMAND_DEVICE_INFORMATION_REQUEST          0x02
+#define COMMAND_IDENTIFY_REQUEST                    0x06
+#define COMMAND_FACTORY_NEW_REQUEST                 0x07
+#define COMMAND_NETWORK_START_REQUEST               0x10
+#define COMMAND_NETWORK_JOIN_ROUTER_REQUEST         0x12
+#define COMMAND_NETWORK_JOIN_ROUTER_RESPONSE        0x13
+#define COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST     0x14
+#define COMMAND_NETWORK_JOIN_END_DEVICE_RESPONSE    0x15
+#define COMMAND_NETWORK_UPDATE_REQUEST              0x16
 
 /* Scan Request frame format */
 #define LEN_SCAN_REQUEST                        6
@@ -47,6 +49,9 @@
 
 /* Factory reset request frame format */
 #define LEN_FACTORY_RESET_REQUEST               4
+
+/* Network join end device request frame format */
+#define LEN_END_DEVICE_JOIN_REQUEST             47
 
 /********** Application data **********/
 
@@ -174,6 +179,54 @@ void _zll_send_factory_reset_request(SyncActionCb cb)
 
 }
 
+static void _zll_send_end_device_join_request(SyncActionCb cb)
+{
+    char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
+    uint64_t extended_pan_identifier = 0xABCDABCDABCDABCD;
+    uint8_t key_index = 4;
+    uint8_t nwk_key[16] = {0};
+    uint8_t nwk_update_identifier = 0x0B; /* TBD */
+    uint8_t logical_channel = 0xB;
+    uint16_t pan_id = 0xABCD;
+    uint16_t nwk_addr = 0x7171;
+    int i = 0;
+    uint8_t index = 0;
+
+    zg_keys_get_encrypted_network_key_for_zll(_interpan_transaction_identifier, _touchlink_response_identifier, nwk_key);
+    INF("Sending End Device Join request");
+
+    memcpy(zll_data + index, &_interpan_transaction_identifier, sizeof(_interpan_transaction_identifier));
+    index += sizeof(_interpan_transaction_identifier);
+    memcpy(zll_data + index, &extended_pan_identifier, sizeof(extended_pan_identifier));
+    index += sizeof(extended_pan_identifier);
+    memcpy(zll_data + index, &key_index, sizeof(key_index));
+    index += sizeof(key_index);
+    memcpy(zll_data + index, &nwk_key, sizeof(nwk_key));
+    index += sizeof(nwk_key);
+    memcpy(zll_data + index, &nwk_update_identifier, sizeof(nwk_update_identifier));
+    index += sizeof(nwk_update_identifier);
+    memcpy(zll_data + index, &logical_channel, sizeof(logical_channel));
+    index += sizeof(logical_channel);
+    memcpy(zll_data + index, &pan_id, sizeof(pan_id));
+    index += sizeof(pan_id);
+    memcpy(zll_data + index, &nwk_addr, sizeof(nwk_addr));
+    index += sizeof(nwk_addr);
+
+    DBG("About to send encrypted key :");
+    for(i = 0; i < 16; i++)
+        DBG("[%d] 0x%02X", i, nwk_key[i]);
+
+    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ZCL_BROADCAST_INTER_PAN,
+            ZLL_ENDPOINT,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+            COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST,
+            zll_data,
+            LEN_END_DEVICE_JOIN_REQUEST,
+            cb);
+}
+
 
 /********************************
  *    Touchlink state machine   *
@@ -213,7 +266,8 @@ enum
     EVENT_SCAN_RESPONSE_RECEIVED,
     EVENT_IDENTIFY_REQUEST_SENT,
     EVENT_IDENTIFY_DELAY_PAST,
-    EVENT_FACTORY_RESET_SENT
+    EVENT_FACTORY_RESET_SENT,
+    EVENT_JOIN_END_DEVICE_RESPONSE
 };
 
 /*** States entry functions ***/
@@ -322,7 +376,7 @@ static void _factory_reset_sent_cb(void)
 
 static void _send_factory_reset_request(void)
 {
-    _zll_send_factory_reset_request(_factory_reset_sent_cb);
+    _zll_send_end_device_join_request(_factory_reset_sent_cb);
 }
 
 static ZgSmStateData _touchlink_states[] = {
@@ -348,6 +402,7 @@ static ZgSmTransitionData _touchlink_transitions[] = {
     {STATE_IDENTIY, EVENT_IDENTIFY_REQUEST_SENT, STATE_WAIT_IDENTIFY},
     {STATE_WAIT_IDENTIFY, EVENT_IDENTIFY_DELAY_PAST, STATE_FACTORY_RESET},
     {STATE_FACTORY_RESET, EVENT_FACTORY_RESET_SENT, STATE_ENABLE_SECURITY},
+    {STATE_FACTORY_RESET, EVENT_JOIN_END_DEVICE_RESPONSE, STATE_ENABLE_SECURITY},
     {STATE_ENABLE_SECURITY, EVENT_SECURITY_ENABLED, STATE_SHUTDOWN}
 };
 static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitions)/sizeof(ZgSmTransitionData);
@@ -358,31 +413,24 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
  *   ZLL messages callbacks     *
  *******************************/
 
-static void _test_encryption()
-{
-    uint8_t nwk_key_encrypted[16] = {0};
-    
-    uint8_t index = 0;
-    if(zg_keys_test_nwk_key_encryption_zll(nwk_key_encrypted) != 0)
-    {
-        ERR("Network key encryption failed");
-        return;
-    }
-
-    DBG("Network key (encrypted) : ");
-    for(index = 0; index < 16; index++)
-        DBG("[%d] 0x%02X", index, nwk_key_encrypted[index]);
-}
-
-
-
 static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
 {
     INF("A device has sent a scan response");
     memcpy(&_touchlink_response_identifier, data + 3 + 10, sizeof(_touchlink_response_identifier));
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
-    _test_encryption();
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
+    return 0;
+}
+
+static uint8_t _process_join_end_device_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
+{
+    uint8_t *payload = data;
+    INF("A device has sent a end device join response");
+
+    if(payload[8] != 0)
+        WRN("Error making device to join the network (%d)", payload[8]);
+
+    zg_sm_send_event(_touchlink_sm, EVENT_JOIN_END_DEVICE_RESPONSE);
     return 0;
 }
 
@@ -395,6 +443,9 @@ static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_
     {
         case COMMAND_SCAN_RESPONSE:
             _process_scan_response(short_addr, data, len);
+            break;
+        case COMMAND_NETWORK_JOIN_END_DEVICE_RESPONSE:
+            _process_join_end_device_response(short_addr, data, len);
             break;
         default:
             WRN("Unsupported ZLL touchlink commissioning command 0x%02X", data[2]);
