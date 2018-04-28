@@ -46,6 +46,24 @@ typedef enum
     EXT_ADDR_MODE = 3,
 }DstAddrMode;
 
+typedef struct __attribute__((packed))
+{
+    uint16_t group_id;
+    uint16_t cluster;
+    uint8_t src_addr_mode;
+    uint64_t src_addr;
+    uint8_t src_endpoint;
+    uint16_t pan_id;
+    uint8_t dst_endpoint;
+    uint8_t was_broadcast;
+    uint8_t link_quality;
+    uint8_t sec;
+    uint32_t timestamp;
+    uint8_t trans;
+    uint16_t len;
+} IncomingMstExtData;
+
+
 /********************************
  *       Static variables       *
  *******************************/
@@ -226,71 +244,38 @@ static uint8_t _incoming_msg_cb(ZgMtMsg *msg)
 
 static uint8_t _incoming_msg_ext_cb(ZgMtMsg *msg)
 {
-    uint16_t group_id;
-    uint16_t cluster;
-    uint8_t src_addr_mode;
-    uint64_t src_addr;
-    uint8_t src_endpoint;
-    uint16_t pan_id;
-    uint8_t dst_endpoint;
-    uint8_t was_broadcast;
-    uint8_t link_quality;
-    uint8_t sec;
-    uint32_t timestamp;
-    uint8_t trans;
-    uint8_t len;
-    uint8_t index = 0;
+    IncomingMstExtData parsed_data;
 
     if(!msg || !msg->data)
     {
         WRN("Cannot extract AF_INCOMING_MSG AREQ data");
+        return 1;
     }
-    else
+
+    memcpy(&parsed_data, msg->data, sizeof(parsed_data));
+    INF("AF message received");
+    INF("Group id : 0x%04X", parsed_data.group_id);
+    INF("Cluster id : 0x%04X", parsed_data.cluster);
+    INF("Source addr mode : 0x%02X", parsed_data.src_addr_mode);
+    INF("Source addr : 0x%"PRIx64, parsed_data.src_addr);
+    INF("Source Endpoint : 0x%02X", parsed_data.src_endpoint);
+    INF("Source PAN id : 0x%04X", parsed_data.pan_id);
+    INF("Dest Endpoint : 0x%02X", parsed_data.dst_endpoint);
+    INF("Was Broadcast : 0x%02X", parsed_data.was_broadcast);
+    INF("Link Quality : 0x%02X", parsed_data.link_quality);
+    INF("Security Use : 0x%02X", parsed_data.sec);
+    INF("Timestamp : 0x%08X", parsed_data.timestamp);
+    INF("Transaction sequence num : 0x%02X", parsed_data.trans);
+    INF("Length : %d", parsed_data.len);
+    /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
+    */
+    if(_af_incoming_msg_cb)
     {
-        memcpy(&group_id, msg->data + index, sizeof(group_id));
-        index += sizeof(group_id);
-        memcpy(&cluster, msg->data + index, sizeof(cluster));
-        index += sizeof(cluster);
-        memcpy(&src_addr_mode, msg->data + index, sizeof(src_addr_mode));
-        index += sizeof(src_addr_mode);
-        memcpy(&src_addr, msg->data + index, sizeof(src_addr));
-        index += sizeof(src_addr);
-        memcpy(&src_endpoint, msg->data + index, sizeof(src_endpoint));
-        index += sizeof(src_endpoint);
-        memcpy(&pan_id, msg->data + index, sizeof(pan_id));
-        index += sizeof(pan_id);
-        memcpy(&dst_endpoint, msg->data + index, sizeof(dst_endpoint));
-        index += sizeof(dst_endpoint);
-        memcpy(&was_broadcast, msg->data + index, sizeof(was_broadcast));
-        index += sizeof(was_broadcast);
-        memcpy(&link_quality, msg->data + index, sizeof(link_quality));
-        index += sizeof(link_quality);
-        memcpy(&sec, msg->data + index, sizeof(sec));
-        index += sizeof(sec);
-        memcpy(&timestamp, msg->data + index, sizeof(timestamp));
-        index += sizeof(timestamp);
-        memcpy(&trans, msg->data + index, sizeof(trans));
-        index += sizeof(trans);
-        memcpy(&len, msg->data + index, sizeof(len));
-        index += sizeof(len);
-        INF("AF message received");
-        INF("Group id : 0x%04X", group_id);
-        INF("Cluster id : 0x%04X", cluster);
-        INF("Source addr mode : 0x%02X", src_addr_mode);
-        INF("Source addr : 0x%"PRIx64, src_addr);
-        INF("Source Endpoint : 0x%02X", src_endpoint);
-        INF("Source PAN id : 0x%04X", pan_id);
-        INF("Dest Endpoint : 0x%02X", dst_endpoint);
-        INF("Was Broadcast : 0x%02X", was_broadcast);
-        INF("Link Quality : 0x%02X", link_quality);
-        INF("Security Use : 0x%02X", sec);
-        INF("Timestamp : 0x%08X", timestamp);
-        INF("Transaction sequence num : 0x%02X", trans);
-        INF("Length : %d", len);
-        /* TODO : add parsing for huge buffer, ie with multiple AF_DATA_RETRIEVE
-        */
-        if(_af_incoming_msg_cb)
-            _af_incoming_msg_cb(src_addr, dst_endpoint, cluster, msg->data + index, len);
+        _af_incoming_msg_cb(parsed_data.src_addr,
+                parsed_data.dst_endpoint,
+                parsed_data.cluster,
+                msg->data + sizeof(parsed_data),
+                parsed_data.len);
     }
 
     return 0;
