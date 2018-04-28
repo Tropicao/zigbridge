@@ -367,7 +367,7 @@ static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_
     int i;
     for (i = 0; i< len; i++)
         INF("Data %d : 0x%02X", i, data[i]);
-    switch(data[3])
+    switch(data[2])
     {
         case COMMAND_SCAN_RESPONSE:
             _process_scan_response(short_addr, data, len);
