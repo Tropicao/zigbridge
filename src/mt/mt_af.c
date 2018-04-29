@@ -510,6 +510,7 @@ void zg_mt_af_register_incoming_message_callback(AfIncomingMessageCb cb)
 }
 
 void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
+                                    AddrMode mode,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
                                     uint8_t dst_endpoint,
@@ -518,11 +519,11 @@ void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
                                     void *data,
                                     SyncActionCb cb)
 {
-    uint8_t addr_mode = SHORT_ADDR_MODE;
     uint8_t options = DATA_REQUEST_DEFAULT_OPTIONS;
     uint8_t radius = DATA_REQUEST_DEFAULT_RADIUS;
     uint8_t *buffer = NULL;
     uint8_t index = 0;
+    uint8_t addr_mode = mode;
     ZgMtMsg msg;
 
     if(len == 0 || !data)
@@ -536,7 +537,8 @@ void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
     msg.type = ZG_MT_CMD_SREQ;
     msg.subsys = ZG_MT_SUBSYS_AF;
     msg.cmd = AF_DATA_REQUEST_EXT;
-    msg.len = sizeof(addr_mode) \
+
+    msg.len = sizeof(uint8_t) \
               + sizeof(dst_addr) \
               + sizeof(dst_endpoint) \
               + sizeof(dst_pan) \

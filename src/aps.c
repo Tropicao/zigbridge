@@ -204,7 +204,8 @@ void zg_aps_register_endpoint(  uint8_t endpoint,
             cb);
 }
 
-void zg_aps_send_data(  uint16_t dst_addr,
+void zg_aps_send_data(  uint64_t dst_addr,
+                        AddrMode addr_mode,
                         uint16_t dst_pan,
                         uint8_t src_endpoint,
                         uint8_t dst_endpoint,
@@ -243,6 +244,7 @@ void zg_aps_send_data(  uint16_t dst_addr,
     }
 
     zg_mt_af_send_data_request_ext(dst_addr,
+            addr_mode,
             dst_pan,
             src_endpoint,
             dst_endpoint,

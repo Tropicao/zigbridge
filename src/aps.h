@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "types.h"
+#include "mt_af.h"
 
 /* APS callbacks, registered by proper applications */
 typedef void (*ApsMsgCb)(uint16_t addr, uint16_t cluster, void *data, int len);
@@ -70,7 +71,8 @@ void zg_aps_register_endpoint(  uint8_t endpoint,
  * \param len The command payload len
  * \param cb A callback to be called when data has been sent to ZNP
  */
-void zg_aps_send_data(  uint16_t dst_addr,
+void zg_aps_send_data(  uint64_t dst_addr,
+                        AddrMode addr_mode,
                         uint16_t dst_pan,
                         uint8_t src_endpoint,
                         uint8_t dst_endpoint,

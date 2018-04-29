@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include "types.h"
 
+typedef enum
+{
+    ADDR_MODE_16_BITS = 2,
+    ADDR_MODE_64_BITS = 3,
+} AddrMode;
+
 typedef void (*AfIncomingMessageCb)(uint16_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len);
 
 /**
@@ -101,6 +107,7 @@ void zg_mt_af_register_incoming_message_callback(AfIncomingMessageCb cb);
  * data sending request
  */
 void zg_mt_af_send_data_request_ext(   uint64_t dst_addr,
+                                    AddrMode mode,
                                     uint16_t dst_pan,
                                     uint8_t src_endpoint,
                                     uint8_t dst_endpoint,

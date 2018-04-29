@@ -126,6 +126,7 @@ void _zll_send_scan_request(SyncActionCb cb)
     zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
 
     zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ADDR_MODE_16_BITS,
             ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
             ZCL_BROADCAST_ENDPOINT,
@@ -148,6 +149,7 @@ void _zll_send_identify_request(SyncActionCb cb)
     memcpy(zll_data + INDEX_IDENTIFY_DURATION, &identify_duration, 2);
 
     zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ADDR_MODE_16_BITS,
             ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
             ZCL_BROADCAST_ENDPOINT,
@@ -168,6 +170,7 @@ void _zll_send_factory_reset_request(SyncActionCb cb)
             sizeof(_interpan_transaction_identifier));
 
     zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+            ADDR_MODE_16_BITS,
             ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
             ZCL_BROADCAST_ENDPOINT,
@@ -183,6 +186,7 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
 {
     char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
     uint64_t extended_pan_identifier = 0x2211FFEEDDCCBBAA;
+    uint64_t dest_addr = 0x00178801011514C4;
     uint8_t key_index = 4;
     uint8_t nwk_key[16] = {0};
     uint8_t nwk_update_identifier = 0x0C; /* TBD */
@@ -216,7 +220,8 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
     for(i = 0; i < 16; i++)
         DBG("[%d] 0x%02X", i, nwk_key[i]);
 
-    zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
+    zg_aps_send_data(dest_addr,
+            ADDR_MODE_64_BITS,
             ZCL_BROADCAST_INTER_PAN,
             ZLL_ENDPOINT,
             ZCL_BROADCAST_ENDPOINT,

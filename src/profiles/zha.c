@@ -243,6 +243,7 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
     uint8_t command = state ? COMMAND_ON:COMMAND_OFF;
 
     zg_aps_send_data(addr,
+            ADDR_MODE_16_BITS,
             0xABCD,
             ZHA_ENDPOINT,
             0x0B,
@@ -278,6 +279,7 @@ void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y, uint8_t d
     memcpy(command+4, &duration, 2);
 
     zg_aps_send_data(short_addr,
+            ADDR_MODE_16_BITS,
             0xABCD,
             ZHA_ENDPOINT,
             0x0B,

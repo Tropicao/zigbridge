@@ -155,6 +155,7 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
             sizeof(short_addr));
 
     zg_aps_send_data(short_addr,
+            ADDR_MODE_16_BITS,
             0xABCD,
             ZCL_ZDP_ENDPOINT,
             ZCL_ZDP_ENDPOINT,
@@ -180,6 +181,7 @@ void zg_zdp_query_simple_descriptor(uint16_t short_addr, uint8_t endpoint, SyncA
     zdp_data[INDEX_ENDPOINT] = endpoint;
 
     zg_aps_send_data(short_addr,
+            ADDR_MODE_16_BITS,
             0xABCD,
             ZCL_ZDP_ENDPOINT,
             ZCL_ZDP_ENDPOINT,
