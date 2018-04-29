@@ -24,6 +24,8 @@
 #define DEMO_DEVICE_ID              0
 #define GATEWAY_ADDR                0x0000
 #define GATEWAY_CHANNEL             11
+#define GATEWAY_PAN_ID              0xCDAB
+#define GATEWAY_EXT_PAN_ID          0x2211FFEEDDCCBBAA
 
 /*** For demo purpose, pre-calculated values */
 #define X_RED       65535
@@ -64,6 +66,17 @@ static void _write_clear_flag(SyncActionCb cb)
         cb();
 }
 
+static void _set_pan_id(SyncActionCb cb)
+{
+    zg_mt_sys_nv_set_pan_id(GATEWAY_PAN_ID, cb);
+}
+
+static void _set_ext_pan_id(SyncActionCb cb)
+{
+    uint64_t ext_pan_id = GATEWAY_EXT_PAN_ID;
+    zg_mt_sys_nv_set_ext_pan_id((uint8_t *)&ext_pan_id, cb);
+}
+
 static void _write_channel(SyncActionCb cb)
 {
     zg_mt_sys_nv_write_channel(GATEWAY_CHANNEL, cb);
@@ -102,11 +115,11 @@ static ZgAlState _init_states_reset[] = {
     {_write_clear_flag, _general_init_cb},
     {zg_mt_sys_reset_dongle, _general_init_cb},
     {zg_mt_sys_nv_write_nwk_key, _general_init_cb},
-    {zg_mt_sys_nv_write_ext_pan_id, _general_init_cb},
+    {_set_ext_pan_id, _general_init_cb},
     {zg_mt_sys_reset_dongle, _general_init_cb},
     {zg_mt_sys_check_ext_addr, _general_init_cb},
     {zg_mt_sys_nv_write_coord_flag, _general_init_cb},
-    {zg_mt_sys_nv_set_pan_id, _general_init_cb},
+    {_set_pan_id, _general_init_cb},
     {_write_channel, _general_init_cb},
     {zg_mt_sys_ping, _general_init_cb},
     {zg_mt_util_af_subscribe_cmd, _general_init_cb},

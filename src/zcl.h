@@ -2,6 +2,7 @@
 #define ZG_ZCL_H
 
 #define ZCL_BROADCAST_SHORT_ADDR                0xFFFF
+#define ZCL_NO_ADDRESS                          0xFFFE
 #define ZCL_BROADCAST_ENDPOINT                  0xFE
 #define ZCL_BROADCAST_INTER_PAN                 0xFFFF
 

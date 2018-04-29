@@ -182,13 +182,13 @@ void _zll_send_factory_reset_request(SyncActionCb cb)
 static void _zll_send_end_device_join_request(SyncActionCb cb)
 {
     char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
-    uint64_t extended_pan_identifier = 0xABCDABCDABCDABCD;
+    uint64_t extended_pan_identifier = 0x2211FFEEDDCCBBAA;
     uint8_t key_index = 4;
     uint8_t nwk_key[16] = {0};
-    uint8_t nwk_update_identifier = 0x0B; /* TBD */
+    uint8_t nwk_update_identifier = 0x0C; /* TBD */
     uint8_t logical_channel = 0xB;
-    uint16_t pan_id = 0xABCD;
-    uint16_t nwk_addr = 0x7171;
+    uint16_t pan_id = 0xCDBA;
+    uint16_t nwk_addr = 0x22;
     int i = 0;
     uint8_t index = 0;
 
@@ -417,6 +417,7 @@ static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)
 {
     INF("A device has sent a scan response");
     memcpy(&_touchlink_response_identifier, data + 3 + 10, sizeof(_touchlink_response_identifier));
+    DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
     return 0;
@@ -427,8 +428,8 @@ static uint8_t _process_join_end_device_response(uint16_t short_addr __attribute
     uint8_t *payload = data;
     INF("A device has sent a end device join response");
 
-    if(payload[8] != 0)
-        WRN("Error making device to join the network (%d)", payload[8]);
+    if(payload[7] != 0)
+        WRN("Error making device to join the network (%d)", payload[7]);
 
     zg_sm_send_event(_touchlink_sm, EVENT_JOIN_END_DEVICE_RESPONSE);
     return 0;

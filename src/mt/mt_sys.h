@@ -74,7 +74,7 @@ void zg_mt_sys_nv_write_enable_security(SyncActionCb cb);
  * \brief Write in persistent memory the PAN id to be used
  * \param cb The callback to be called when command has been processed by ZNP
  */
-void zg_mt_sys_nv_set_pan_id(SyncActionCb cb);
+void zg_mt_sys_nv_set_pan_id(uint16_t pan_id, SyncActionCb cb);
 
 /**
  * \brief Write in persistent memory the network key to be used for
@@ -104,6 +104,6 @@ uint64_t zg_mt_sys_get_ext_addr(void);
  */
 void zg_mt_sys_nv_write_channel(uint8_t channel, SyncActionCb cb);
 
-void zg_mt_sys_nv_write_ext_pan_id(SyncActionCb cb);
+void zg_mt_sys_nv_set_ext_pan_id(uint8_t *ext_pan_id, SyncActionCb cb);
 #endif
 

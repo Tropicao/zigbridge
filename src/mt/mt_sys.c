@@ -352,13 +352,11 @@ void zg_mt_sys_nv_write_enable_security(SyncActionCb cb)
     _sys_osal_nv_write(0x64, 0, 1, nv_enable_sec_data);
 }
 
-void zg_mt_sys_nv_set_pan_id(SyncActionCb cb)
+void zg_mt_sys_nv_set_pan_id(uint16_t pan_id, SyncActionCb cb)
 {
-    uint8_t nv_set_pan_id[] = {0xCD, 0xAB};
-
     INF("Setting PAN ID");
     sync_action_cb = cb;
-    _sys_osal_nv_write(0x83, 0, 2, nv_set_pan_id);
+    _sys_osal_nv_write(0x83, 0, 2, (uint8_t *)&pan_id);
 }
 
 void zg_mt_sys_nv_write_nwk_key(SyncActionCb cb)
@@ -369,13 +367,12 @@ void zg_mt_sys_nv_write_nwk_key(SyncActionCb cb)
     _sys_osal_nv_write(0x62, 0, zg_keys_size_get(), zg_keys_network_key_get());
 }
 
-void zg_mt_sys_nv_write_ext_pan_id(SyncActionCb cb)
+void zg_mt_sys_nv_set_ext_pan_id(uint8_t *ext_pan_id, SyncActionCb cb)
 {
-    uint64_t ext_pan = 0xabcdabcdabcdabcd;
     INF("Setting extended PAN ID");
 
     sync_action_cb = cb;
-    _sys_osal_nv_write(0x2D, 0, 8, (uint8_t *)&ext_pan);
+    _sys_osal_nv_write(0x2D, 0, 8, ext_pan_id);
 }
 
 void zg_mt_sys_check_ext_addr(SyncActionCb cb)
