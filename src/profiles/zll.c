@@ -421,7 +421,7 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
 static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
 {
     INF("A device has sent a scan response");
-    memcpy(&_touchlink_response_identifier, data + 3 + 10, sizeof(_touchlink_response_identifier));
+    memcpy(&_touchlink_response_identifier, data + 3 + 9, sizeof(_touchlink_response_identifier));
     DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
