@@ -29,8 +29,12 @@ static uint8_t zha_master_key[] = {
     0x6C, 0x69, 0x61, 0x6E, 0x63, 0x65, 0x30, 0x39
 };
 
-    ;
 static int _log_domain = -1;
+
+static void _dump_key(const char *name, uint8_t *key)
+{
+    DUMP_DATA(name, key, KEY_SIZE);
+}
 
 void _store_network_key()
 {
@@ -207,6 +211,11 @@ uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint3
     uint8_t transport_key_plain[16] = {0};
     uint8_t transport_key_encrypted[16] = {0};
     uint8_t *nwk_key_plain = zg_keys_network_key_get();
+    uint8_t nwk_r[16];
+    uint8_t *master_key = zg_keys_zll_master_key_get();
+    uint8_t zll[16];
+    uint8_t transport_r [4] = {0};
+    uint8_t response_r [4] = {0};
     uint8_t index = 0;
 
     if(!encrypted)
@@ -215,16 +224,30 @@ uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint3
         return -1;
     }
 
-    memcpy(transport_key_plain + index, &transaction_id, sizeof(transaction_id));
-    index += sizeof(transaction_id);
-    memcpy(transport_key_plain + index, &transaction_id, sizeof(transaction_id));
-    index += sizeof(transaction_id);
-    memcpy(transport_key_plain + index, &response_id, sizeof(response_id));
-    index += sizeof(response_id);
-    memcpy(transport_key_plain + index, &response_id, sizeof(response_id));
+    memcpy(transport_r, &transaction_id, 4);
+    memcpy(response_r, &response_id, 4);
+    memcpy(nwk_r, nwk_key_plain, 16);
+    memcpy(zll, master_key, 16);
+    for(index = 0; index < 4; index++)
+        transport_r[3-index] = (transaction_id >> (index * 8)) & 0xFF;
+    for(index = 0; index < 4; index++)
+        response_r[3-index] = (response_id >> (index * 8)) & 0xFF;
 
-    if(_encrypt_key(transport_key_plain, zg_keys_zll_master_key_get(), transport_key_encrypted) != 0
-            || _encrypt_key(nwk_key_plain, transport_key_encrypted, encrypted) !=0)
+    index = 0;
+    memcpy(transport_key_plain + index, transport_r, sizeof(transaction_id));
+    index += sizeof(transaction_id);
+    memcpy(transport_key_plain + index, transport_r, sizeof(transaction_id));
+    index += sizeof(transaction_id);
+    memcpy(transport_key_plain + index, response_r, sizeof(response_id));
+    index += sizeof(response_id);
+    memcpy(transport_key_plain + index, response_r, sizeof(response_id));
+
+    DBG("Transport Key : ");
+    for(index = 0; index < 16; index++)
+        DBG("[%d] 0x%02X", index, transport_key_plain[index]);
+
+    if(_encrypt_key(transport_key_plain, zll, transport_key_encrypted) != 0
+            || _encrypt_key(nwk_r, transport_key_encrypted, encrypted) !=0)
     {
         ERR("Network key encryption failed");
         return 1;
@@ -234,22 +257,17 @@ uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint3
 
 }
 
-uint8_t zg_keys_test_nwk_key_encryption_zll(uint8_t *encrypted)
+uint8_t zg_keys_test_nwk_key_encryption_zll()
 {
     uint8_t transport_key_plain[16] = {0};
     uint8_t transport_key_encrypted[16] = {0};
     uint8_t index = 0;
+    uint8_t encrypted[16] = {0};
 
-    /* Test data */
+    /* Test data : see ZLL specification for dataset */
     uint32_t interpan_transaction_identifier = 0x0920aa3e;
     uint32_t touchlink_response_identifier = 0xb12f7688;
     uint8_t nwk_key_plain[16] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00};
-
-    if(!encrypted)
-    {
-        ERR("Cannot compute encrypted network key : encrypted variable is not allocated");
-        return -1;
-    }
 
     memcpy(transport_key_plain + index, &interpan_transaction_identifier, sizeof(interpan_transaction_identifier));
     index += sizeof(interpan_transaction_identifier);
@@ -266,8 +284,16 @@ uint8_t zg_keys_test_nwk_key_encryption_zll(uint8_t *encrypted)
         return 1;
     }
 
+    _dump_key("Encrypted test result", encrypted);
+
+
     return 0;
 }
+
+
+
+
+
 
 
 

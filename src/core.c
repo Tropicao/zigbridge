@@ -24,7 +24,7 @@
 #define DEMO_DEVICE_ID              0
 #define GATEWAY_ADDR                0x0000
 #define GATEWAY_CHANNEL             11
-#define GATEWAY_PAN_ID              0xCDAB
+#define GATEWAY_PAN_ID              0xABCD
 #define GATEWAY_EXT_PAN_ID          0x2211FFEEDDCCBBAA
 
 /*** For demo purpose, pre-calculated values */
@@ -54,6 +54,7 @@ static void _general_init_cb(void)
     if(zg_al_continue(_init_sm) != 0)
     {
         INF("Core application is initialized");
+        zg_keys_test_nwk_key_encryption_zll();
         _initialized = 1;
     }
 }
@@ -491,6 +492,7 @@ void zg_core_init(uint8_t reset_network)
         zg_keys_network_key_del();
     zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
+    zg_zll_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
     zg_zha_register_temperature_cb(_temperature_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);

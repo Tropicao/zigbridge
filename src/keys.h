@@ -71,7 +71,7 @@ uint8_t zg_keys_get_encrypted_network_key_for_zll(uint32_t transaction_id, uint3
  * context. Please refer to "Zigbee Light Link Standard", section 9, Annexe A to
  * get an overview of the test
  */
-uint8_t zg_keys_test_nwk_key_encryption_zll(uint8_t *encrypted);
+uint8_t zg_keys_test_nwk_key_encryption_zll();
 
 #endif
 

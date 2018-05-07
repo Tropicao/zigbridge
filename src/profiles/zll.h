@@ -10,6 +10,7 @@ void zg_zll_send_identify_request(SyncActionCb cb);
 void zg_zll_send_factory_reset_request(SyncActionCb cb);
 uint8_t zg_zll_start_touchlink(void);
 void zg_zll_switch_bulb_state(void);
+void zg_zll_register_device_ind_callback(void (*cb)(uint16_t short_addr, uint64_t ext_addr));
 
 #endif
 

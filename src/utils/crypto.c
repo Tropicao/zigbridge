@@ -34,6 +34,15 @@ uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uin
     EVP_CIPHER_CTX *ctx = NULL;
     int outlen;
     uint8_t buffer[1024] = {0};
+    uint8_t index = 0;
+
+    DBG("Crypto input :");
+    for(index = 0; index < size; index++)
+        DBG("Data[%d] 0x%02X", index, data[index]);
+    DBG("Crypto key :");
+    for(index = 0; index < size; index++)
+        DBG("Data[%d] 0x%02X", index, key[index]);
+
 
     if(!data || size <= 0)
     {
@@ -83,6 +92,9 @@ uint8_t zg_crypto_encrypt_aes_ecb(uint8_t *data, uint8_t size, uint8_t *key, uin
 
     memcpy(encrypted, buffer, zg_keys_size_get());
     EVP_CIPHER_CTX_free(ctx);
+    DBG("Crypto output :");
+    for(index = 0; index < size; index++)
+        DBG("Data[%d] 0x%02X", index, encrypted[index]);
 
     return 0;
 }

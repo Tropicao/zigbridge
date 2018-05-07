@@ -27,6 +27,14 @@
 #define INF(...) EINA_LOG_DOM_INFO(_log_domain, __VA_ARGS__)
 #define DBG(...) EINA_LOG_DOM_DBG(_log_domain, __VA_ARGS__)
 
+#define DUMP_DATA(name, table, size) \
+    do { \
+        int index = 0; \
+        DBG("Dumping %s : ", name); \
+        for(index = 0; index < size; index++) \
+            DBG("[%d]\t0x%02X", index, table[index]); \
+    } while(0);
+
 #define ZG_COLOR_WHITE          "\033[37;1m"
 #define ZG_COLOR_BLACK          "\033[30;47m"
 #define ZG_COLOR_RED            "\033[31m"
@@ -121,5 +129,12 @@ void zg_logs_shutdown();
  */
 const char *zg_logs_znp_strerror(ZNPStatus status);
 
+/**
+ * \brief Utils function to dump a segment of data
+ * \param Name a convenient name to isolate more easily the dumped data in logs
+ * \param table The data segment to dump
+ * \size The number of bytes to dump from the data segment
+ */
+void zg_logs_dump_table(const char *name, uint8_t *table, uint8_t size);
 #endif
 
