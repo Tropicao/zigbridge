@@ -96,7 +96,11 @@ static uint32_t _interpan_transaction_identifier = 0;
 static uint32_t _touchlink_response_identifier = 0;
 
 static void (*_new_device_cb)(uint16_t short_addr, uint64_t ext_addr) = NULL;
-static uint64_t _demo_ext_addr = 0x00178801011514C4;
+/* HUE GO 1 */
+//static uint64_t _demo_ext_addr = 0x00178801011514C4;
+/* Hue bulb */
+static uint64_t _demo_ext_addr = 0x0017880100B28679;
+static uint16_t _demo_short_addr = 0x25;
 
 /********************************
  *          Internal            *
@@ -196,7 +200,7 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
     uint8_t nwk_update_identifier = 0x01; /* TBD */
     uint8_t logical_channel = 0xB;
     uint16_t pan_id = ZLL_PAN_ID;
-    uint16_t nwk_addr = 0x22;
+    uint16_t nwk_addr = _demo_short_addr;
     uint8_t index = 0;
 
     zg_keys_get_encrypted_network_key_for_zll(_interpan_transaction_identifier, _touchlink_response_identifier, nwk_key);
@@ -459,12 +463,12 @@ static uint8_t _process_join_router_response(uint16_t short_addr __attribute__((
     if(payload[7] != 0)
         WRN("Error making device to join the network (%d)", payload[7]);
     else
-        INF("Router 0x%04X has joined the network", 0x22);
+        INF("Router 0x%04X has joined the network", _demo_short_addr);
 
     if(_new_device_cb)
     {
         INF("Starting learning device");
-        _new_device_cb(0x22, _demo_ext_addr);
+        _new_device_cb(_demo_short_addr, _demo_ext_addr);
     }
 
     return 0;
