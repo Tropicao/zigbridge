@@ -51,8 +51,7 @@ binary using the LD_LIBRARY_PATH variable.
 It is one good practice (and not only on this project !) to run a static
 analyzer on all sources to get design warnings and errors. To do so, install
 clang and then run the following commands :    
-```meson builddir;
-ninja -C builddir scan-build```
+```meson builddir; ninja -C builddir scan-build```   
 
 ## How to run it
 The gateway software can be run with the following arguments :
