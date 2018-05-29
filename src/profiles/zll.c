@@ -100,7 +100,7 @@ static void (*_new_device_cb)(uint16_t short_addr, uint64_t ext_addr) = NULL;
 //static uint64_t _demo_ext_addr = 0x00178801011514C4;
 /* Hue bulb */
 static uint64_t _demo_ext_addr = 0x0017880100B28679;
-static uint16_t _demo_short_addr = 0x25;
+static uint16_t _demo_short_addr = 0x24;
 
 /********************************
  *          Internal            *
