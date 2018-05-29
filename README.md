@@ -6,7 +6,15 @@ Zigbee network. The gateway is designed to run on a Linux host equipped with a
 CC2531 USB dongle.
 
 ## Current project state
-As you may see, this software is still under heavy development. The target for v1.0.0 is to be able to integrate it in a domotic solution to drive Zigbee devices in a home/appartment, with the following features :
+As you may see, this software is still under heavy development.
+As of today, with the appropriate hardware, the gateway is able to :
+* create a network and open it on command
+* touchlink a Hue go (full touchlink process under rework to enable comptaibility with full ZLL range)
+* install Xiaomi sensors
+* receive command through a Unix Socket (toggle lamp, open network, start touchlink...)
+* send status through a Unix Socket (temperature, new button state, etc)
+
+The target for v1.0.0 is to be able to integrate it in a domotic solution to drive Zigbee devices in a home/appartment, with the following features :
 * detection and notification of available devices
 * devices installation
 * report of installed devices
