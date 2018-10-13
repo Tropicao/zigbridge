@@ -256,7 +256,7 @@ static uint8_t _incoming_msg_ext_cb(ZgMtMsg *msg)
     INF("AF message received");
     INF("Group id : 0x%04X", parsed_data.group_id);
     INF("Cluster id : 0x%04X", parsed_data.cluster);
-    INF("Source addr mode : 0x%02X", parsed_data.src_addr_mode);
+    INF("Source addr mode : %s", parsed_data.src_addr_mode == ADDR_MODE_64_BITS ? "extended address":"short_address");
     INF("Source addr : 0x%"PRIx64, parsed_data.src_addr);
     INF("Source Endpoint : 0x%02X", parsed_data.src_endpoint);
     INF("Source PAN id : 0x%04X", parsed_data.pan_id);
