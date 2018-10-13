@@ -135,7 +135,7 @@ uint8_t _build_frame_control()
  *     APS msg callbacks            *
  ***********************************/
 
-static void _process_aps_msg(uint16_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len)
+static void _process_aps_msg(uint64_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len)
 {
     ApsEndpoint *endpoint = NULL;
     uint8_t *aps_data = data;

@@ -433,9 +433,9 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
  *   ZLL messages callbacks     *
  *******************************/
 
-static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
+static uint8_t _process_scan_response(uint64_t addr, void *data, int len __attribute__((unused)))
 {
-    INF("A device has sent a scan response");
+    INF("A device has sent a scan response : 0x%016X", addr);
     memcpy(&_touchlink_response_identifier, data + 3 + 9, sizeof(_touchlink_response_identifier));
     DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
@@ -443,7 +443,7 @@ static uint8_t _process_scan_response(uint16_t short_addr __attribute__((unused)
     return 0;
 }
 
-static uint8_t _process_join_end_device_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
+static uint8_t _process_join_end_device_response(uint64_t addr __attribute__((unused)), void *data, int len __attribute__((unused)))
 {
     uint8_t *payload = data;
 
@@ -455,7 +455,7 @@ static uint8_t _process_join_end_device_response(uint16_t short_addr __attribute
     return 0;
 }
 
-static uint8_t _process_join_router_response(uint16_t short_addr __attribute__((unused)), void *data, int len __attribute__((unused)))
+static uint8_t _process_join_router_response(uint64_t addr __attribute__((unused)), void *data, int len __attribute__((unused)))
 {
     uint8_t *payload = data;
     INF("A router has sent a end device join response");
@@ -474,7 +474,7 @@ static uint8_t _process_join_router_response(uint16_t short_addr __attribute__((
     return 0;
 }
 
-static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_t *data, int len)
+static void _process_touchlink_commissioning_command(uint64_t addr, uint8_t *data, int len)
 {
     int i;
     for (i = 0; i< len; i++)
@@ -482,13 +482,13 @@ static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_
     switch(data[2])
     {
         case COMMAND_SCAN_RESPONSE:
-            _process_scan_response(short_addr, data, len);
+            _process_scan_response(addr, data, len);
             break;
         case COMMAND_NETWORK_JOIN_END_DEVICE_RESPONSE:
-            _process_join_end_device_response(short_addr, data, len);
+            _process_join_end_device_response(addr, data, len);
             break;
         case COMMAND_NETWORK_JOIN_ROUTER_RESPONSE:
-            _process_join_router_response(short_addr, data, len);
+            _process_join_router_response(addr, data, len);
             break;
         default:
             WRN("Unsupported ZLL touchlink commissioning command 0x%02X", data[2]);
@@ -496,7 +496,7 @@ static void _process_touchlink_commissioning_command(uint16_t short_addr, uint8_
     }
 }
 
-static void _zll_message_cb(uint16_t short_addr, uint16_t cluster, void *data, int len)
+static void _zll_message_cb(uint64_t addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
@@ -506,7 +506,7 @@ static void _zll_message_cb(uint16_t short_addr, uint16_t cluster, void *data, i
     switch(cluster)
     {
         case ZCL_CLUSTER_TOUCHLINK_COMMISSIONING:
-            _process_touchlink_commissioning_command(short_addr, data, len);
+            _process_touchlink_commissioning_command(addr, data, len);
             break;
         default:
             WRN("Unsupported ZLL cluster 0x%04X", cluster);

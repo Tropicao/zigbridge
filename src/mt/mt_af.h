@@ -10,7 +10,7 @@ typedef enum
     ADDR_MODE_64_BITS = 3,
 } AddrMode;
 
-typedef void (*AfIncomingMessageCb)(uint16_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len);
+typedef void (*AfIncomingMessageCb)(uint64_t addr, uint8_t endpoint_num, uint16_t cluster, void *data, int len);
 
 /**
  * \brief Initialize the MT AF module

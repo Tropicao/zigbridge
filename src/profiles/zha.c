@@ -116,7 +116,7 @@ static void _process_temperature_measurement_command(uint16_t addr, void *data, 
     }
 }
 
-static void _zha_message_cb(uint16_t addr, uint16_t cluster, void *data, int len)
+static void _zha_message_cb(uint64_t addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
     if(!buffer || len <= 0)
