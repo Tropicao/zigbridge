@@ -13,7 +13,22 @@
                                         return; \
                                     } while(0);
 
-#define ZG_VAR_FREE(x)  { if(x) {free(x); x = NULL;}}
+#define ZG_VAR_FREE(x)              { if(x) {free(x); x = NULL;}}
 
+#define ZG_CALLOC_RET(x, y)         do { if (!x)                       \
+                                        x = calloc(1, sizeof(y));   \
+                                        if(!x)                      \
+                                        {                           \
+                                            return;                 \
+                                        }                           \
+                                    } while(0);
+
+#define ZG_CALLOC_ERR_CODE(x, y, z) do { if (!x)                       \
+                                        x = calloc(1, sizeof(y));   \
+                                        if(!x)                      \
+                                        {                           \
+                                            return z;               \
+                                        }                           \
+                                    } while(0);
 #endif
 
