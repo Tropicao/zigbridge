@@ -53,7 +53,9 @@ static void _general_init_cb(void)
 {
     if(zg_al_continue(_init_sm) != 0)
     {
-        INF("Core application is initialized");
+        INF("=======================================");
+        INF("=== Core application is initialized ===");
+        INF("=======================================");
         zg_keys_test_nwk_key_encryption_zll();
         _initialized = 1;
     }
