@@ -96,10 +96,7 @@ static uint32_t _interpan_transaction_identifier = 0;
 static uint32_t _touchlink_response_identifier = 0;
 
 static void (*_new_device_cb)(uint16_t short_addr, uint64_t ext_addr) = NULL;
-/* HUE GO 1 */
-//static uint64_t _demo_ext_addr = 0x00178801011514C4;
-/* Hue bulb */
-static uint64_t _demo_ext_addr = 0x0017880100B28679;
+static uint64_t _detected_device_ext_addr = 0;
 static uint16_t _demo_short_addr = 0x24;
 
 /********************************
@@ -130,7 +127,7 @@ void _zll_send_scan_request(SyncActionCb cb)
     memcpy(zll_data+INDEX_INTERPAN_TRANSACTION_IDENTIFIER,
             &_interpan_transaction_identifier,
             sizeof(_interpan_transaction_identifier));
-    zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_ROUTER | RX_ON_WHEN_IDLE;
+    zll_data[INDEX_ZIGBEE_INFORMATION] = DEVICE_TYPE_COORDINATOR | RX_ON_WHEN_IDLE;
     zll_data[INDEX_ZLL_INFORMATION] = ZLL_INFORMATION_FIELD ;
 
     zg_aps_send_data(ZCL_BROADCAST_SHORT_ADDR,
@@ -194,7 +191,7 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
 {
     char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
     uint64_t extended_pan_identifier = 0x2211FFEEDDCCBBAA;
-    uint64_t dest_addr = _demo_ext_addr;
+    uint64_t dest_addr = _detected_device_ext_addr;
     uint8_t key_index = 4;
     uint8_t nwk_key[16] = {0};
     uint8_t nwk_update_identifier = 0x01; /* TBD */
@@ -435,7 +432,8 @@ static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitio
 
 static uint8_t _process_scan_response(uint64_t addr, void *data, int len __attribute__((unused)))
 {
-    INF("A device has sent a scan response : 0x%016X", addr);
+    _detected_device_ext_addr = addr;
+    INF("A device has sent a scan response : 0x%"PRIx64, addr);
     memcpy(&_touchlink_response_identifier, data + 3 + 9, sizeof(_touchlink_response_identifier));
     DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
@@ -450,7 +448,7 @@ static uint8_t _process_join_end_device_response(uint64_t addr __attribute__((un
     if(payload[7] != 0)
         WRN("Error making device to join the network (%d)", payload[7]);
     else
-        INF("End device 0x%04X has joined the network", short_addr);
+        INF("End device has joined the network");
 
     return 0;
 }
@@ -468,7 +466,7 @@ static uint8_t _process_join_router_response(uint64_t addr __attribute__((unused
     if(_new_device_cb)
     {
         INF("Starting learning device");
-        _new_device_cb(_demo_short_addr, _demo_ext_addr);
+        _new_device_cb(_demo_short_addr, _detected_device_ext_addr);
     }
 
     return 0;
