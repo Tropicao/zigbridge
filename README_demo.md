@@ -1,6 +1,6 @@
 # Hue Bulb Demo
 
-This specific version of zll-gateway intends to show capabilities. It uses :
+This specific version of zigbridge gateway intends to show capabilities. It uses :
 * TI CC2530 with ZNP firmware
 * Linux host for software
 * [Hue Go Lamp](https://www2.meethue.com/fr-fr/p/hue-white-and-color-ambiance-hue-go-lampe-a-poser/7146060PH)

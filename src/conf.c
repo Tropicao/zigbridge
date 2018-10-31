@@ -7,7 +7,7 @@
 
 #define SECTION_KEY_STRING_MAX_SIZE 128
 #define STRING_VALUE_MAX_SIZE       128
-#define DEFAULT_CONFIG_PATH         "/etc/zll-gateway/config.ini"
+#define DEFAULT_CONFIG_PATH         "/etc/zigbdrige/config.ini"
 
 #define SECTION_GENERAL             "general"
 #define KEY_ZNP_DEVICE_PATH             "znp_device_path"

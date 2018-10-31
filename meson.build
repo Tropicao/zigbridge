@@ -1,4 +1,4 @@
-project('ZLL Gateway' , 'c')
+project('Zigbridge' , 'c')
 
 # Sources
 src = ['src/main.c',
@@ -42,7 +42,7 @@ dep = [uvdep, iniparserdep, einadep, janssondep]
 # Build options
 cflags=['-Wall', '-Wextra', '-Werror']
 
-executable('zll_gateway',
+executable('zigbridge',
     sources: src,
     c_args: cflags,
     include_directories: incdir,

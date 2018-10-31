@@ -1,4 +1,4 @@
-# ZLL-gateway
+# Zigbridge
 
 ## Brief
 This software aims to provide a complete gateway solution to pilot devices on a
@@ -24,7 +24,7 @@ Even if this scope is still not reached, some nice showcases are available if yo
 
 ## How to build it
 
-You will need to flash CC2531 USB dongle firmware. Please follow the [firmware instructions](https://github.com/Tropicao/zll-gateway/blob/master/doc/firmware_instructions.md).
+You will need to flash CC2531 USB dongle firmware. Please follow the [firmware instructions](https://github.com/Tropicao/zigbridge/blob/master/doc/firmware_instructions.md).
 
 This project use [Meson](http://mesonbuild.com/) as build system. You will need the following components :
 * Meson
@@ -34,7 +34,7 @@ This project use [Meson](http://mesonbuild.com/) as build system. You will need 
 Then you can build and execute the project with the following commands :
 * meson builddir
 * ninja -C builddir
-* ./builddir/zll-gateway
+* ./builddir/zigbridge
 
 The project currently have the following dependencies :
 * libuv
@@ -50,8 +50,8 @@ binary using the LD_LIBRARY_PATH variable.
 
 It is one good practice (and not only on this project !) to run a static
 analyzer on all sources to get design warnings and errors. To do so, install
-clang and then run the following commands :    
-```meson builddir; ninja -C builddir scan-build```   
+clang and then run the following commands :
+```meson builddir; ninja -C builddir scan-build```
 
 ## How to run it
 The gateway software can be run with the following arguments :
