@@ -77,6 +77,7 @@
 #define ZLL_INFORMATION_FIELD                   0x12
 
 #define ZLL_IDENTIFY_DELAY_MS                   3000
+#define NB_SCAN_REQUEST                         100
 
 /********************************
  *          Local variables     *
@@ -347,7 +348,7 @@ static void _send_single_scan_request()
 static void _scan_timeout_cb(uv_timer_t *s __attribute__((unused)))
 {
     INF("Scan response timeout");
-    if(_scan_count < 5)
+    if(_scan_count < NB_SCAN_REQUEST)
         zg_sm_send_event(_touchlink_sm, EVENT_SCAN_TIMEOUT_RESCAN);
     else
         zg_sm_send_event(_touchlink_sm, EVENT_SCAN_TIMEOUT_NO_RESCAN);
