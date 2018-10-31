@@ -94,6 +94,7 @@ static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t)
 
 static uint32_t _interpan_transaction_identifier = 0;
 static uint32_t _touchlink_response_identifier = 0;
+static uint8_t  _touchlink_information = 0;
 
 static void (*_new_device_cb)(uint16_t short_addr, uint64_t ext_addr) = NULL;
 static uint64_t _detected_device_ext_addr = 0;
@@ -119,7 +120,7 @@ uint32_t _generate_new_interpan_transaction_identifier()
  *         ZLL commands         *
  *******************************/
 
-void _zll_send_scan_request(SyncActionCb cb)
+static void _zll_send_scan_request(SyncActionCb cb)
 {
     char zll_data[LEN_SCAN_REQUEST] = {0};
 
@@ -142,7 +143,7 @@ void _zll_send_scan_request(SyncActionCb cb)
             cb);
 }
 
-void _zll_send_identify_request(SyncActionCb cb)
+static void _zll_send_identify_request(SyncActionCb cb)
 {
     char zll_data[LEN_IDENTIFY_REQUEST] = {0};
     uint16_t identify_duration = DEFAULT_IDENTIFY_DURATION;
@@ -165,7 +166,7 @@ void _zll_send_identify_request(SyncActionCb cb)
             cb);
 }
 
-void _zll_send_factory_reset_request(SyncActionCb cb)
+static void _zll_send_factory_reset_request(SyncActionCb cb)
 {
     char zll_data[LEN_FACTORY_RESET_REQUEST] = {0};
 
@@ -187,7 +188,7 @@ void _zll_send_factory_reset_request(SyncActionCb cb)
 
 }
 
-static void _zll_send_end_device_join_request(SyncActionCb cb)
+static void _zll_send_router_join_request(SyncActionCb cb)
 {
     char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
     uint64_t extended_pan_identifier = 0x2211FFEEDDCCBBAA;
@@ -201,7 +202,7 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
     uint8_t index = 0;
 
     zg_keys_get_encrypted_network_key_for_zll(_interpan_transaction_identifier, _touchlink_response_identifier, nwk_key);
-    INF("Sending End Device Join request");
+    INF("Sending Router Join request");
 
     index = 0;
     memcpy(zll_data + index, &_interpan_transaction_identifier, sizeof(_interpan_transaction_identifier));
@@ -258,9 +259,9 @@ enum
     STATE_DISABLE_SECURITY,
     STATE_SEND_SCAN,
     STATE_WAIT_SCAN_RESPONSE,
-    STATE_IDENTIY,
+    STATE_IDENTIFY,
     STATE_WAIT_IDENTIFY,
-    STATE_FACTORY_RESET,
+    STATE_START_JOIN_DEVICE,
     STATE_ENABLE_SECURITY,
     STATE_SHUTDOWN,
 };
@@ -379,21 +380,35 @@ static void _wait_identify_period(void)
     uv_timer_start(&_identify_timer, _identify_delay_timeout_cb, ZLL_IDENTIFY_DELAY_MS, 0);
 }
 
-/*
+
 static void _factory_reset_sent_cb(void)
 {
     zg_sm_send_event(_touchlink_sm, EVENT_FACTORY_RESET_SENT);
 }
-*/
 
 static void _end_device_join_request_sent(void)
 {
     zg_sm_send_event(_touchlink_sm, EVENT_JOIN_END_DEVICE_REQUEST_SENT);
 }
 
-static void _send_factory_reset_request(void)
+static void _join_device(void)
 {
-    _zll_send_end_device_join_request(_end_device_join_request_sent);
+    /* Check received touchlink information : if device is factory new, send
+     * appropriate command (end device join or router join), else send factory
+     * new request
+     */
+    uint8_t device_is_factory_new = (_touchlink_information & 0x1);
+
+    if(device_is_factory_new)
+    {
+        INF("Device is factory new, following standard touchlink");
+        _zll_send_router_join_request(_end_device_join_request_sent);
+    }
+    else
+    {
+        INF("Device is already installed elsewhere, resetting it for installation");
+        _zll_send_factory_reset_request(_factory_reset_sent_cb);
+    }
 }
 
 static ZgSmStateData _touchlink_states[] = {
@@ -401,9 +416,9 @@ static ZgSmStateData _touchlink_states[] = {
     {STATE_DISABLE_SECURITY, _disable_security},
     {STATE_SEND_SCAN, _send_single_scan_request},
     {STATE_WAIT_SCAN_RESPONSE, _wait_scan_response},
-    {STATE_IDENTIY, _send_identify_request},
+    {STATE_IDENTIFY, _send_identify_request},
     {STATE_WAIT_IDENTIFY, _wait_identify_period},
-    {STATE_FACTORY_RESET, _send_factory_reset_request},
+    {STATE_START_JOIN_DEVICE, _join_device},
     {STATE_ENABLE_SECURITY, _enable_security},
     {STATE_SHUTDOWN, _shutdown_touchlink}
 };
@@ -414,12 +429,12 @@ static ZgSmTransitionData _touchlink_transitions[] = {
     {STATE_DISABLE_SECURITY, EVENT_SECURITY_DISABLED, STATE_SEND_SCAN},
     {STATE_SEND_SCAN, EVENT_SCAN_SENT, STATE_WAIT_SCAN_RESPONSE},
     {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_TIMEOUT_RESCAN, STATE_SEND_SCAN},
-    {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_RESPONSE_RECEIVED, STATE_IDENTIY},
+    {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_RESPONSE_RECEIVED, STATE_IDENTIFY},
     {STATE_WAIT_SCAN_RESPONSE, EVENT_SCAN_TIMEOUT_NO_RESCAN, STATE_ENABLE_SECURITY},
-    {STATE_IDENTIY, EVENT_IDENTIFY_REQUEST_SENT, STATE_WAIT_IDENTIFY},
-    {STATE_WAIT_IDENTIFY, EVENT_IDENTIFY_DELAY_PAST, STATE_FACTORY_RESET},
-    {STATE_FACTORY_RESET, EVENT_FACTORY_RESET_SENT, STATE_ENABLE_SECURITY},
-    {STATE_FACTORY_RESET, EVENT_JOIN_END_DEVICE_REQUEST_SENT, STATE_ENABLE_SECURITY},
+    {STATE_IDENTIFY, EVENT_IDENTIFY_REQUEST_SENT, STATE_WAIT_IDENTIFY},
+    {STATE_WAIT_IDENTIFY, EVENT_IDENTIFY_DELAY_PAST, STATE_START_JOIN_DEVICE},
+    {STATE_START_JOIN_DEVICE, EVENT_FACTORY_RESET_SENT, STATE_ENABLE_SECURITY},
+    {STATE_START_JOIN_DEVICE, EVENT_JOIN_END_DEVICE_REQUEST_SENT, STATE_ENABLE_SECURITY},
     {STATE_ENABLE_SECURITY, EVENT_SECURITY_ENABLED, STATE_SHUTDOWN}
 };
 static ZgSmTransitionNb _touchlink_nb_transtitions = sizeof(_touchlink_transitions)/sizeof(ZgSmTransitionData);
@@ -434,7 +449,10 @@ static uint8_t _process_scan_response(uint64_t addr, void *data, int len __attri
 {
     _detected_device_ext_addr = addr;
     INF("A device has sent a scan response : 0x%"PRIx64, addr);
+    /* Retrieve touchlink response identifier */
     memcpy(&_touchlink_response_identifier, data + 3 + 9, sizeof(_touchlink_response_identifier));
+    /* Retrieve touchlink information */
+    memcpy(&_touchlink_information, data + 3 + 6, sizeof(_touchlink_information));
     DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);
