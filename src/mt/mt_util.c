@@ -158,3 +158,27 @@ void zg_mt_util_af_subscribe_cmd (SyncActionCb cb)
     zg_rpc_write(&msg);
     ZG_VAR_FREE(buffer);
 }
+
+void zg_mt_util_zdo_subscribe_cmd (SyncActionCb cb)
+{
+    ZgMtMsg msg;
+    uint16_t mt_af_subsys = 0x0500;
+    uint8_t status = 0x1;
+    uint8_t *buffer = NULL;
+
+    INF("Subscribing to MT_ZDO callbacks");
+    sync_action_cb = cb;
+    msg.type = ZG_MT_CMD_SRSP;
+    msg.subsys = ZG_MT_SUBSYS_UTIL;
+    msg.cmd = UTIL_CALLBACK_SUB_CMD;
+    msg.len = sizeof(mt_af_subsys)+sizeof(status);
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory for UTIL_CALLBACK_SUB_CMD command");
+        return;
+    }
+    msg.data = buffer;
+    zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
+}

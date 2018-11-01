@@ -77,6 +77,9 @@ static uint16_t _zha_out_clusters[] = {
     ZCL_CLUSTER_ON_OFF};
 static uint8_t _zha_out_clusters_num = sizeof(_zha_out_clusters)/sizeof(uint8_t);
 
+static uint16_t _current_addr = 0;
+static uint64_t _current_addr_ext = 0;
+
 /********************************
  *   ZHA messages callbacks     *
  *******************************/
@@ -137,12 +140,20 @@ static void _zha_message_cb(uint64_t addr, uint16_t cluster, void *data, int len
     }
 }
 
+static void _addr_req_sent_cb(void)
+{
+    if(_new_device_ind_cb)
+        _new_device_ind_cb(_current_addr, _current_addr_ext);
+}
+
+
 static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 {
     INF("New device joined network with address 0x%04X !", addr);
-    if(_new_device_ind_cb)
-        _new_device_ind_cb(addr, ext_addr);
+    _current_addr = addr;
+    _current_addr_ext = ext_addr;
 
+    zg_mt_zdo_send_nwk_addr_req(ext_addr, _addr_req_sent_cb);
 }
 
 static void _security_disabled_cb(void)

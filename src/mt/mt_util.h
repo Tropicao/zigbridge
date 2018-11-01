@@ -19,11 +19,19 @@ int zg_mt_util_init(void);
 void zg_mt_util_shutdown(void);
 
 /**
- * \brief Subscribe to ZNP UTIL callbacks
+ * \brief Subscribe to ZNP UTIL AF callbacks
  *
  * \param cb The callback to be triggered when ZNP has received and processed
  * this command
  */
 void zg_mt_util_af_subscribe_cmd (SyncActionCb cb);
+
+/**
+ * \brief Subscribe to ZNP UTIL ZDO callbacks
+ *
+ * \param cb The callback to be triggered when ZNP has received and processed
+ * this command
+ */
+void zg_mt_util_zdo_subscribe_cmd (SyncActionCb cb);
 
 #endif

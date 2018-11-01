@@ -21,7 +21,7 @@
 
 #define ZLL_ENDPOINT                            0x2
 #define ZLL_CHANNEL                             0x0B
-#define ZLL_PAN_ID                              0xABCE
+#define ZLL_PAN_ID                              0xABCD
 
 /********** Format **********/
 
@@ -96,6 +96,7 @@ static uint8_t _zll_out_clusters_num = sizeof(_zll_out_clusters)/sizeof(uint8_t)
 static uint32_t _interpan_transaction_identifier = 0;
 static uint32_t _touchlink_response_identifier = 0;
 static uint8_t  _touchlink_information = 0;
+static uint8_t  _zigbee_information = 0;
 
 static void (*_new_device_cb)(uint16_t short_addr, uint64_t ext_addr) = NULL;
 static uint64_t _detected_device_ext_addr = 0;
@@ -192,11 +193,11 @@ static void _zll_send_factory_reset_request(SyncActionCb cb)
 static void _zll_send_router_join_request(SyncActionCb cb)
 {
     char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
-    uint64_t extended_pan_identifier = 0x2211FFEEDDCCBBAA;
+    uint64_t extended_pan_identifier = 0x00124B000E896C2A;
     uint64_t dest_addr = _detected_device_ext_addr;
     uint8_t key_index = 4;
     uint8_t nwk_key[16] = {0};
-    uint8_t nwk_update_identifier = 0x01; /* TBD */
+    uint8_t nwk_update_identifier = 0x00; /* TBD */
     uint8_t logical_channel = 0xB;
     uint16_t pan_id = ZLL_PAN_ID;
     uint16_t nwk_addr = _demo_short_addr;
@@ -234,6 +235,58 @@ static void _zll_send_router_join_request(SyncActionCb cb)
             ZCL_BROADCAST_ENDPOINT,
             ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
             COMMAND_NETWORK_JOIN_ROUTER_REQUEST,
+            zll_data,
+            LEN_END_DEVICE_JOIN_REQUEST,
+            cb);
+}
+
+static void _zll_send_end_device_join_request(SyncActionCb cb)
+{
+    char zll_data[LEN_END_DEVICE_JOIN_REQUEST] = {0};
+    uint64_t extended_pan_identifier = 0x00124B000E896C2A;
+    uint64_t dest_addr = _detected_device_ext_addr;
+    uint8_t key_index = 4;
+    uint8_t nwk_key[16] = {0};
+    uint8_t nwk_update_identifier = 0x00; /* TBD */
+    uint8_t logical_channel = 0xB;
+    uint16_t pan_id = ZLL_PAN_ID;
+    uint16_t nwk_addr = _demo_short_addr;
+    uint8_t index = 0;
+
+    zg_keys_get_encrypted_network_key_for_zll(_interpan_transaction_identifier, _touchlink_response_identifier, nwk_key);
+    INF("Sending End Device Join request");
+
+    index = 0;
+    memcpy(zll_data + index, &_interpan_transaction_identifier, sizeof(_interpan_transaction_identifier));
+    index += sizeof(_interpan_transaction_identifier);
+    memcpy(zll_data + index, &extended_pan_identifier, sizeof(extended_pan_identifier));
+    index += sizeof(extended_pan_identifier);
+    memcpy(zll_data + index, &key_index, sizeof(key_index));
+    index += sizeof(key_index);
+    memcpy(zll_data + index, &nwk_key, sizeof(nwk_key));
+    index += sizeof(nwk_key);
+    memcpy(zll_data + index, &nwk_update_identifier, sizeof(nwk_update_identifier));
+    index += sizeof(nwk_update_identifier);
+    memcpy(zll_data + index, &logical_channel, sizeof(logical_channel));
+    index += sizeof(logical_channel);
+    memcpy(zll_data + index, &pan_id, sizeof(pan_id));
+    index += sizeof(pan_id);
+    memcpy(zll_data + index, &nwk_addr, sizeof(nwk_addr));
+    index += sizeof(nwk_addr);
+    /* Set to 0 any remaining field */
+    memset(zll_data + index, 0, 12);
+
+    DBG("About to send encrypted key :");
+    for(index = 0; index < 16; index++)
+        DBG("[%d] 0x%02X", index, nwk_key[index]);
+
+    zg_aps_send_data(dest_addr,
+            ADDR_MODE_64_BITS,
+            ZCL_BROADCAST_INTER_PAN,
+            ZLL_ENDPOINT,
+            ZCL_BROADCAST_ENDPOINT,
+            ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+            COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST,
             zll_data,
             LEN_END_DEVICE_JOIN_REQUEST,
             cb);
@@ -398,17 +451,23 @@ static void _join_device(void)
      * appropriate command (end device join or router join), else send factory
      * new request
      */
-    uint8_t device_is_factory_new = (_touchlink_information & 0x1);
+    uint8_t device_type = (_zigbee_information & 0xF);
+    uint8_t device_is_factory_new = _touchlink_information & 0x3;
 
-    if(device_is_factory_new)
+    if(!device_is_factory_new)
     {
-        INF("Device is factory new, following standard touchlink");
-        _zll_send_router_join_request(_end_device_join_request_sent);
+        INF("Device already installed elsewhere, resetting it");
+        _zll_send_factory_reset_request(_factory_reset_sent_cb);
+    }
+    else if(device_type == 2)
+    {
+        INF("Device is an end device");
+        _zll_send_end_device_join_request(_end_device_join_request_sent);
     }
     else
     {
-        INF("Device is already installed elsewhere, resetting it for installation");
-        _zll_send_factory_reset_request(_factory_reset_sent_cb);
+        INF("Device is a router");
+        _zll_send_router_join_request(_end_device_join_request_sent);
     }
 }
 
@@ -454,6 +513,7 @@ static uint8_t _process_scan_response(uint64_t addr, void *data, int len __attri
     memcpy(&_touchlink_response_identifier, data + 3 + 9, sizeof(_touchlink_response_identifier));
     /* Retrieve touchlink information */
     memcpy(&_touchlink_information, data + 3 + 6, sizeof(_touchlink_information));
+    memcpy(&_zigbee_information, data + 3 + 5, sizeof(_zigbee_information));
     DBG("Transaction identifier : 0x%08X", _interpan_transaction_identifier);
     DBG("Response identifier : 0x%08X", _touchlink_response_identifier);
     zg_sm_send_event(_touchlink_sm, EVENT_SCAN_RESPONSE_RECEIVED);

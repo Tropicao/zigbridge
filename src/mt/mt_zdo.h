@@ -92,5 +92,11 @@ void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t
  */
 void zg_mt_zdo_permit_join(SyncActionCb cb);
 
+/**
+ * \brief Send an address request to a new device
+ * \param ieee_addr The extended address of newly joined device
+ * \cb The callback to call when ZNP has received and processed the command
+ */
+void zg_mt_zdo_send_nwk_addr_req(uint64_t ieee_addr, SyncActionCb cb);
 #endif
 

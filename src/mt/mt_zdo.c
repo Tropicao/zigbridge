@@ -145,7 +145,33 @@ static void (*_zdo_simple_desc_rsp_cb)(uint8_t endpoint, uint16_t profile, uint1
  *     MT ZDO callbacks         *
  *******************************/
 
+
+
 /* MT ZDO SRSP callbacks */
+
+static uint8_t _nwk_addr_srsp_cb(ZgMtMsg *msg)
+{
+    uint8_t status;
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract ZDO_NWK_ADDR_REQ SRSP data");
+    }
+    else
+    {
+        status = msg->data[0];
+        if(status != ZSUCCESS)
+            ERR("Error sending ZDO address request : %s", zg_logs_znp_strerror(status));
+        else
+            INF("ZDO address request sent");
+    }
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 static uint8_t _nwk_discovery_srsp_cb(ZgMtMsg *msg)
 {
     uint8_t status;
@@ -490,6 +516,7 @@ uint8_t _permit_join_rsp_cb(ZgMtMsg *msg)
     return 0;
 }
 
+
 uint8_t _zdo_end_device_annce_join_cb(ZgMtMsg *msg)
 {
     uint16_t src_addr;
@@ -516,6 +543,16 @@ uint8_t _zdo_end_device_annce_join_cb(ZgMtMsg *msg)
         INF("Network address : 0x%04X", nwk_addr);
         INF("IEEE address : 0x%016lX", ieee_addr);
         INF("Capabilities : 0x%02X", capabilities);
+    }
+
+    /* POC : if device is waiting for adress, make it get one */
+    if((capabilities >> 7) & 0x1)
+    {
+        INF("Device is waiting for an adress");
+    }
+    else
+    {
+        INF("No address expected by device");
     }
 
     return 0;
@@ -562,6 +599,9 @@ static void _process_mt_zdo_srsp(ZgMtMsg *msg)
 {
     switch(msg->cmd)
     {
+        case ZDO_NWK_ADDR_REQ:
+            _nwk_addr_srsp_cb(msg);
+            break;
         case ZDO_NWK_DISCOVERY_REQ:
             _nwk_discovery_srsp_cb(msg);
             break;
@@ -821,6 +861,37 @@ void zg_mt_zdo_permit_join(SyncActionCb cb)
     index += sizeof(duration);
     memcpy(buffer + index, &tcsign, sizeof(tcsign));
     index += sizeof(tcsign);
+    msg.data = buffer;
+    zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
+}
+
+void zg_mt_zdo_send_nwk_addr_req(uint64_t ieee_addr, SyncActionCb cb)
+{
+    uint8_t req_type = 0;
+    uint8_t start_index = 0;
+    ZgMtMsg msg;
+    uint8_t *buffer = NULL;
+    uint8_t index = 0;
+
+    INF("Sending network address request to device 0x%016lX", ieee_addr);
+    sync_action_cb = cb;
+    msg.type = ZG_MT_CMD_SRSP;
+    msg.subsys = ZG_MT_SUBSYS_ZDO;
+    msg.cmd = ZDO_NWK_ADDR_REQ;
+    msg.len = sizeof(ieee_addr) + sizeof(req_type) + sizeof(start_index);
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory to send ZDO_ACTIVE_EP_REQ");
+        return;
+    }
+    memcpy(buffer + index, &ieee_addr, sizeof(ieee_addr));
+    index += sizeof(ieee_addr);
+    memcpy(buffer + index, &req_type, sizeof(req_type));
+    index += sizeof(req_type);
+    memcpy(buffer + index, &start_index, sizeof(start_index));
+    index += sizeof(start_index);
     msg.data = buffer;
     zg_rpc_write(&msg);
     ZG_VAR_FREE(buffer);
