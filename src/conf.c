@@ -1,5 +1,5 @@
 #include <string.h>
-#include <iniparser.h>
+#include <iniparser/iniparser.h>
 #include <stdlib.h>
 #include "conf.h"
 #include "utils.h"
