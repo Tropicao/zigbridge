@@ -67,9 +67,6 @@ static DeviceData *_get_device_by_short_addr(uint16_t short_addr)
 
 static void _destroy_endpoint_data(EndpointData *endpoint)
 {
-    if(endpoint)
-    {
-    }
     ZG_VAR_FREE(endpoint);
 }
 
