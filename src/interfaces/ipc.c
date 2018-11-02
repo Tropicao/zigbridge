@@ -302,6 +302,7 @@ void zg_ipc_send_event(ZgIpcEvent event, json_t *data)
     {
         ERR("Cannot get size of encoded JSON");
         json_decref(root);
+        return;
     }
 
     buf->base = calloc(size, sizeof(char));
