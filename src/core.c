@@ -113,8 +113,14 @@ static void _zdp_init(SyncActionCb cb)
         ERR("Error initializing ZDP profile");
 }
 
-
+static void _add_group(SyncActionCb cb)
+{
+    uint16_t name[16] = {0};
+    snprintf((char *)name, 5, "test");
+    zg_mt_zdo_add_group(1, 0, name, cb);
+}
 static ZgAlState _init_states_reset[] = {
+
     {_write_clear_flag, _general_init_cb},
     {zg_mt_sys_reset_dongle, _general_init_cb},
     {zg_mt_sys_nv_write_nwk_key, _general_init_cb},
@@ -132,6 +138,7 @@ static ZgAlState _init_states_reset[] = {
     {_zdp_init, _general_init_cb},
     {zg_mt_zdo_startup_from_app, _general_init_cb},
     {zg_mt_sys_nv_write_enable_security, _general_init_cb},
+    {_add_group, _general_init_cb},
     {_announce_gateway, _general_init_cb},
 };
 
@@ -149,6 +156,7 @@ static ZgAlState _init_states_restart[] = {
     {zg_mt_zdo_startup_from_app, _general_init_cb},
     {zg_mt_sys_nv_write_enable_security, _general_init_cb},
     {_get_demo_device_route, _general_init_cb},
+    {_add_group, _general_init_cb},
     {_announce_gateway, _general_init_cb}
 };
 static int _init_restart_nb_states = sizeof(_init_states_restart)/sizeof(ZgAlState);

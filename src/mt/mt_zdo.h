@@ -98,5 +98,10 @@ void zg_mt_zdo_permit_join(SyncActionCb cb);
  * \cb The callback to call when ZNP has received and processed the command
  */
 void zg_mt_zdo_send_nwk_addr_req(uint64_t ieee_addr, SyncActionCb cb);
+
+/**
+ * \brief Ad new group to network
+ */
+void zg_mt_zdo_add_group(uint8_t endpoint, uint16_t id, uint16_t name[], SyncActionCb cb);
 #endif
 

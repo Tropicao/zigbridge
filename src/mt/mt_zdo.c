@@ -593,6 +593,28 @@ uint8_t _zdo_leave_ind_cb(ZgMtMsg *msg)
     return 0;
 }
 
+uint8_t _add_group_srsp_cb(ZgMtMsg *msg)
+{
+    if(!msg||!msg->data)
+    {
+        WRN("Cannot extract ZDO_EXT_ADD_GROUP data");
+    }
+    else if(msg->data[0] != 0)
+    {
+        ERR("Error adding new group");
+    }
+    else
+    {
+        INF("New group properly added");
+    }
+
+    if(sync_action_cb)
+        sync_action_cb();
+
+    return 0;
+
+}
+
 /* General MT ZDO frames processing callbacks */
 
 static void _process_mt_zdo_srsp(ZgMtMsg *msg)
@@ -616,6 +638,9 @@ static void _process_mt_zdo_srsp(ZgMtMsg *msg)
             break;
         case ZDO_MGMT_PERMIT_JOIN_REQ:
             _permit_join_req_srsp_cb(msg);
+            break;
+        case ZDO_EXT_ADD_GROUP:
+            _add_group_srsp_cb(msg);
             break;
         default:
             WRN("Unknown SRSP command 0x%02X", msg->cmd);
@@ -896,4 +921,34 @@ void zg_mt_zdo_send_nwk_addr_req(uint64_t ieee_addr, SyncActionCb cb)
     zg_rpc_write(&msg);
     ZG_VAR_FREE(buffer);
 }
+
+void zg_mt_zdo_add_group(uint8_t endpoint, uint16_t id, uint16_t name[], SyncActionCb cb)
+{
+    ZgMtMsg msg;
+    uint8_t *buffer = NULL;
+    uint8_t index = 0;
+
+    INF("Adding new group with id %d on endpoint %d", id, endpoint);
+    sync_action_cb = cb;
+    msg.type = ZG_MT_CMD_SRSP;
+    msg.subsys = ZG_MT_SUBSYS_ZDO;
+    msg.cmd = ZDO_EXT_ADD_GROUP;
+    msg.len = sizeof(endpoint) + sizeof(id) + 16;
+    buffer = calloc(msg.len, sizeof(uint8_t));
+    if(!buffer)
+    {
+        CRI("Cannot allocate memory to send ZDO_EXT_ADD_GROUP");
+        return;
+    }
+    memcpy(buffer + index, &endpoint, sizeof(endpoint));
+    index += sizeof(endpoint);
+    memcpy(buffer + index, &id, sizeof(id));
+    index += sizeof(id);
+    memcpy(buffer + index, name, 16);
+    index += 16;
+    msg.data = buffer;
+    zg_rpc_write(&msg);
+    ZG_VAR_FREE(buffer);
+}
+
 
