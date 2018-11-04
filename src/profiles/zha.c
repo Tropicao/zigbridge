@@ -26,10 +26,12 @@
 #define COMMAND_OFF_WITH_EFFECT                 0x40
 #define COMMAND_ON_WITH_RECALL_GLOBAL_SCENE     0x41
 
+#define COMMAND_GET_GROUP_ID                    0x41
+
 /* Off with effect frame format */
 #define LEN_OFF_WITH_EFFECT                     2
 #define INDEX_EFFECT_IDENTIFIER                 0
-#define INDEX_EFFeCT_VARIANT                    0
+#define INDEX_EFFECT_VARIANT                    0
 
 /* Data */
 
@@ -119,6 +121,49 @@ static void _process_temperature_measurement_command(uint16_t addr, void *data, 
     }
 }
 
+static void _stub_send_get_group_id_response(uint16_t addr)
+{
+    uint8_t response[6] = {0};
+
+    response[0] = 1; /* Stub Total : 1 */
+    response[1] = 0; /* Stub Start index : 0 */
+    response[2] = 1; /* Stub count : 1 */
+    /* Response is then composed of $count entry of 3 bytes */
+    response[3] = 1; /* Stub group id (2bytes) */
+    response[4] = 0;
+    response[5] = 0; /* Stub group type : 0 */
+
+
+
+    zg_aps_send_data(addr,
+            ADDR_MODE_16_BITS,
+            0xABCD,
+            ZHA_ENDPOINT,
+            0x0B,
+            ZCL_CLUSTER_COMMISSIONING,
+            COMMAND_GET_GROUP_ID,
+            response,
+            6,
+            1,
+            NULL);
+
+}
+
+static void _process_commissioning_command(uint16_t addr, void *data, int len __attribute__((unused)))
+{
+    uint8_t *buffer = (uint8_t *)data;
+    if(buffer[2] == COMMAND_GET_GROUP_ID)
+    {
+        INF("Received group id request");
+        _stub_send_get_group_id_response(addr);
+    }
+    else
+    {
+        WRN("Unuspported ZHA commissioning command/status 0x%02X", buffer[2]);
+    }
+
+}
+
 static void _zha_message_cb(uint64_t addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
@@ -133,6 +178,9 @@ static void _zha_message_cb(uint64_t addr, uint16_t cluster, void *data, int len
             break;
         case ZCL_CLUSTER_TEMPERATURE_MEASUREMENT:
             _process_temperature_measurement_command(addr, data, len);
+            break;
+        case ZCL_CLUSTER_COMMISSIONING:
+            _process_commissioning_command(addr, data, len);
             break;
         default:
             WRN("Unsupported ZHA cluster 0x%04X", cluster);
