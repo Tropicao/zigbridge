@@ -74,7 +74,7 @@
 #define ZLL_PROFIL_ID                           0xC05E  /* ZLL */
 #define ZLL_DEVICE_ID                           0X0210  /* Extended color light */
 #define ZLL_DEVICE_VERSION                      0x2     /* Version 2 */
-#define ZLL_INFORMATION_FIELD                   0x12
+#define ZLL_INFORMATION_FIELD                   0x92
 
 #define ZLL_IDENTIFY_DELAY_MS                   3000
 #define NB_SCAN_REQUEST                         100
