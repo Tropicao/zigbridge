@@ -126,9 +126,10 @@ static void _af_data_request_ext_cb(void)
     }
 }
 
-uint8_t _build_frame_control()
+uint8_t _build_frame_control(uint8_t dir)
 {
-    return APS_DEFAULT_FRAME_CONTROL;
+    /* Dir = 0 : message is from client cluster to server cluster */
+    return APS_DEFAULT_FRAME_CONTROL|(dir << 3);
 }
 
 /************************************
@@ -213,6 +214,7 @@ void zg_aps_send_data(  uint64_t dst_addr,
                         uint8_t command,
                         void *data,
                         int len,
+                        uint8_t dir,
                         SyncActionCb cb)
 {
     uint8_t *aps_data = NULL;
@@ -232,7 +234,7 @@ void zg_aps_send_data(  uint64_t dst_addr,
 
     if(src_endpoint != ZCL_ZDP_ENDPOINT)
     {
-        aps_data[INDEX_FCS] = _build_frame_control();
+        aps_data[INDEX_FCS] = _build_frame_control(dir);
         aps_data[INDEX_TRANS_SEQ_NUM] = _transaction_sequence_number;
         aps_data[INDEX_COMMAND] = command;
         if(len > 0 && data)

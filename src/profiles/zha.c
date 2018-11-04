@@ -262,6 +262,7 @@ void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
             command,
             NULL,
             0,
+            0,
             NULL);
 }
 
@@ -298,6 +299,7 @@ void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y, uint8_t d
             0x07,
             command,
             6,
+            0,
             NULL);
 }
 

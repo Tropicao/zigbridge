@@ -163,6 +163,7 @@ void zg_zdp_query_active_endpoints(uint16_t short_addr, SyncActionCb cb)
             0x00,
             zdp_data,
             LEN_ACTIVE_ENDPOINT_REQ,
+            0,
             cb);
 
 }
@@ -189,6 +190,7 @@ void zg_zdp_query_simple_descriptor(uint16_t short_addr, uint8_t endpoint, SyncA
             0x00,
             zdp_data,
             LEN_SIMPLE_DESC_REQ,
+            0,
             cb);
 
 }

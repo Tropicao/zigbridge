@@ -69,6 +69,8 @@ void zg_aps_register_endpoint(  uint8_t endpoint,
  * \param command The command we want to send to remote cluster
  * \param data The command payload we want to send
  * \param len The command payload len
+ * \param dir Direction of the transaction (0 if from client cluster to server
+ * cluster, 1 if from server cluster to client cluster)
  * \param cb A callback to be called when data has been sent to ZNP
  */
 void zg_aps_send_data(  uint64_t dst_addr,
@@ -80,6 +82,7 @@ void zg_aps_send_data(  uint64_t dst_addr,
                         uint8_t command,
                         void *data,
                         int len,
+                        uint8_t dir,
                         SyncActionCb cb);
 
 #endif

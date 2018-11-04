@@ -142,6 +142,7 @@ static void _zll_send_scan_request(SyncActionCb cb)
             COMMAND_SCAN_REQUEST,
             zll_data,
             LEN_SCAN_REQUEST,
+            0,
             cb);
 }
 
@@ -237,6 +238,7 @@ static void _zll_send_router_join_request(SyncActionCb cb)
             COMMAND_NETWORK_JOIN_ROUTER_REQUEST,
             zll_data,
             LEN_END_DEVICE_JOIN_REQUEST,
+            0,
             cb);
 }
 
@@ -289,6 +291,7 @@ static void _zll_send_end_device_join_request(SyncActionCb cb)
             COMMAND_NETWORK_JOIN_END_DEVICE_REQUEST,
             zll_data,
             LEN_END_DEVICE_JOIN_REQUEST,
+            0,
             cb);
 }
 
