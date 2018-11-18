@@ -66,7 +66,7 @@ static int _log_domain = -1;
 static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
 static void (*_button_change_cb)(uint16_t short_addr, uint8_t state) = NULL;
-static void (*_temperature_cb)(uint16_t short_addr, uint16_t temp) = NULL;
+static void (*_temperature_cb)(uint16_t short_addr, int16_t temp) = NULL;
 static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
@@ -100,7 +100,7 @@ static void _process_on_off_command(uint16_t addr, void *data, int len __attribu
 static void _process_temperature_measurement_command(uint16_t addr, void *data, int len __attribute__((unused)))
 {
     uint8_t *buffer = (uint8_t *)data;
-    uint16_t temp;
+    int16_t temp;
     if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
     {
         INF("Received new temperature status");
@@ -263,7 +263,7 @@ void zg_zha_register_button_state_cb(void (*cb)(uint16_t short_addr, uint8_t sta
     _button_change_cb = cb;
 }
 
-void zg_zha_register_temperature_cb(void (*cb)(uint16_t short_addr, uint16_t temp))
+void zg_zha_register_temperature_cb(void (*cb)(uint16_t short_addr, int16_t temp))
 {
     _temperature_cb = cb;
 }

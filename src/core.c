@@ -362,7 +362,7 @@ static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
     json_decref(root);
 }
 
-static void _temperature_cb(uint16_t addr, uint16_t temp)
+static void _temperature_cb(uint16_t addr, int16_t temp)
 {
     DeviceId id = 0xFF;
     uint16_t x, y;
