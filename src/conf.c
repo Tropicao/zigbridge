@@ -16,9 +16,12 @@
 #define KEY_NETWORK_KEY_PATH            "network_key_path"
 #define SECTION_DEVICES             "devices"
 #define KEY_DEVICE_LIST_PATH            "device_list_path"
+#define SECTION_HTTP_SERVER         "http_server"
+#define KEY_HTTP_SERVER_ADDR            "http_server_address"
+#define KEY_HTTP_SERVER_PORT            "http_server_port"
 
 #define PRINT_STRING_VALUE(section, key, val)   {INF("%s/%s : %s", section, key, val?val:"NULL");}
-#define PRINT_INT_VALUE(section, key, val)   {INF("%s/%s : %d", section, key, val);}
+#define PRINT_INT_VALUE(section, key, val)      {INF("%s/%s : %d", section, key, val);}
 
 /**
  * \brief This module holds all configuration management.
@@ -42,6 +45,8 @@ typedef struct
     char *device_list_path;
     char *znp_device_path;
     int znp_baudrate;
+    char *http_server_address;
+    int http_server_port;
 } Configuration;
 
 typedef enum
@@ -114,6 +119,8 @@ static void _print_configuration()
     PRINT_INT_VALUE(SECTION_GENERAL, KEY_ZNP_BAUDRATE, _configuration.znp_baudrate);
     PRINT_STRING_VALUE(SECTION_SECURITY, KEY_NETWORK_KEY_PATH, _configuration.network_key_path);
     PRINT_STRING_VALUE(SECTION_DEVICES, KEY_DEVICE_LIST_PATH, _configuration.device_list_path);
+    PRINT_STRING_VALUE(SECTION_HTTP_SERVER, KEY_HTTP_SERVER_ADDR, _configuration.http_server_address);
+    PRINT_INT_VALUE(SECTION_HTTP_SERVER, KEY_HTTP_SERVER_PORT, _configuration.http_server_port);
 }
 /****************************************
  *                  API                 *
@@ -138,6 +145,8 @@ uint8_t zg_conf_init(char *conf_path)
         _load_value(dict, SECTION_DEVICES, KEY_DEVICE_LIST_PATH, &(_configuration.device_list_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_GENERAL, KEY_ZNP_DEVICE_PATH, &(_configuration.znp_device_path), CONF_VAL_STRING);
         _load_value(dict, SECTION_GENERAL, KEY_ZNP_BAUDRATE, &(_configuration.znp_baudrate), CONF_VAL_INT);
+        _load_value(dict, SECTION_HTTP_SERVER, KEY_HTTP_SERVER_ADDR, &(_configuration.http_server_address), CONF_VAL_STRING);
+        _load_value(dict, SECTION_HTTP_SERVER, KEY_HTTP_SERVER_PORT, &(_configuration.http_server_port), CONF_VAL_INT);
         iniparser_freedict(dict);
     }
     _print_configuration();
@@ -148,6 +157,7 @@ void zg_conf_shutdown()
 {
     ZG_VAR_FREE(_configuration.network_key_path);
     ZG_VAR_FREE(_configuration.device_list_path);
+    ZG_VAR_FREE(_configuration.http_server_address);
     memset(&_configuration, 0, sizeof(_configuration));
 }
 
@@ -171,3 +181,12 @@ const char *zg_conf_get_device_list_path()
     return _configuration.device_list_path;
 }
 
+const char *zg_conf_get_http_server_address()
+{
+    return _configuration.http_server_address;
+}
+
+int zg_conf_get_http_server_port()
+{
+    return _configuration.http_server_port;
+}
