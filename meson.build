@@ -3,6 +3,7 @@ project('Zigbridge' , 'c')
 # Sources
 src = ['src/main.c',
         'src/core.c',
+        'src/interfaces/http_server.c',
         'src/interfaces/ipc.c',
         'src/interfaces/stdin.c',
         'src/aps.c',

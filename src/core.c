@@ -12,6 +12,7 @@
 #include "mt_util.h"
 #include "stdin.h"
 #include "ipc.h"
+#include "http_server.h"
 #include "device.h"
 #include "keys.h"
 #include "sm.h"
@@ -446,6 +447,7 @@ void zg_core_init(uint8_t reset_network)
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_mt_init();
     zg_ipc_init();
+    zg_http_server_init();
     zg_keys_init();
     zg_device_init(_reset_network);
 
@@ -463,6 +465,7 @@ void zg_core_shutdown(void)
     zg_zll_shutdown();
     zg_zha_shutdown();
     zg_zdp_shutdown();
+    zg_http_server_shutdown();
     zg_ipc_shutdown();
     zg_mt_init();
 }
