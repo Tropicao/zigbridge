@@ -6,17 +6,21 @@
 #include "logs.h"
 #include "utils.h"
 #include "conf.h"
+#include "http_parser.h"
 
 /********************************
  *          Constants           *
  *******************************/
 
-#define CLOSE_CLIENT(x)     do {\
-                                if(_client_handle){\
-                                uv_close((uv_handle_t *)x, NULL);\
-                                ZG_VAR_FREE(x);\
-                                }} while(0);
+#define CLOSE_CLIENT(x)                 do {\
+                                                if(_client_handle){\
+                                                uv_close((uv_handle_t *)x, NULL);\
+                                                ZG_VAR_FREE(x);\
+                                                }} while(0);
 
+#define DEINIT_HTTP_PARSER(x)           do {\
+                                            ZG_VAR_FREE(x);\
+                                        } while(0);
 #define HTTP_SERVER_PIPENAME            "/tmp/zg_sock"
 #define MAX_PENDING_CONNECTTION         2
 
@@ -35,6 +39,8 @@ static int _log_domain = -1;
 static int _init_count = 0;
 static uv_tcp_t _server_handle;
 static uv_tcp_t *_client_handle = NULL;
+http_parser_settings _hp_settings;
+http_parser *_hp_parser = NULL;
 
 /********************************
  *            Internal          *
@@ -66,17 +72,33 @@ static void _stub_answer(void)
     }
 }
 
+static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *at, size_t len __attribute__((unused)))
+{
+
+    DBG("URL event : %s", at);
+    _stub_answer();
+    return 0;
+}
+
 static void _process_http_server_data(char *data, int len)
 {
-   if(!data || len <= 0)
-   {
-      ERR("Cannot process HTTP_SERVER command : message is corrupted");
-      CLOSE_CLIENT(_client_handle);
-      return;
-   }
+    size_t nparsed ;
+    if(!data || len <= 0)
+    {
+        ERR("Cannot process HTTP_SERVER command : message is corrupted");
+        CLOSE_CLIENT(_client_handle);
+        DEINIT_HTTP_PARSER(_hp_parser);
+        return;
+    }
 
-   DBG("HTTP server data : %s", data);
-   _stub_answer();
+    DBG("HTTP server data : %s", data);
+    nparsed = http_parser_execute(_hp_parser, &_hp_settings, data, len);
+    if(nparsed != (size_t)len)
+    {
+        WRN("Cannot parse client request");
+        CLOSE_CLIENT(_client_handle);
+        DEINIT_HTTP_PARSER(_hp_parser);
+    }
 }
 
 /****************************************
@@ -133,6 +155,10 @@ static void _new_connection_cb(uv_stream_t *s, int status)
         ERR("Error on accepting new client");
         CLOSE_CLIENT(_client_handle);
     }
+    http_parser_settings_init(&_hp_settings);
+    _hp_parser = calloc(1, sizeof(http_parser));
+    _hp_settings.on_url = _url_asked_cb;
+    http_parser_init(_hp_parser, HTTP_REQUEST);
 }
 
 /********************************
