@@ -13,10 +13,11 @@
  *******************************/
 
 #define CLOSE_CLIENT(x)                 do {\
-                                                if(_client_handle){\
+                                            if(_client_handle){\
+                                                uv_read_stop((uv_stream_t *)x);\
                                                 uv_close((uv_handle_t *)x, NULL);\
                                                 ZG_VAR_FREE(x);\
-                                                }} while(0);
+                                            }} while(0);
 
 #define DEINIT_HTTP_PARSER(x)           do {\
                                             ZG_VAR_FREE(x);\
@@ -24,12 +25,21 @@
 #define HTTP_SERVER_PIPENAME            "/tmp/zg_sock"
 #define MAX_PENDING_CONNECTTION         2
 
+#define MAX_URL_SIZE                    512
+
 /* STUB data */
 #define STUB_ANSWER_STATUS              "HTTP/1.1 200 OK\r\n"
 #define STUB_ANSWER_CONTENT_LENGTH      "Content-Length: 11\r\n"
 #define STUB_ANSWER_CONTENT_TYPE        "Content-Type: text/html\r\n"
 #define STUB_ANSWER_SPACER              "\r\n"
 #define STUB_ANSWER_PAYLOAD             "Hello World\r\n"
+static uv_buf_t stub_buf[] = {
+    {.base = STUB_ANSWER_STATUS, .len = strlen(STUB_ANSWER_STATUS)},
+    {.base = STUB_ANSWER_CONTENT_LENGTH, .len = strlen(STUB_ANSWER_CONTENT_LENGTH)},
+    {.base = STUB_ANSWER_CONTENT_TYPE, .len = strlen(STUB_ANSWER_CONTENT_TYPE)},
+    {.base = STUB_ANSWER_SPACER, .len = strlen(STUB_ANSWER_SPACER)},
+    {.base = STUB_ANSWER_PAYLOAD, .len = strlen(STUB_ANSWER_PAYLOAD)}};
+
 
 /********************************
  *      Local variables         *
@@ -46,59 +56,58 @@ http_parser *_hp_parser = NULL;
  *            Internal          *
  *******************************/
 
-static void _client_answer_cb(uv_write_t *req __attribute__((unused)), int status)
+static void _client_answer_cb(uv_write_t *req, int status)
 {
     if(status)
     {
         ERR("Client answer has failed");
     }
+    ZG_VAR_FREE(req);
 }
 
 static void _stub_answer(void)
 {
-    uv_write_t req;
-    uv_buf_t buf[] = {
-        {.base = STUB_ANSWER_STATUS, .len = strlen(STUB_ANSWER_STATUS)},
-        {.base = STUB_ANSWER_CONTENT_LENGTH, .len = strlen(STUB_ANSWER_CONTENT_LENGTH)},
-        {.base = STUB_ANSWER_CONTENT_TYPE, .len = strlen(STUB_ANSWER_CONTENT_TYPE)},
-        {.base = STUB_ANSWER_SPACER, .len = strlen(STUB_ANSWER_SPACER)},
-        {.base = STUB_ANSWER_PAYLOAD, .len = strlen(STUB_ANSWER_PAYLOAD)}};
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
 
     INF("Answering stub HTTP response");
-    req.data = buf[0].base;
-    if(uv_write(&req, (uv_stream_t *)_client_handle, buf, sizeof(buf)/sizeof(uv_buf_t), _client_answer_cb) != 0)
+    if(uv_write(req, (uv_stream_t *)_client_handle, stub_buf, sizeof(stub_buf)/sizeof(uv_buf_t), _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
     }
 }
 
-static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *at, size_t len __attribute__((unused)))
+static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *at __attribute__((unused)), size_t len __attribute__((unused)))
 {
 
-    DBG("URL event : %s", at);
+    struct http_parser_url url;
+    int i = 0;
+
+    if(len >= MAX_URL_SIZE)
+    {
+        ERR("Cannot parse too big url (limitation set to %d)", MAX_URL_SIZE);
+        return 1;
+    }
+
+    DBG("URL event (size %zd)", len);
+    http_parser_url_init(&url);
+    if(http_parser_parse_url(at, len, 0, &url) != 0)
+    {
+        ERR("Failed to parse calling URL");
+        CLOSE_CLIENT(_client_handle);
+        DEINIT_HTTP_PARSER(_hp_parser);
+        return 1;
+    }
+
+    for(i = 0; i < UF_MAX; i++)
+    {
+        if(url.field_set & (1 << i))
+        {
+            DBG("Found URL component (index %d, size %d): %.*s", i, url.field_data[i].len, url.field_data[i].len, at + url.field_data[i].off);
+        }
+    }
+
     _stub_answer();
     return 0;
-}
-
-static void _process_http_server_data(char *data, int len)
-{
-    size_t nparsed ;
-    if(!data || len <= 0)
-    {
-        ERR("Cannot process HTTP_SERVER command : message is corrupted");
-        CLOSE_CLIENT(_client_handle);
-        DEINIT_HTTP_PARSER(_hp_parser);
-        return;
-    }
-
-    DBG("HTTP server data : %s", data);
-    nparsed = http_parser_execute(_hp_parser, &_hp_settings, data, len);
-    if(nparsed != (size_t)len)
-    {
-        WRN("Cannot parse client request");
-        CLOSE_CLIENT(_client_handle);
-        DEINIT_HTTP_PARSER(_hp_parser);
-    }
 }
 
 /****************************************
@@ -107,17 +116,41 @@ static void _process_http_server_data(char *data, int len)
 
 static void _new_data_cb(uv_stream_t *s __attribute__((unused)), ssize_t n, const uv_buf_t *buf)
 {
+    size_t nparsed ;
+    const char *data = NULL;
+
     if (n < 0)
     {
         if(n == UV_EOF)
             INF("Client disconnected from HTTP server");
         else
             ERR("User socket error (%zd)", n);
-        CLOSE_CLIENT(_client_handle);
-        return;
+        goto new_data_end_error;
     }
 
-    _process_http_server_data(buf->base, n);
+    for(;;)
+    {
+        nparsed = http_parser_execute(_hp_parser, &_hp_settings, buf->base, n);
+        if(_hp_parser->http_errno != HPE_OK)
+        {
+            WRN("Cannot parse client request : %s", http_errno_description(_hp_parser->http_errno));
+            goto new_data_end_error;
+        }
+
+        if(nparsed == (size_t)n)
+        {
+            DBG("All HTTP data has been properly parsed");
+            break;
+        }
+
+        data += nparsed;
+        n -= nparsed;
+    }
+
+    free(buf->base);
+new_data_end_error:
+    CLOSE_CLIENT(_client_handle);
+    DEINIT_HTTP_PARSER(_hp_parser);
 }
 
 static void alloc_cb(uv_handle_t *handle __attribute__((unused)), size_t size, uv_buf_t *buf)
@@ -156,7 +189,8 @@ static void _new_connection_cb(uv_stream_t *s, int status)
         CLOSE_CLIENT(_client_handle);
     }
     http_parser_settings_init(&_hp_settings);
-    _hp_parser = calloc(1, sizeof(http_parser));
+    if(!_hp_parser)
+        _hp_parser = calloc(1, sizeof(http_parser));
     _hp_settings.on_url = _url_asked_cb;
     http_parser_init(_hp_parser, HTTP_REQUEST);
 }
