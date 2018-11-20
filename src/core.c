@@ -179,6 +179,7 @@ static void _shutdown_new_device_sm(void)
     INF("Learning device process finished");
     _current_learning_device_addr = 0xFFFD;
     zg_sm_destroy(_new_device_sm);
+    _new_device_sm = NULL;
 }
 
 static ZgSmStateData _new_device_states[] = {
