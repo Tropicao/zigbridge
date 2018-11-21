@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "conf.h"
 #include "http_parser.h"
+#include "interfaces.h"
 
 /********************************
  *          Constants           *
@@ -40,6 +41,8 @@ static uv_buf_t stub_buf[] = {
     {.base = STUB_ANSWER_SPACER, .len = strlen(STUB_ANSWER_SPACER)},
     {.base = STUB_ANSWER_PAYLOAD, .len = strlen(STUB_ANSWER_PAYLOAD)}};
 
+/* Parser data */
+#define REST_URL_VERSION            "/version"
 
 /********************************
  *      Local variables         *
@@ -51,6 +54,7 @@ static uv_tcp_t _server_handle;
 static uv_tcp_t *_client_handle = NULL;
 http_parser_settings _hp_settings;
 http_parser *_hp_parser = NULL;
+ZgInterfacesInterface _interface;
 
 /********************************
  *            Internal          *
@@ -65,11 +69,10 @@ static void _client_answer_cb(uv_write_t *req, int status)
     ZG_VAR_FREE(req);
 }
 
-static void _stub_answer(void)
+static void _send_answer(void *data, int len)
 {
     uv_write_t *req = calloc(1, sizeof(uv_write_t));
 
-    INF("Answering stub HTTP response");
     if(uv_write(req, (uv_stream_t *)_client_handle, stub_buf, sizeof(stub_buf)/sizeof(uv_buf_t), _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
@@ -103,10 +106,11 @@ static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *a
         if(url.field_set & (1 << i))
         {
             DBG("Found URL component (index %d, size %d): %.*s", i, url.field_data[i].len, url.field_data[i].len, at + url.field_data[i].off);
+            if(strncmp(at + url.field_data[i].off, REST_URL_VERSION, strlen(REST_URL_VERSION)) == 0)
+                
         }
     }
 
-    _stub_answer();
     return 0;
 }
 
@@ -201,10 +205,11 @@ static void _new_connection_cb(uv_stream_t *s, int status)
 
 int zg_http_server_init()
 {
+    zg_interfaces_init();
     _log_domain = zg_logs_domain_register("zg_http_server", ZG_COLOR_GREEN);
     struct sockaddr_in bind_addr;
 
-    if(_init_count == 1)
+    if(_init_count != 0)
     {
         return 0;
     }
@@ -225,6 +230,9 @@ int zg_http_server_init()
     {
         ERR("Cannot start listening for new connection");
     }
+    memset(&_interface, 0, sizeof(_interface));
+    sprintf((char *)_interface.name, "HTTP");
+    zg_interfaces_register_new_interface(&_interface);
 
     INF("HTTP server started on address %s - port %d", zg_conf_get_http_server_address(), zg_conf_get_http_server_port());
     _init_count = 1;
@@ -234,10 +242,12 @@ int zg_http_server_init()
 
 void zg_http_server_shutdown()
 {
-    if(_init_count != 1)
+    if(--_init_count != 1)
     {
         return;
     }
+    _init_count--;
     CLOSE_CLIENT(_client_handle);
+    zg_interfaces_shutdown();
     INF("HTTP_SERVER module shut down");
 }
