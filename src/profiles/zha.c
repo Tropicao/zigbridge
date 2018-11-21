@@ -67,6 +67,8 @@ static uint8_t _demo_bulb_state = 0x1;
 static uint16_t _pending_command_addr = 0xFFFD;
 static void (*_button_change_cb)(uint16_t short_addr, uint8_t state) = NULL;
 static void (*_temperature_cb)(uint16_t short_addr, int16_t temp) = NULL;
+static void (*_humidity_cb)(uint16_t short_addr, uint16_t humidity) = NULL;
+static void (*_pressure_cb)(uint16_t short_addr, int16_t pressure) = NULL;
 static NewDeviceJoinedCb _new_device_ind_cb = NULL;
 
 static uint16_t _zha_in_clusters[] = {
@@ -116,6 +118,45 @@ static void _process_temperature_measurement_command(uint16_t addr, void *data, 
     }
 }
 
+static void _process_pressure_measurement_command(uint16_t addr, void *data, int len __attribute__((unused)))
+{
+    uint8_t *buffer = (uint8_t *)data;
+    int16_t pressure;
+    if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
+    {
+        INF("Received new pressure status");
+        if(_pressure_cb)
+        {
+            memcpy(&pressure, buffer+6, 2);
+            _pressure_cb(addr, pressure);
+        }
+    }
+    else
+    {
+        WRN("Unuspported pressure measurement command/status 0x%02X", buffer[2]);
+    }
+}
+
+static void _process_humidity_measurement_command(uint16_t addr, void *data, int len __attribute__((unused)))
+{
+    uint8_t *buffer = (uint8_t *)data;
+    uint16_t humidity;
+    if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
+    {
+        INF("Received new pressure status");
+        if(_humidity_cb)
+        {
+            memcpy(&humidity, buffer+6, 2);
+            _humidity_cb(addr, humidity);
+        }
+    }
+    else
+    {
+        WRN("Unuspported pressure measurement command/status 0x%02X", buffer[2]);
+    }
+}
+
+
 static void _zha_message_cb(uint16_t addr, uint16_t cluster, void *data, int len)
 {
     uint8_t *buffer = data;
@@ -130,6 +171,12 @@ static void _zha_message_cb(uint16_t addr, uint16_t cluster, void *data, int len
             break;
         case ZCL_CLUSTER_TEMPERATURE_MEASUREMENT:
             _process_temperature_measurement_command(addr, data, len);
+            break;
+        case ZCL_CLUSTER_PRESSURE_MEASUREMENT:
+            _process_pressure_measurement_command(addr, data, len);
+            break;
+        case ZCL_CLUSTER_HUMIDITY_MEASUREMENT:
+            _process_humidity_measurement_command(addr, data, len);
             break;
         default:
             WRN("Unsupported ZHA cluster 0x%04X", cluster);
@@ -266,6 +313,16 @@ void zg_zha_register_button_state_cb(void (*cb)(uint16_t short_addr, uint8_t sta
 void zg_zha_register_temperature_cb(void (*cb)(uint16_t short_addr, int16_t temp))
 {
     _temperature_cb = cb;
+}
+
+void zg_zha_register_humidity_cb(void (*cb)(uint16_t short_addr, uint16_t humidity))
+{
+    _humidity_cb = cb;
+}
+
+void zg_zha_register_pressure_cb(void (*cb)(uint16_t short_addr, int16_t pressure))
+{
+    _pressure_cb = cb;
 }
 
 void zg_zha_move_to_color(uint16_t short_addr, uint16_t x, uint16_t y, uint8_t duration_s)
