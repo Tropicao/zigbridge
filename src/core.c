@@ -394,7 +394,7 @@ static void _pressure_cb(uint16_t addr __attribute((unused)), int16_t pressure)
 
 static void _humidity_cb(uint16_t addr __attribute((unused)), uint16_t humidity)
 {
-    INF("New humidity report (%.2f%)",(float)(humidity/100.0));
+    INF("New humidity report (%.2f%%)",(float)(humidity/100.0));
 }
 
 static void _process_command_touchlink()
