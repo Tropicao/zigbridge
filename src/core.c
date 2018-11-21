@@ -312,46 +312,6 @@ static void _button_change_cb(uint16_t addr, uint8_t state)
     }
 }
 
-static void _compute_new_color(uint16_t temp, uint16_t *x, uint16_t *y)
-{
-    /*
-     * Simple demo function : we want to move hue from blue to red when
-     * temperature increase.
-     * We will agree that first read temperature (ie room temperature) is the
-     * cold one (ie hue is blue), and that red hue can be reached at 30°C (can
-     * be reached by blowing hot air on sensor)
-     *
-     * TLDR :
-     * T=Cold : X=0, Y=0
-     * T=Hot : X=65535, Y=0
-     */
-    static float a, b;
-    static uint16_t ref_temp = 0;
-    const uint16_t max_temp = 2700;
-
-
-    if(temp > max_temp)
-        temp = max_temp;
-
-    if(ref_temp == 0 || temp < ref_temp)
-    {
-        DBG("Setting new temperature reference (%s)", ref_temp ? "New temp below ref temp":"No ref temp yet");
-        ref_temp = temp;
-        *y = 0;
-        *x = 0;
-        a = (float)(65535/(float)(max_temp - ref_temp));
-        b = -(float)(a*ref_temp);
-    }
-    else
-    {
-        DBG("Updating temperature color");
-        *y=0;
-        *x= a*temp + b;
-    }
-    DBG("X : 0x%04X - Y : 0x%04X", *x, *y);
-}
-
-
 static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
 {
     json_t *root;
@@ -366,20 +326,12 @@ static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
 static void _temperature_cb(uint16_t addr, int16_t temp)
 {
     DeviceId id = 0xFF;
-    uint16_t x, y;
 
     INF("New temperature report (%.2f°C)",(float)(temp/100.0));
     if(_initialized)
     {
         id = zg_device_get_id(addr);
         _send_ipc_event_temperature(id, temp);
-        if(addr != 0xFFFD)
-        {
-            _compute_new_color(temp, &x, &y);
-            zg_zha_move_to_color(zg_device_get_short_addr(DEMO_DEVICE_ID), x, y, 5);
-        }
-        else
-            WRN("Device is not installed, cannot switch light");
     }
     else
     {
