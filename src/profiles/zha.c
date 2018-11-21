@@ -143,7 +143,7 @@ static void _process_humidity_measurement_command(uint16_t addr, void *data, int
     uint16_t humidity;
     if(buffer[2] == COMMAND_REPORT_ATTRIBUTE)
     {
-        INF("Received new pressure status");
+        INF("Received new humidity status");
         if(_humidity_cb)
         {
             memcpy(&humidity, buffer+6, 2);
