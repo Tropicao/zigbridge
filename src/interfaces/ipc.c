@@ -233,7 +233,7 @@ static void _new_connection_cb(uv_stream_t *s, int status)
 
 int zg_ipc_init()
 {
-    _log_domain = zg_logs_domain_register("zg_ipc", ZG_COLOR_BLACK);
+    _log_domain = zg_logs_domain_register("zg_ipc", ZG_COLOR_GREEN);
     uv_pipe_init(uv_default_loop(), &_server, 0);
     if(uv_pipe_bind(&_server, IPC_PIPENAME))
     {
