@@ -368,7 +368,7 @@ static void _temperature_cb(uint16_t addr, int16_t temp)
     DeviceId id = 0xFF;
     uint16_t x, y;
 
-    INF("New temperature report (%.2f°C), adjusting the light",(float)(temp/100.0));
+    INF("New temperature report (%.2f°C)",(float)(temp/100.0));
     if(_initialized)
     {
         id = zg_device_get_id(addr);
@@ -387,7 +387,15 @@ static void _temperature_cb(uint16_t addr, int16_t temp)
     }
 }
 
+static void _pressure_cb(uint16_t addr, int16_t pressure)
+{
+    INF("New pressure report (%.2fkPa)",(float)(pressure/10.0));
+}
 
+static void _humidity_cb(uint16_t addr, uint16_t humidity)
+{
+    INF("New humidity report (%.2f%)",(float)(humidity/100.0));
+}
 
 static void _process_command_touchlink()
 {
@@ -480,6 +488,8 @@ void zg_core_init(uint8_t reset_network)
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
     zg_zha_register_temperature_cb(_temperature_cb);
+    zg_zha_register_pressure_cb(_pressure_cb);
+    zg_zha_register_humidity_cb(_humidity_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_mt_init();
