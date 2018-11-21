@@ -387,12 +387,12 @@ static void _temperature_cb(uint16_t addr, int16_t temp)
     }
 }
 
-static void _pressure_cb(uint16_t addr, int16_t pressure)
+static void _pressure_cb(uint16_t addr __attribute((unused)), int16_t pressure)
 {
     INF("New pressure report (%.2fkPa)",(float)(pressure/10.0));
 }
 
-static void _humidity_cb(uint16_t addr, uint16_t humidity)
+static void _humidity_cb(uint16_t addr __attribute((unused)), uint16_t humidity)
 {
     INF("New humidity report (%.2f%)",(float)(humidity/100.0));
 }
