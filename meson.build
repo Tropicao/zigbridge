@@ -36,7 +36,7 @@ cc = meson.get_compiler('c')
 uvdep = dependency('libuv')
 iniparserdep = cc.find_library('iniparser')
 einadep = dependency('eina')
-janssondep = dependency('jansson')
+janssondep = dependency('jansson', version:'>=2.10')
 dep = [uvdep, iniparserdep, einadep, janssondep]
 
 # Build options
