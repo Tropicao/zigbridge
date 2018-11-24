@@ -1,7 +1,18 @@
 #ifndef INTERFACES_H
 #define INTERFACES_H
 
-#define MAX_INTERFACE_NAME_SIZE 32
+#include <stdio.h>
+#include <stdlib.h>
+
+#define ZG_INTERFACES_MAX_INTERFACE_NAME_SIZE   32
+#define ZG_INTERFACES_MAX_COMMAND_STRING_LEN    128
+
+#define CALLOC_COMMAND_OBJ_RET(x, y)            do {\
+                                                    x = calloc(1, sizeof(ZgInterfacesCommandObject));\
+                                                    if(!x) {\
+                                                        fprintf(stderr, "Cannot create Command object\n");\
+                                                        return y;\
+                                                }} while(0)
 
 /* Callback type used to dispatch an event on interfaces that support events */
 typedef void (*event_cb_t)(void *data, int size);
@@ -11,10 +22,10 @@ typedef enum
 {
     ZG_INTERFACES_COMMAND_GET_VERSION,
     ZG_INTERFACES_COMMAND_OPEN_NETWORK,
-    ZG_INTERFACES_COMMAND_START_TOUCHLINK,
-    ZG_INTERFACES_COMMAND_STOP_TOUCHLINK,
-    ZG_INTERFACES_COMMAND_GET_DEVICE_LIST
-} ZgInterfacesCommand;
+    ZG_INTERFACES_COMMAND_TOUCHLINK,
+    ZG_INTERFACES_COMMAND_GET_DEVICE_LIST,
+    ZG_INTERFACES_COMMAND_MAX_ID
+} ZgInterfacesCommandId;
 
 /* List of availabel events to send to external clients */
 typedef enum
@@ -24,20 +35,21 @@ typedef enum
 
 typedef struct
 {
-    ZgInterfacesCommand command;
+    char command_string[ZG_INTERFACES_MAX_COMMAND_STRING_LEN];
     void *data;
     int len;
 }ZgInterfacesCommandObject;
 
 typedef struct
 {
+    int status;
     void *data;
     int len;
 }ZgInterfacesAnswerObject;
 
 typedef struct
 {
-    const char name[MAX_INTERFACE_NAME_SIZE];
+    const char name[ZG_INTERFACES_MAX_INTERFACE_NAME_SIZE];
     event_cb_t event_cb;
 } ZgInterfacesInterface;
 
@@ -56,6 +68,10 @@ void zg_interfaces_register_new_interface(ZgInterfacesInterface *interface);
  * must be freed by the caller after it has been sent
  */
 ZgInterfacesAnswerObject *zg_interfaces_process_command(ZgInterfacesInterface *interface, ZgInterfacesCommandObject *command);
+
+void zg_interfaces_free_command_object(ZgInterfacesCommandObject *obj);
+
+void zg_interfaces_free_answer_object(ZgInterfacesAnswerObject *obj);
 
 void zg_interfaces_init();
 

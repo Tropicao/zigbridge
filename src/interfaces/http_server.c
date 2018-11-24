@@ -13,36 +13,46 @@
  *          Constants           *
  *******************************/
 
-#define CLOSE_CLIENT(x)                 do {\
-                                            if(_client_handle){\
-                                                uv_read_stop((uv_stream_t *)x);\
-                                                uv_close((uv_handle_t *)x, NULL);\
-                                                ZG_VAR_FREE(x);\
-                                            }} while(0);
+#define CLOSE_CLIENT(x)                             do {\
+                                                        if(x){\
+                                                            uv_read_stop((uv_stream_t *)x);\
+                                                            uv_close((uv_handle_t *)x, NULL);\
+                                                            ZG_VAR_FREE(x);\
+                                                        }} while(0);
 
-#define DEINIT_HTTP_PARSER(x)           do {\
-                                            ZG_VAR_FREE(x);\
-                                        } while(0);
+#define DEINIT_HTTP_PARSER(x)                       do {\
+                                                        ZG_VAR_FREE(x);\
+                                                    } while(0);
+
+#define FILL_HTTP_BUFFER(msg, index, data, size)     do {\
+                                                        if(len <= 0){\
+                                                            ERR("Inavlid data length");\
+                                                        } else {\
+                                                            msg[index].base = calloc(size + 1, sizeof(char));\
+                                                            memcpy(msg[index].base, data, size);\
+                                                            msg[index].len = size;\
+                                                    }} while(0);
+
 #define HTTP_SERVER_PIPENAME            "/tmp/zg_sock"
 #define MAX_PENDING_CONNECTTION         2
 
 #define MAX_URL_SIZE                    512
 
 /* STUB data */
-#define STUB_ANSWER_STATUS              "HTTP/1.1 200 OK\r\n"
-#define STUB_ANSWER_CONTENT_LENGTH      "Content-Length: 11\r\n"
-#define STUB_ANSWER_CONTENT_TYPE        "Content-Type: text/html\r\n"
-#define STUB_ANSWER_SPACER              "\r\n"
-#define STUB_ANSWER_PAYLOAD             "Hello World\r\n"
-static uv_buf_t stub_buf[] = {
-    {.base = STUB_ANSWER_STATUS, .len = strlen(STUB_ANSWER_STATUS)},
-    {.base = STUB_ANSWER_CONTENT_LENGTH, .len = strlen(STUB_ANSWER_CONTENT_LENGTH)},
-    {.base = STUB_ANSWER_CONTENT_TYPE, .len = strlen(STUB_ANSWER_CONTENT_TYPE)},
-    {.base = STUB_ANSWER_SPACER, .len = strlen(STUB_ANSWER_SPACER)},
-    {.base = STUB_ANSWER_PAYLOAD, .len = strlen(STUB_ANSWER_PAYLOAD)}};
+#define HTTP_VERSION_STR           "HTTP/1.1"
+#define HTTP_CONTENT_LEN_STR       "Content-Length"
+#define HTTP_CONTENT_TYPE_STR      "Content-Type"
 
-/* Parser data */
-#define REST_URL_VERSION            "/version"
+typedef enum
+{
+    HTTP_FIELD_STATUS,
+    HTTP_FIELD_CONTENT_LEN,
+    HTTP_FIELD_CONTENT_TYPE,
+    HTTP_FIELD_SPACER,
+    HTTP_FIELD_DATA,
+    HTTP_FIELD_MAX
+} HttpField;
+
 
 /********************************
  *      Local variables         *
@@ -57,33 +67,112 @@ http_parser *_hp_parser = NULL;
 ZgInterfacesInterface _interface;
 
 /********************************
+ *      Structures and data     *
+ *******************************/
+
+
+/********************************
  *            Internal          *
  *******************************/
 
-static void _client_answer_cb(uv_write_t *req, int status)
+static void _dump_http_answer(uv_buf_t *answer)
+{
+    int i = 0;
+
+    if(!answer)
+    {
+        ERR("Cannot dump HTTP answer : object is NULL");
+        return;
+    }
+
+    DBG("Dump HTTP answer : ");
+    for(i = 0; i < HTTP_FIELD_MAX; i++)
+    {
+        DBG("==> Field %d : %s (%zd)", i, answer[i].base, answer[i].len);
+    }
+}
+
+static void _free_http_answer(uv_buf_t *msg)
+{
+    int i = 0;
+    if(msg)
+    {
+        for(i = 0; i < HTTP_FIELD_MAX; i++)
+        {
+            ZG_VAR_FREE(msg[i].base);
+        }
+        ZG_VAR_FREE(msg);
+    }
+}
+
+static uv_buf_t *_build_http_answer(ZgInterfacesAnswerObject *obj)
+{
+    uv_buf_t *res = NULL;
+    char buffer[512] = {0};
+    int len;
+
+    if(!obj)
+        return res;
+
+    res = calloc(HTTP_FIELD_MAX, sizeof(uv_buf_t));
+    if(!res)
+        return res;
+
+    len = sprintf(buffer, "%s %d %s\r\n", HTTP_VERSION_STR, obj->status ? 400:200, obj->status ? "Not found":"OK");
+    FILL_HTTP_BUFFER(res, HTTP_FIELD_STATUS, buffer, len);
+    len = sprintf(buffer, "%s: %s\r\n", HTTP_CONTENT_TYPE_STR, "text/ascii");
+    FILL_HTTP_BUFFER(res, HTTP_FIELD_CONTENT_TYPE, buffer, len);
+    len = sprintf(buffer, "%s: %d\r\n", HTTP_CONTENT_LEN_STR, obj->len);
+    FILL_HTTP_BUFFER(res, HTTP_FIELD_CONTENT_LEN, buffer, len);
+    len = sprintf(buffer, "\r\n");
+    FILL_HTTP_BUFFER(res, HTTP_FIELD_SPACER, buffer, len);
+    FILL_HTTP_BUFFER(res, HTTP_FIELD_DATA, obj->data, obj->len);
+
+    return res;
+}
+
+static void _client_answer_cb(uv_write_t *req __attribute__((unused)), int status)
 {
     if(status)
     {
         ERR("Client answer has failed");
     }
+    _free_http_answer((uv_buf_t*)req->data);
     ZG_VAR_FREE(req);
 }
 
-static void _send_answer(void *data, int len)
+static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
 {
-    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    uv_buf_t *msg = NULL;
+    if(!obj)
+        return;
 
-    if(uv_write(req, (uv_stream_t *)_client_handle, stub_buf, sizeof(stub_buf)/sizeof(uv_buf_t), _client_answer_cb) != 0)
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    msg = _build_http_answer(obj);
+    if(!req || !obj ||!msg)
+    {
+        ERR("Cannot build HTTP answer");
+        ZG_VAR_FREE(req);
+        ZG_VAR_FREE(obj);
+        _free_http_answer(msg);
+        return;
+    }
+
+    _dump_http_answer(msg);
+    req->data = msg;
+    if(uv_write(req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
     }
+    INF("Answer dispatched to client (status %d)", obj->status);
 }
 
 static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *at __attribute__((unused)), size_t len __attribute__((unused)))
 {
 
     struct http_parser_url url;
-    int i = 0;
+    ZgInterfacesCommandObject *command_obj = NULL;
+    ZgInterfacesAnswerObject  *answer_obj = NULL;
 
     if(len >= MAX_URL_SIZE)
     {
@@ -101,14 +190,16 @@ static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *a
         return 1;
     }
 
-    for(i = 0; i < UF_MAX; i++)
+    if(url.field_set & (1 << UF_PATH) && url.field_data[UF_PATH].len > 0)
     {
-        if(url.field_set & (1 << i))
-        {
-            DBG("Found URL component (index %d, size %d): %.*s", i, url.field_data[i].len, url.field_data[i].len, at + url.field_data[i].off);
-            if(strncmp(at + url.field_data[i].off, REST_URL_VERSION, strlen(REST_URL_VERSION)) == 0)
-                
-        }
+        DBG("Found URL path : %.*s", url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off);
+
+        CALLOC_COMMAND_OBJ_RET(command_obj, 1);
+        snprintf(command_obj->command_string, url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off + 1);
+        answer_obj = zg_interfaces_process_command(&_interface, command_obj);
+        _dispatch_answer(answer_obj);
+        zg_interfaces_free_command_object(command_obj);
+        zg_interfaces_free_answer_object(answer_obj);
     }
 
     return 0;
@@ -152,9 +243,11 @@ static void _new_data_cb(uv_stream_t *s __attribute__((unused)), ssize_t n, cons
     }
 
     free(buf->base);
+    return;
 new_data_end_error:
     CLOSE_CLIENT(_client_handle);
     DEINIT_HTTP_PARSER(_hp_parser);
+    free(buf->base);
 }
 
 static void alloc_cb(uv_handle_t *handle __attribute__((unused)), size_t size, uv_buf_t *buf)
