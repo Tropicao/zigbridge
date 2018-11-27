@@ -8,6 +8,8 @@
 #include "interfaces.h"
 #include "logs.h"
 #include "utils.h"
+#include "jansson.h"
+#include "device.h"
 
 /********************************
  *          Constants           *
@@ -73,10 +75,23 @@ static ZgInterfacesCommandId _getcommandIdFromString(const char *string)
 static ZgInterfacesAnswerObject *_version_answer_get()
 {
     ZgInterfacesAnswerObject *answer = NULL;
+
     CALLOC_ANSWER_RET_NULL(answer);
     answer->status = 0;
     answer->data = ANSWER_DATA_VERSION;
     answer->len = strlen(ANSWER_DATA_VERSION);
+    return answer;
+}
+
+static ZgInterfacesAnswerObject *_device_list_answer_get()
+{
+    ZgInterfacesAnswerObject *answer = NULL;
+    json_t *list = zg_device_get_device_list_json();
+
+    CALLOC_ANSWER_RET_NULL(answer);
+    answer->status = 0;
+    answer->data = json_dumps(list, JSON_DECODE_ANY);
+    answer->len = strlen(answer->data);
     return answer;
 }
 
@@ -129,6 +144,9 @@ ZgInterfacesAnswerObject *zg_interfaces_process_command(ZgInterfacesInterface *i
     {
         case ZG_INTERFACES_COMMAND_GET_VERSION:
             return _version_answer_get();
+            break;
+        case ZG_INTERFACES_COMMAND_GET_DEVICE_LIST:
+            return _device_list_answer_get();
             break;
         default:
             return _error_answer_get();

@@ -139,7 +139,7 @@ static int _init_count = 0;
 static SyncActionCb sync_action_cb = NULL;
 static void (*_zdo_tc_dev_ind_cb)(uint16_t addr, uint64_t ext_addr) = NULL;
 static void (*_zdo_active_ep_rsp_cb)(uint16_t short_addr, uint8_t nb_ep, uint8_t *ep_list) = NULL;
-static void (*_zdo_simple_desc_rsp_cb)(uint8_t endpoint, uint16_t profile, uint16_t deviceId) = NULL;
+static void (*_zdo_simple_desc_rsp_cb)(ZgSimpleDescriptor *desc)
 
 /********************************
  *     MT ZDO callbacks         *
@@ -313,15 +313,9 @@ static uint8_t _simple_desc_rsp_cb(ZgMtMsg *msg)
     uint8_t status;
     uint16_t nwk_addr;
     uint8_t len;
-    uint8_t endpoint;
-    uint16_t profile;
-    uint16_t device_id;
     uint8_t device_ver;
-    uint8_t in_clusters_num;
-    uint8_t *in_clusters_list;
-    uint8_t out_clusters_num;
-    uint8_t *out_clusters_list;
     uint8_t index = 0;
+    ZgSimpleDescriptor *desc = calloc(1, sizeof(ZgSimpleDescriptor));
 
     if(!msg||!msg->data)
     {
@@ -343,39 +337,37 @@ static uint8_t _simple_desc_rsp_cb(ZgMtMsg *msg)
         index += sizeof(nwk_addr);
         memcpy(&len, msg->data + index, sizeof(len));
         index += sizeof(len);
-        memcpy(&endpoint, msg->data + index, sizeof(endpoint));
-        index += sizeof(endpoint);
-        memcpy(&profile, msg->data + index, sizeof(profile));
-        index += sizeof(profile);
-        memcpy(&device_id, msg->data + index, sizeof(device_id));
-        index += sizeof(device_id);
+        memcpy(&(desc->endpoint, msg->data + index, sizeof(desc->endpoint));
+        index += sizeof(desc->endpoint);
+        memcpy(&(desc->profile), msg->data + index, sizeof(desc->profile));
+        index += sizeof(desc->profile);
+        memcpy(&(desc->device_id), msg->data + index, sizeof(desc->device_id));
+        index += sizeof(desc->device_id);
         memcpy(&device_ver, msg->data + index, sizeof(device_ver));
         index += sizeof(device_ver);
-        memcpy(&in_clusters_num, msg->data + index, sizeof(in_clusters_num));
-        index += sizeof(in_clusters_num);
-        in_clusters_list = calloc(in_clusters_num, sizeof(uint8_t));
-        if(!in_clusters_list)
+        memcpy(&(desc->in_clusters_num), msg->data + index, sizeof(desc->in_clusters_num));
+        index += sizeof(desc->in_clusters_num);
+        desc->in_clusters_list = calloc(desc->in_clusters_num, sizeof(uint8_t));
+        if(!(desc->in_clusters_list))
         {
             CRI("Cannot allocate memory to retrieve input clusters list");
             return 1;
         }
-        memcpy(in_clusters_list, msg->data + index, in_clusters_num);
-        index += in_clusters_num;
-        memcpy(&out_clusters_num, msg->data + index, sizeof(out_clusters_num));
-        index += sizeof(out_clusters_num);
-        out_clusters_list = calloc(out_clusters_num, sizeof(uint8_t));
-        if(!out_clusters_list)
+        memcpy(desc->in_clusters_list, msg->data + index, desc->in_clusters_num);
+        index += desc->in_clusters_num;
+        memcpy(&(desc->out_clusters_num), msg->data + index, sizeof(desc->out_clusters_num));
+        index += sizeof(desc->out_clusters_num);
+        desc->out_clusters_list = calloc(desc->out_clusters_num, sizeof(uint8_t));
+        if(!(desc->out_clusters_list))
         {
             CRI("Cannot allocate memory to retrieve output clusters list");
-            ZG_VAR_FREE(in_clusters_list);
+            ZG_VAR_FREE(desc-<in_clusters_list);
             return 1;
         }
-        memcpy(out_clusters_list, msg->data + index, out_clusters_num);
+        memcpy(desc->out_clusters_list, msg->data + index, desc->out_clusters_num);
         INF("MT_ZDO_SIMPLE_DESC_RSP received");
         if(_zdo_simple_desc_rsp_cb)
-            _zdo_simple_desc_rsp_cb(endpoint, profile, device_id);
-        ZG_VAR_FREE(in_clusters_list);
-        ZG_VAR_FREE(out_clusters_list);
+            _zdo_simple_desc_rsp_cb(desc);
     }
 
     return 0;
@@ -786,7 +778,7 @@ void zg_mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, u
     _zdo_active_ep_rsp_cb = cb;
 }
 
-void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id))
+void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(ZgSimpleDescriptor *desc))
 {
     _zdo_simple_desc_rsp_cb = cb;
 }

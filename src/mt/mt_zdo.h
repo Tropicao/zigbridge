@@ -82,7 +82,7 @@ void zg_mt_zdo_register_active_ep_rsp_callback(void (*cb)(uint16_t short_addr, u
  * \param cb The callback which will be called when a new device sends a
  * description of a queried endpoint
  */
-void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(uint8_t endpoint, uint16_t profile, uint16_t device_id));
+void zg_mt_zdo_register_simple_desc_rsp_cb(void (*cb)(ZgSimpleDescriptor *desc));
 
 /**
  * \brief Open the network to allow new devices to join

@@ -52,10 +52,10 @@ static void _zdo_active_ep_rsp_cb(uint16_t short_addr, uint8_t nb_ep, uint8_t *e
         _active_ep_cb(short_addr, nb_ep, ep_list);
 }
 
-static void _zdo_simple_desc_rsp_cb(uint8_t endpoint, uint16_t profile, uint16_t device_id)
+static void _zdo_simple_desc_rsp_cb(ZgSimpleDescriptor *desc)
 {
     if(_simple_desc_rsp_cb)
-        _simple_desc_rsp_cb(endpoint, profile, device_id);
+        _simple_desc_rsp_cb(desc);
 }
 
 static void _zdp_message_cb(uint16_t addr __attribute__((unused)), uint16_t cluster __attribute__((unused)), void *data, int len)

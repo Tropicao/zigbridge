@@ -17,5 +17,16 @@
 #define ZCL_CLUSTER_HUMIDITY_MEASUREMENT        0x0405
 #define ZCL_CLUSTER_TOUCHLINK_COMMISSIONING     0x1000
 
+typedef struct
+{
+    uint8_t endpoint;
+    uint16_t profile;
+    uint16_t device_id;
+    uint8_t num_clusters_in;
+    uint8_t num_clusters_out;
+    uint8_t *in_clusters_list;
+    uint8_t *out_clusters_list;
+} ZgSimpleDescriptor;
+
 #endif
 
