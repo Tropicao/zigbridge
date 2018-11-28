@@ -11,7 +11,8 @@ const char *zg_conf_get_network_key_path();
 const char *zg_conf_get_device_list_path();
 const char *zg_conf_get_http_server_address();
 int zg_conf_get_http_server_port();
-
+const char *zg_conf_get_tcp_server_address();
+int zg_conf_get_tcp_server_port();
 
 #endif
 

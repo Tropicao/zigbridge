@@ -12,6 +12,7 @@
 #include "mt_util.h"
 #include "stdin.h"
 #include "ipc.h"
+#include "tcp.h"
 #include "http_server.h"
 #include "device.h"
 #include "keys.h"
@@ -214,6 +215,7 @@ static void _send_ipc_event_new_device(DeviceId id)
         return;
 
     zg_ipc_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
+    zg_tcp_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
     json_decref(root);
 }
 
@@ -289,6 +291,7 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
     json_object_set_new(root, "state", json_integer(state));
 
     zg_ipc_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
+    zg_tcp_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
     json_decref(root);
 }
 
@@ -321,6 +324,7 @@ static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
     json_object_set_new(root, "temperature", json_integer(temp));
 
     zg_ipc_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
+    zg_tcp_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
     json_decref(root);
 }
 
@@ -447,6 +451,7 @@ void zg_core_init(uint8_t reset_network)
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
     zg_mt_init();
     zg_ipc_init();
+    zg_tcp_init();
     zg_http_server_init();
     zg_keys_init();
     zg_device_init(_reset_network);
@@ -466,6 +471,7 @@ void zg_core_shutdown(void)
     zg_zha_shutdown();
     zg_zdp_shutdown();
     zg_http_server_shutdown();
+    zg_tcp_shutdown();
     zg_ipc_shutdown();
     zg_mt_init();
 }
