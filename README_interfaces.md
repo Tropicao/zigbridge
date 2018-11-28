@@ -1,6 +1,9 @@
-# IPC demo
+# Zigbridge interfaces
 
-This program aims to provide a basis to integrate the Zigbridge gateway through its IPC interface. It is not a full program, it is only a showcase to be able to test a first integration.
+The zigbridge gateway offer various interfaces to communicate with Zigbee devices. There are currently 3 different interfaces :
+* an event-based Unix socket interface
+* an event-based TCP socket interfaces
+* a HTTP REST interface
 
 ## Devices
 In order to test integration, the following devices are needed :
@@ -13,36 +16,44 @@ In order to test integration, the following devices are needed :
   * ninja -C builddir
 * Edit a configuration file using the example provided in the configuration directory
 * Start it with the following arguments :
-`LD_LIBRARY_PATH=YOUR_ZNP_LIB_DIR ./builddir/zigbridge -c YOUR_CONFIG_FILE -r`
-* The gateway will create a Unix socket in the `/tmp` directory named `/tmp/zg_sock`. You can write to/read from this socket with the following command :
-`socat - /tmp/zg_sock`
-* The socket is listening for commands in JSON payloads, and send events in same kind of payloads. You can type the proper json string directly in socat to send it.
-* Open the network to new devices sending the "Open Network" command
-* Install the Xiaomi button (long reset on back pin)
-* Toggle the button, you should received button event on socat output
+`./builddir/zigbridge -c YOUR_CONFIG_FILE -r`
+* Start proper software tool to use the selected interface (see below to select the proper tool)
 
-## Commands
-* Version : used to query the gateway software version
+
+## TCP and Unix interfaces
+Those two interfaces are basically sockets, which are used by Zigbridge to send JSON events, and to received JSON commands.
+To quickly prototype with those two interfaces, you can use the following tools :
+* Unix socket interface : you need a tool to link your stdin to the socket input, and to display received data to your stdout. [Socat](https://linux.die.net/man/1/socat) allow you to do so, by linking sockets : Zigbridge is presenting the socket interface throught /tmp/zg_sock, so you can use the following command to start sending and receiving with Unix interface : `socat - /tmp/zg_sock`
+* TCP interface : any TCP-capable program can talk to the TCP socket exposed by Zigbridge. For example, you can use [netcat](https://linux.die.net/man/1/nc), and defining a port for Zigbridge in its configuration, you can start using the TCP interface with the following command : `nc 127.0.0.1 $PORT`  
+You can then directly type json formatted command to those interfaces to interact with Zigbridge, and read directly in stdout any incoming event.
+
+#### Commands
+* **Version** : used to query the gateway software version  
 *Example* :
   * Input : `{"command":"version"}`
   * Output : `{"version":"0.4.0"}`
-* Open Network : used to allow new devices to join for half a minute
+* **Open Network** : used to allow new devices to join for half a minute  
   *Example* :
     * Input : `{"command":"open_network"}`
     * Output : `{"open_network":"ok"}`
-* get_device_list : used to query the list of installed devices and the corresponding properties
+* **get_device_list** : used to query the list of installed devices and the corresponding properties  
   *Example* :
     * Input : `{"command":"get_device_list"}`
     * Output : `{"devices":[{"id": 0,"short_addr": 52041,"ext_addr": 6066005677890593, "endpoints": []}]}`
-* Touchlink : used to initiate a new touchlink procedure. The procedure will return OK if started, or an error if it cannot start or if another touchlink is in progress
+* **Touchlink** : used to initiate a new touchlink procedure. The procedure will return OK if started, or an error if it cannot start or if another touchlink is in progress  
   *Example* :
     * Input : `{"command":"touchlink"}`
     * Output : `{"touchlink":"ok"}`
 
-## Events
-* Button event : event received when a button is installed and that button is toggled
-  *Example* : `{"event":"button_state","data":{"id":255,"state":0}}`
-Temperature event : event received when a sensor reports a temperature value
-  *Example* : `{"event":"temperature","data":{"temperature":2076}}`
-Touchlink event : event received when a touchlink has a new state to notify
+#### Events
+* **Button event** : event received when a button is installed and that button is toggled  
+  *Example* : `{"event":"button_state","data":{"id":255,"state":0}}`  
+* **Temperature event** : event received when a sensor reports a temperature value
+  *Example* : `{"event":"temperature","data":{"temperature":2076}}`  
+* **Touchlink event** : event received when a touchlink has a new state to notify  
   *Example* : `{"event":"event_touchlink","data":{"status":"finished"}}`
+
+## HTTP interface
+The goal of the HTTP interface is to provide a REST API, to make Zigbridge easier to use in existing solution.
+*Example* : `GET /device_list HTTP/1.1` => return the list of device known by Zigbridge  
+However, this effort is still under progress, and will have lack of features by design (we cannot transmit events with HTTP, except by upgrading to websocket), so it is not the priority for now.
