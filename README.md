@@ -20,7 +20,7 @@ The target for v1.0.0 is to be able to integrate it in a domotic solution to dri
 * report of installed devices
 * execution of basic commands on devices (light, switches, sensors)
 * supported devices types : ZLL compatible lamps, temperature sensors, etc.
-Even if this scope is still not reached, some nice showcases are available if you have the necessary devices (you can still use the gateway manually, see [Interfaces how-to](https://github.com/Tropicao/zigbridge/blob/master/doc/interfaces.md))
+Even if this scope is still not reached, some nice showcases are available if you have the necessary devices (a demo, not supported anymore, is available if you checkout older version like 0.5.0, otherwise you can still use the gateway manually, see [Interfaces how-to](https://github.com/Tropicao/zigbridge/blob/master/doc/interfaces.md))
 
 ## How to build it
 
