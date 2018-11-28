@@ -215,7 +215,7 @@ static void _send_ipc_event_new_device(DeviceId id)
         return;
 
     zg_ipc_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
-    zg_tcp_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
+    zg_tcp_send_event(ZG_TCP_EVENT_NEW_DEVICE, root);
     json_decref(root);
 }
 
@@ -291,7 +291,7 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
     json_object_set_new(root, "state", json_integer(state));
 
     zg_ipc_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
-    zg_tcp_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
+    zg_tcp_send_event(ZG_TCP_EVENT_BUTTON_STATE, root);
     json_decref(root);
 }
 
@@ -316,15 +316,51 @@ static void _button_change_cb(uint16_t addr, uint8_t state)
     }
 }
 
-static void _send_ipc_event_temperature(DeviceId id, uint16_t temp)
+static void _send_event_temperature(DeviceId id, uint16_t temp)
 {
     json_t *root;
+
+    if(!_initialized)
+        return;
+
     root = json_object();
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "temperature", json_integer(temp));
 
     zg_ipc_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
-    zg_tcp_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
+    zg_tcp_send_event(ZG_TCP_EVENT_TEMPERATURE, root);
+    json_decref(root);
+}
+
+static void _send_event_pressure(DeviceId id, uint16_t temp)
+{
+    json_t *root;
+
+    if(!_initialized)
+        return;
+
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "pressure", json_integer(temp));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_PRESSURE, root);
+    zg_tcp_send_event(ZG_TCP_EVENT_PRESSURE, root);
+    json_decref(root);
+}
+
+static void _send_event_humidity(DeviceId id, uint16_t temp)
+{
+    json_t *root;
+
+    if(!_initialized)
+        return;
+
+    root = json_object();
+    json_object_set_new(root, "id", json_integer(id));
+    json_object_set_new(root, "humidity", json_integer(temp));
+
+    zg_ipc_send_event(ZG_IPC_EVENT_HUMIDITY, root);
+    zg_tcp_send_event(ZG_TCP_EVENT_HUMIDITY, root);
     json_decref(root);
 }
 
@@ -333,25 +369,26 @@ static void _temperature_cb(uint16_t addr, int16_t temp)
     DeviceId id = 0xFF;
 
     INF("New temperature report (%.2f°C)",(float)(temp/100.0));
-    if(_initialized)
-    {
-        id = zg_device_get_id(addr);
-        _send_ipc_event_temperature(id, temp);
-    }
-    else
-    {
-        WRN("Core application has not finished initializing, cannot switch bulb state");
-    }
+    id = zg_device_get_id(addr);
+    _send_event_temperature(id, temp);
 }
 
 static void _pressure_cb(uint16_t addr __attribute((unused)), int16_t pressure)
 {
+    DeviceId id = 0xFF;
+
     INF("New pressure report (%.2fkPa)",(float)(pressure/10.0));
+    id = zg_device_get_id(addr);
+    _send_event_pressure(id, pressure);
 }
 
 static void _humidity_cb(uint16_t addr __attribute((unused)), uint16_t humidity)
 {
+    DeviceId id = 0xFF;
+
     INF("New humidity report (%.2f%%)",(float)(humidity/100.0));
+    id = zg_device_get_id(addr);
+    _send_event_humidity(id, humidity);
 }
 
 static void _process_command_touchlink()
