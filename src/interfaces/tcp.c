@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <jansson.h>
 #include "interfaces.h"
+#include "logs.h"
 #include "conf.h"
 #include "tcp.h"
 #include "zha.h"
@@ -259,13 +260,14 @@ static void _send_event(uv_buf_t *buf)
 
 ZgInterfacesInterface *zg_tcp_init()
 {
+    struct sockaddr_in bind_addr;
+
     if(_init_count != 0)
     {
         return NULL;
     }
 
     _log_domain = zg_logs_domain_register("zg_tcp", ZG_COLOR_GREEN);
-    struct sockaddr_in bind_addr;
 
     if(uv_tcp_init(uv_default_loop(), &_server_handle) != 0)
     {
