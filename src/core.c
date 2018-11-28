@@ -11,9 +11,7 @@
 #include "mt_zdo.h"
 #include "mt_util.h"
 #include "stdin.h"
-#include "ipc.h"
-#include "tcp.h"
-#include "http_server.h"
+#include "interfaces.h"
 #include "device.h"
 #include "keys.h"
 #include "sm.h"
@@ -204,7 +202,7 @@ static ZgSmTransitionNb _new_device_nb_transitions = sizeof(_new_device_transiti
  *  Network Events processing   *
  *******************************/
 
-static void _send_ipc_event_new_device(DeviceId id)
+static void _send_event_new_device(DeviceId id)
 {
     json_t *root = NULL;
 
@@ -214,8 +212,7 @@ static void _send_ipc_event_new_device(DeviceId id)
     else
         return;
 
-    zg_ipc_send_event(ZG_IPC_EVENT_NEW_DEVICE, root);
-    zg_tcp_send_event(ZG_TCP_EVENT_NEW_DEVICE, root);
+    zg_interfaces_send_event(ZG_EVENT_NEW_DEVICE, root);
     json_decref(root);
 }
 
@@ -226,7 +223,7 @@ static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
     {
         INF("Seen device is a new device");
         id = zg_add_device(short_addr, ext_addr);
-        _send_ipc_event_new_device(id);
+        _send_event_new_device(id);
         if(_new_device_sm)
         {
             WRN("Already learning a new device, cannot learn newly visible device");
@@ -290,8 +287,7 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "state", json_integer(state));
 
-    zg_ipc_send_event(ZG_IPC_EVENT_BUTTON_STATE, root);
-    zg_tcp_send_event(ZG_TCP_EVENT_BUTTON_STATE, root);
+    zg_interfaces_send_event(ZG_EVENT_BUTTON_STATE, root);
     json_decref(root);
 }
 
@@ -327,8 +323,7 @@ static void _send_event_temperature(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "temperature", json_integer(temp));
 
-    zg_ipc_send_event(ZG_IPC_EVENT_TEMPERATURE, root);
-    zg_tcp_send_event(ZG_TCP_EVENT_TEMPERATURE, root);
+    zg_interfaces_send_event(ZG_EVENT_TEMPERATURE, root);
     json_decref(root);
 }
 
@@ -343,8 +338,7 @@ static void _send_event_pressure(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "pressure", json_integer(temp));
 
-    zg_ipc_send_event(ZG_IPC_EVENT_PRESSURE, root);
-    zg_tcp_send_event(ZG_TCP_EVENT_PRESSURE, root);
+    zg_interfaces_send_event(ZG_EVENT_PRESSURE, root);
     json_decref(root);
 }
 
@@ -359,8 +353,7 @@ static void _send_event_humidity(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "humidity", json_integer(temp));
 
-    zg_ipc_send_event(ZG_IPC_EVENT_HUMIDITY, root);
-    zg_tcp_send_event(ZG_TCP_EVENT_HUMIDITY, root);
+    zg_interfaces_send_event(ZG_EVENT_HUMIDITY, root);
     json_decref(root);
 }
 
@@ -486,10 +479,8 @@ void zg_core_init(uint8_t reset_network)
     zg_zha_register_humidity_cb(_humidity_cb);
     zg_zdp_register_active_endpoints_rsp(_active_endpoints_cb);
     zg_zdp_register_simple_desc_rsp(_simple_desc_cb);
+    zg_interfaces_init();
     zg_mt_init();
-    zg_ipc_init();
-    zg_tcp_init();
-    zg_http_server_init();
     zg_keys_init();
     zg_device_init(_reset_network);
 
@@ -507,9 +498,7 @@ void zg_core_shutdown(void)
     zg_zll_shutdown();
     zg_zha_shutdown();
     zg_zdp_shutdown();
-    zg_http_server_shutdown();
-    zg_tcp_shutdown();
-    zg_ipc_shutdown();
+    zg_interfaces_shutdown();
     zg_mt_init();
 }
 

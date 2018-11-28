@@ -41,16 +41,7 @@ static int _log_domain = -1;
 static int _init_count = 0;
 static uv_tcp_t _server_handle;
 static uv_tcp_t *_client_handle = NULL;
-ZgInterfacesInterface _interface;
-
-static char *event_strings [ZG_TCP_EVENT_GUARD] = {
-    "new_device",
-    "button_state",
-    "event_temperature",
-    "event_pressure",
-    "event_humidity",
-    "event_touchlink"
-};
+static ZgInterfacesInterface *_interface = NULL;
 
 /********************************
  *            Internal          *
@@ -62,6 +53,7 @@ static void _allocated_req_sent(uv_write_t *req, int status __attribute__((unuse
 
     free(buf->base);
     free(buf);
+    free(req);
 }
 
 /********************************
@@ -246,117 +238,71 @@ static void _new_connection_cb(uv_stream_t *s, int status)
     }
 }
 
+static void _send_event(uv_buf_t *buf)
+{
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    uv_buf_t *local_buf = calloc(1, sizeof(uv_buf_t));
+
+    local_buf->base = calloc(buf->len, sizeof(char));
+    memcpy(local_buf->base, buf->base, buf->len);
+    local_buf->len = buf->len;
+    req->data = local_buf;
+
+    DBG("Dispatching new event on TCP interface");
+    if(_client_handle)
+        uv_write(req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
+}
+
 /********************************
  *             API              *
  *******************************/
 
-int zg_tcp_init()
+ZgInterfacesInterface *zg_tcp_init()
 {
-    zg_interfaces_init();
+    if(_init_count != 0)
+    {
+        return NULL;
+    }
+
     _log_domain = zg_logs_domain_register("zg_tcp", ZG_COLOR_GREEN);
     struct sockaddr_in bind_addr;
 
     if(uv_tcp_init(uv_default_loop(), &_server_handle) != 0)
     {
         ERR("Cannot initialize HTTP server handle");
-        return 1;
+        return NULL;
     }
     if(uv_ip4_addr(zg_conf_get_tcp_server_address(),zg_conf_get_tcp_server_port(), & bind_addr) !=0 ||
             uv_tcp_bind(&_server_handle, (struct sockaddr *)&bind_addr, 0) != 0)
     {
         ERR("Cannot bind HTTP server socket");
-        return 1;
+        return NULL;
     }
 
     if(uv_listen((uv_stream_t *)&_server_handle, MAX_PENDING_CONNECTTION, _new_connection_cb) != 0)
     {
         ERR("Cannot start listening for new connection");
     }
-    memset(&_interface, 0, sizeof(_interface));
-    sprintf((char *)_interface.name, "HTTP");
-    //zg_interfaces_register_new_interface(&_interface);
+    _interface = calloc(1, sizeof(_interface));
+    sprintf((char *)_interface->name, "TCP");
+    _interface->event_cb = _send_event;
 
-    INF("HTTP server started on address %s - port %d", zg_conf_get_tcp_server_address(), zg_conf_get_tcp_server_port());
+    INF("TCP server started on address %s - port %d", zg_conf_get_tcp_server_address(), zg_conf_get_tcp_server_port());
     _init_count = 1;
 
-    return 0;
+    return _interface;
 }
 
 void zg_tcp_shutdown()
 {
-    if(--_init_count != 1)
+    if(_init_count != 1)
     {
         return;
     }
-    _init_count--;
+
+    ZG_VAR_FREE(_interface);
     CLOSE_CLIENT(_client_handle);
-    zg_interfaces_shutdown();
+    _init_count--;
     INF("TCP module shut down");
 }
 
-void zg_tcp_send_event(ZgTcpEvent event, json_t *data)
-{
-    uv_write_t *req = NULL;
-    json_t *root = NULL;
-    uv_buf_t *buf = NULL;
-    size_t size;
-
-    if(!data)
-    {
-        ERR("Cannot send event : data is empty");
-        return;
-    }
-
-    if(!_client_handle)
-    {
-        WRN("No active client connected, event not sent");
-        return;
-    }
-
-    if(event >= ZG_TCP_EVENT_GUARD)
-    {
-        ERR("Invalid event");
-        return;
-    }
-
-    INF("Sending event %s to remote client", event_strings[event]);
-    root = json_object();
-    if(!root)
-    {
-        ERR("Cannot create root json to send event");
-        return;
-    }
-
-    if(json_object_set_new(root, "event", json_string(event_strings[event]))||
-            json_object_set_new(root, "data", data))
-    {
-        ERR("Error encoding value into event");
-        json_decref(root);
-        return;
-    }
-
-    buf = calloc(1, sizeof(uv_buf_t));
-    size = json_dumpb(root, NULL, 0, JSON_DECODE_ANY);
-    if(size <= 0)
-    {
-        ERR("Cannot get size of encoded JSON");
-        json_decref(root);
-        return;
-    }
-
-    buf->base = calloc(size, sizeof(char));
-    size = json_dumpb(root, buf->base, size, JSON_DECODE_ANY);
-    json_decref(root);
-    if(size <= 0)
-    {
-        ERR("Error printing encoded json event");
-        free(buf->base);
-        free(buf);
-        return;
-    }
-    buf->len = size;
-    req = calloc(1, sizeof(uv_write_t));
-    req->data = buf;
-
-    uv_write(req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
-}

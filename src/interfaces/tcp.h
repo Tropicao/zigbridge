@@ -4,6 +4,7 @@
 
 #include <uv.h>
 #include "device.h"
+#include "interfaces.h"
 
 typedef enum
 {
@@ -27,10 +28,9 @@ typedef enum
 typedef void (*tcp_fd_cb)(uv_poll_t *handler, int status, int events);
 typedef void (*tcp_command_cb)(TcpCommand command);
 
-int zg_tcp_init();
+ZgInterfacesInterface *zg_tcp_init();
 void zg_tcp_shutdown();
 void zg_tcp_register_command_cb(tcp_command_cb cb);
-void zg_tcp_send_event(ZgTcpEvent event, json_t *data);
 
 
 #endif

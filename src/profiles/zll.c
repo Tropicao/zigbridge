@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <uv.h>
 #include <string.h>
+#include <jansson.h>
+
 #include "zll.h"
 #include "aps.h"
 #include "zcl.h"
@@ -9,8 +11,7 @@
 #include "mt_sys.h"
 #include "sm.h"
 #include "logs.h"
-#include <jansson.h>
-#include "ipc.h"
+#include "interfaces.h"
 #include "utils.h"
 
 /********************************
@@ -231,7 +232,7 @@ static void _send_ipc_event_touchlink_end()
     root = json_object();
     json_object_set_new(root, "status", json_string("finished"));
 
-    zg_ipc_send_event(ZG_IPC_EVENT_TOUCHLINK_FINISHED, root);
+    zg_interfaces_send_event(ZG_EVENT_TOUCHLINK_FINISHED, root);
     json_decref(root);
 }
 

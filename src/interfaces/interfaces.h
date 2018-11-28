@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <jansson.h>
+#include <uv.h>
 
 #define ZG_INTERFACES_MAX_INTERFACE_NAME_SIZE   32
 #define ZG_INTERFACES_MAX_COMMAND_STRING_LEN    128
@@ -14,9 +16,6 @@
                                                         return y;\
                                                 }} while(0)
 
-/* Callback type used to dispatch an event on interfaces that support events */
-typedef void (*event_cb_t)(void *data, int size);
-
 /* List of available commands from external client */
 typedef enum
 {
@@ -27,11 +26,21 @@ typedef enum
     ZG_INTERFACES_COMMAND_MAX_ID
 } ZgInterfacesCommandId;
 
-/* List of availabel events to send to external clients */
+/* List of available events to send to external clients */
 typedef enum
 {
-    ZG_INTERFACES_NEW_DEVICE
+    ZG_EVENT_NEW_DEVICE = 0,
+    ZG_EVENT_BUTTON_STATE,
+    ZG_EVENT_TEMPERATURE,
+    ZG_EVENT_PRESSURE,
+    ZG_EVENT_HUMIDITY,
+    ZG_EVENT_TOUCHLINK_FINISHED,
+    ZG_EVENT_GUARD, /* Keep this value last */
 } ZgInterfacesEvent;
+
+
+/* Callback type used to dispatch an event on interfaces that support events */
+typedef void (*event_cb_t)(uv_buf_t *buf);
 
 typedef struct
 {
@@ -68,6 +77,13 @@ void zg_interfaces_register_new_interface(ZgInterfacesInterface *interface);
  * must be freed by the caller after it has been sent
  */
 ZgInterfacesAnswerObject *zg_interfaces_process_command(ZgInterfacesInterface *interface, ZgInterfacesCommandObject *command);
+
+/**
+ * \brief Function used to dispatch an event to all in-use interfaces
+ * \param ZgInterfacesEvent the event to dispatch
+ * \data Associated string data to attach to the event
+ */
+void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data);
 
 void zg_interfaces_free_command_object(ZgInterfacesCommandObject *obj);
 

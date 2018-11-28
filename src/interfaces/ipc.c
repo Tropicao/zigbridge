@@ -25,21 +25,23 @@
  *******************************/
 
 static int _log_domain = -1;
-static ipc_command_cb _command_cb = NULL;
+static int _init_count = 0;
 static uv_pipe_t _server;
-static uv_pipe_t *_client = NULL;
-static char *event_strings [ZG_IPC_EVENT_GUARD] = {
-    "new_device",
-    "button_state",
-    "event_temperature",
-    "event_pressure",
-    "event_humidity",
-    "event_touchlink"
-};
+static uv_pipe_t *_client_handle = NULL;
+static ZgInterfacesInterface _interface;
 
 /********************************
  *            Internal          *
  *******************************/
+
+static void _allocated_req_sent(uv_write_t *req, int status __attribute__((unused)))
+{
+    uv_buf_t *buf = (uv_buf_t *)req->data;
+
+    free(buf->base);
+    free(buf);
+    free(req);
+}
 
 static void _send_version()
 {
@@ -48,11 +50,11 @@ static void _send_version()
         {.base =IPC_DEFAULT_VERSION, .len=19}
     };
 
-    if(!_client)
+    if(!_client_handle)
         return;
 
     INF("Sending version to remote client");
-    uv_write(&req, (uv_stream_t *)_client, buffer, 1, NULL);
+    uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
 }
 
 static void _send_error()
@@ -62,19 +64,11 @@ static void _send_error()
         {.base = IPC_STANDARD_ERROR, .len=28}
     };
 
-    if(!_client)
+    if(!_client_handle)
         return;
 
     INF("Sending error to remote client");
-    uv_write(&req,(uv_stream_t *) _client, buffer, 1, NULL);
-}
-
-static void _allocated_req_sent(uv_write_t *req, int status __attribute__((unused)))
-{
-    uv_buf_t *buf = (uv_buf_t *)req->data;
-
-    free(buf->base);
-    free(buf);
+    uv_write(&req,(uv_stream_t *) _client_handle, buffer, 1, NULL);
 }
 
 static void _send_device_list()
@@ -83,7 +77,7 @@ static void _send_device_list()
     size_t size;
     json_t *devices = zg_device_get_device_list_json();
 
-    if(!_client)
+    if(!_client_handle)
         return;
 
     INF("Sending device list to remote client");
@@ -95,7 +89,7 @@ static void _send_device_list()
     buf->len = size;
     req.data = buf;
 
-    uv_write(&req,(uv_stream_t *) _client, buf, 1, _allocated_req_sent);
+    uv_write(&req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
 }
 
 static void _open_network(void)
@@ -105,12 +99,12 @@ static void _open_network(void)
         {.base =IPC_OPEN_NETWORK_OK, .len=21}
     };
 
-    if(!_client)
+    if(!_client_handle)
         return;
     req = calloc(1, sizeof(uv_write_t));
 
     INF("Sending Open Network OK to IPC client");
-    uv_write(req, (uv_stream_t *)_client, buffer, 1, NULL);
+    uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
     zg_mt_zdo_permit_join(NULL);
 }
 
@@ -121,7 +115,7 @@ static void _start_touchlink(void)
     uv_buf_t *buffer = NULL;
     char *msg = NULL;
 
-    if(!_client)
+    if(!_client_handle)
         return;
 
     res = zg_zll_start_touchlink();
@@ -134,7 +128,7 @@ static void _start_touchlink(void)
     req->data = buffer;
 
     INF("Sending touchlink status to IPC client");
-    if(uv_write(req, (uv_stream_t *)_client, buffer, 1, _allocated_req_sent) <= 0)
+    if(uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
         ERR("Cannot send touchlink status to IPC client");
 }
 
@@ -208,47 +202,71 @@ static void _new_connection_cb(uv_stream_t *s, int status)
     }
     else
     {
-        if(_client)
+        if(_client_handle)
         {
             WRN("Cannot accept new connection : gateway supports only one connection at once");
             return;
         }
         INF("New connection on IPC server");
-        _client = (uv_pipe_t *)calloc(1, sizeof(uv_pipe_t));
-        uv_pipe_init(uv_default_loop(), _client, 0);
-        if(uv_accept(s, (uv_stream_t *)_client) == 0)
+        _client_handle = (uv_pipe_t *)calloc(1, sizeof(uv_pipe_t));
+        uv_pipe_init(uv_default_loop(), _client_handle, 0);
+        if(uv_accept(s, (uv_stream_t *)_client_handle) == 0)
         {
-            uv_read_start((uv_stream_t *)_client, alloc_cb, _new_data_cb);
+            uv_read_start((uv_stream_t *)_client_handle, alloc_cb, _new_data_cb);
         }
         else
         {
             ERR("Error accepting new client connection");
-            uv_close((uv_handle_t*) _client, NULL);
-            ZG_VAR_FREE(_client);
+            uv_close((uv_handle_t*) _client_handle, NULL);
+            ZG_VAR_FREE(_client_handle);
         }
     }
 }
 
+static void _send_event(uv_buf_t *buf)
+{
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    uv_buf_t *local_buf = calloc(1, sizeof(uv_buf_t));
+
+    local_buf->base = calloc(buf->len, sizeof(char));
+    memcpy(local_buf->base, buf->base, buf->len);
+    local_buf->len = buf->len;
+    req->data = local_buf;
+
+    DBG("Dispatching new event on IPC");
+
+    if(_client_handle)
+        uv_write(req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
+}
 /********************************
  *             API              *
  *******************************/
 
-int zg_ipc_init()
+ZgInterfacesInterface *zg_ipc_init(void)
 {
+    if(_init_count != 0)
+    {
+        return NULL;
+    }
+
     _log_domain = zg_logs_domain_register("zg_ipc", ZG_COLOR_GREEN);
     uv_pipe_init(uv_default_loop(), &_server, 0);
     if(uv_pipe_bind(&_server, IPC_PIPENAME))
     {
         ERR("Error binding IPC server");
-        return 1;
+        return NULL;
     }
     if(uv_listen((uv_stream_t *)&_server, 1024, _new_connection_cb))
     {
         ERR("Error listening on IPC socket");
-        return 0;
+        return NULL;
     }
+    memset(&_interface, 0, sizeof(_interface));
+    sprintf((char *)_interface.name, "IPC");
+    _interface.event_cb = _send_event;
     INF("IPC started on socket %s", IPC_PIPENAME);
-    return 0;
+    _init_count = 1;
+    return &_interface;
 }
 
 void zg_ipc_shutdown()
@@ -257,74 +275,3 @@ void zg_ipc_shutdown()
     INF("IPC module shut down");
 }
 
-void zg_ipc_send_event(ZgIpcEvent event, json_t *data)
-{
-    uv_write_t *req = NULL;
-    json_t *root = NULL;
-    uv_buf_t *buf = NULL;
-    size_t size;
-
-    if(!data)
-    {
-        ERR("Cannot send event : data is empty");
-        return;
-    }
-
-    if(!_client)
-    {
-        WRN("No active client connected, event not sent");
-        return;
-    }
-
-    if(event >= ZG_IPC_EVENT_GUARD)
-    {
-        ERR("Invalid event");
-        return;
-    }
-
-    INF("Sending event %s to remote client", event_strings[event]);
-    root = json_object();
-    if(!root)
-    {
-        ERR("Cannot create root json to send event");
-        return;
-    }
-
-    if(json_object_set_new(root, "event", json_string(event_strings[event]))||
-            json_object_set_new(root, "data", data))
-    {
-        ERR("Error encoding value into event");
-        json_decref(root);
-        return;
-    }
-
-    buf = calloc(1, sizeof(uv_buf_t));
-    size = json_dumpb(root, NULL, 0, JSON_DECODE_ANY);
-    if(size <= 0)
-    {
-        ERR("Cannot get size of encoded JSON");
-        json_decref(root);
-        return;
-    }
-
-    buf->base = calloc(size, sizeof(char));
-    size = json_dumpb(root, buf->base, size, JSON_DECODE_ANY);
-    json_decref(root);
-    if(size <= 0)
-    {
-        ERR("Error printing encoded json event");
-        free(buf->base);
-        free(buf);
-        return;
-    }
-    buf->len = size;
-    req = calloc(1, sizeof(uv_write_t));
-    req->data = buf;
-
-    uv_write(req,(uv_stream_t *) _client, buf, 1, _allocated_req_sent);
-}
-
-void zg_ipc_register_command_cb(ipc_command_cb cb)
-{
-    _command_cb = cb;
-}

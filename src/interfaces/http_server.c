@@ -26,7 +26,7 @@
 
 #define FILL_HTTP_BUFFER(msg, index, data, size)     do {\
                                                         if(len <= 0){\
-                                                            ERR("Inavlid data length");\
+                                                            ERR("Invalid data length");\
                                                         } else {\
                                                             msg[index].base = calloc(size + 1, sizeof(char));\
                                                             memcpy(msg[index].base, data, size);\
@@ -62,9 +62,9 @@ static int _log_domain = -1;
 static int _init_count = 0;
 static uv_tcp_t _server_handle;
 static uv_tcp_t *_client_handle = NULL;
-http_parser_settings _hp_settings;
-http_parser *_hp_parser = NULL;
-ZgInterfacesInterface _interface;
+static http_parser_settings _hp_settings;
+static http_parser *_hp_parser = NULL;
+static ZgInterfacesInterface _interface;
 
 /********************************
  *      Structures and data     *
@@ -296,27 +296,26 @@ static void _new_connection_cb(uv_stream_t *s, int status)
  *             API              *
  *******************************/
 
-int zg_http_server_init()
+ZgInterfacesInterface *zg_http_server_init()
 {
-    zg_interfaces_init();
-    _log_domain = zg_logs_domain_register("zg_http_server", ZG_COLOR_GREEN);
-    struct sockaddr_in bind_addr;
-
     if(_init_count != 0)
     {
-        return 0;
+        return NULL;
     }
+
+    _log_domain = zg_logs_domain_register("zg_http_server", ZG_COLOR_GREEN);
+    struct sockaddr_in bind_addr;
 
     if(uv_tcp_init(uv_default_loop(), &_server_handle) != 0)
     {
         ERR("Cannot initialize HTTP server handle");
-        return 1;
+        return NULL;
     }
     if(uv_ip4_addr(zg_conf_get_http_server_address(),zg_conf_get_http_server_port(), & bind_addr) !=0 ||
             uv_tcp_bind(&_server_handle, (struct sockaddr *)&bind_addr, 0) != 0)
     {
         ERR("Cannot bind HTTP server socket");
-        return 1;
+        return NULL;
     }
 
     if(uv_listen((uv_stream_t *)&_server_handle, MAX_PENDING_CONNECTTION, _new_connection_cb) != 0)
@@ -325,22 +324,20 @@ int zg_http_server_init()
     }
     memset(&_interface, 0, sizeof(_interface));
     sprintf((char *)_interface.name, "HTTP");
-    zg_interfaces_register_new_interface(&_interface);
 
     INF("HTTP server started on address %s - port %d", zg_conf_get_http_server_address(), zg_conf_get_http_server_port());
     _init_count = 1;
 
-    return 0;
+    return &_interface;
 }
 
 void zg_http_server_shutdown()
 {
-    if(--_init_count != 1)
+    if(_init_count != 1)
     {
         return;
     }
     _init_count--;
     CLOSE_CLIENT(_client_handle);
-    zg_interfaces_shutdown();
     INF("HTTP_SERVER module shut down");
 }
