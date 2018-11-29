@@ -28,8 +28,8 @@
                                                         if(len <= 0){\
                                                             ERR("Invalid data length");\
                                                         } else {\
-                                                            msg[index].base = calloc(size + 1, sizeof(char));\
-                                                            memcpy(msg[index].base, data, size);\
+                                                            msg[index].base = calloc(size , sizeof(char));\
+                                                            strncpy(msg[index].base, data, size);\
                                                             msg[index].len = size;\
                                                     }} while(0);
 
@@ -133,17 +133,22 @@ static uv_buf_t *_build_http_answer(ZgInterfacesAnswerObject *obj)
 
 static void _client_answer_cb(uv_write_t *req __attribute__((unused)), int status)
 {
+    uv_buf_t *msg = (uv_buf_t *)(req->data);
     if(status)
     {
         ERR("Client answer has failed");
     }
-    _free_http_answer((uv_buf_t*)req->data);
+    _free_http_answer(msg);
 }
 
 static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
 {
     uv_buf_t *msg = NULL;
+
     if(!obj)
+        return;
+
+    if(!_client_handle)
         return;
 
     uv_write_t req;
@@ -158,6 +163,7 @@ static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
 
     _dump_http_answer(msg);
     req.data = msg;
+    DBG("Sending answer to HTTP client");
     if(uv_write(&req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
@@ -240,12 +246,14 @@ static void _new_data_cb(uv_stream_t *s __attribute__((unused)), ssize_t n, cons
         n -= nparsed;
     }
 
-    free(buf->base);
+    if(buf->base)
+        free(buf->base);
     return;
 new_data_end_error:
     CLOSE_CLIENT(_client_handle);
     DEINIT_HTTP_PARSER(_hp_parser);
-    free(buf->base);
+    if(buf->base)
+        free(buf->base);
 }
 
 static void alloc_cb(uv_handle_t *handle __attribute__((unused)), size_t size, uv_buf_t *buf)
