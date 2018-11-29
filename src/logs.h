@@ -3,6 +3,7 @@
 
 #include <Eina.h>
 #include <stdarg.h>
+#include <inttypes.h>
 
 /* Make sure that our logging macro are not already defined elsewhere */
 #ifdef CRI
