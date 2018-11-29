@@ -40,7 +40,6 @@ static void _allocated_req_sent(uv_write_t *req, int status __attribute__((unuse
 
     free(buf->base);
     free(buf);
-    free(req);
 }
 
 static void _send_version()
@@ -94,24 +93,23 @@ static void _send_device_list()
 
 static void _open_network(void)
 {
-    uv_write_t *req;
+    uv_write_t req;
     uv_buf_t buffer[] = {
         {.base =IPC_OPEN_NETWORK_OK, .len=21}
     };
 
     if(!_client_handle)
         return;
-    req = calloc(1, sizeof(uv_write_t));
 
     INF("Sending Open Network OK to IPC client");
-    uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
+    uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
     zg_mt_zdo_permit_join(NULL);
 }
 
 static void _start_touchlink(void)
 {
     uint8_t res;
-    uv_write_t *req;
+    uv_write_t req;
     uv_buf_t *buffer = NULL;
     char *msg = NULL;
 
@@ -119,16 +117,15 @@ static void _start_touchlink(void)
         return;
 
     res = zg_zll_start_touchlink();
-    req = calloc(1, sizeof(uv_write_t));
     buffer = calloc(1, sizeof(uv_buf_t));
     msg = (res == 0 ? IPC_TOUCHLINK_OK:IPC_TOUCHLINK_KO);
     buffer->base = calloc(strlen(msg)+1, sizeof(char));
     buffer->len = strlen(msg) + 1 ;
     strcpy(buffer->base, msg);
-    req->data = buffer;
+    req.data = buffer;
 
     INF("Sending touchlink status to IPC client");
-    if(uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
+    if(uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
         ERR("Cannot send touchlink status to IPC client");
 }
 
@@ -141,7 +138,7 @@ static void _process_ipc_data(char *data, int len)
 
    if(!data || len <= 0)
    {
-      ERR("Cannot process IPC command : message is corrupted"); 
+      ERR("Cannot process IPC command : message is corrupted");
       _send_error();
       return;
    }
@@ -225,18 +222,18 @@ static void _new_connection_cb(uv_stream_t *s, int status)
 
 static void _send_event(uv_buf_t *buf)
 {
-    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    uv_write_t req;
     uv_buf_t *local_buf = calloc(1, sizeof(uv_buf_t));
 
     local_buf->base = calloc(buf->len, sizeof(char));
     memcpy(local_buf->base, buf->base, buf->len);
     local_buf->len = buf->len;
-    req->data = local_buf;
+    req.data = local_buf;
 
     DBG("Dispatching new event on IPC");
 
     if(_client_handle)
-        uv_write(req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
+        uv_write(&req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
 }
 /********************************
  *             API              *

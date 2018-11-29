@@ -138,7 +138,6 @@ static void _client_answer_cb(uv_write_t *req __attribute__((unused)), int statu
         ERR("Client answer has failed");
     }
     _free_http_answer((uv_buf_t*)req->data);
-    ZG_VAR_FREE(req);
 }
 
 static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
@@ -147,20 +146,19 @@ static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
     if(!obj)
         return;
 
-    uv_write_t *req = calloc(1, sizeof(uv_write_t));
+    uv_write_t req;
     msg = _build_http_answer(obj);
-    if(!req || !obj ||!msg)
+    if(!obj ||!msg)
     {
         ERR("Cannot build HTTP answer");
-        ZG_VAR_FREE(req);
         ZG_VAR_FREE(obj);
         _free_http_answer(msg);
         return;
     }
 
     _dump_http_answer(msg);
-    req->data = msg;
-    if(uv_write(req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
+    req.data = msg;
+    if(uv_write(&req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
     }
