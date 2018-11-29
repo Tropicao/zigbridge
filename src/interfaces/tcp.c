@@ -91,7 +91,7 @@ static void _send_error()
 
 static void _send_device_list()
 {
-    uv_write_t req;
+    uv_write_t *req;
     size_t size;
     json_t *devices = zg_device_get_device_list_json();
 
@@ -105,9 +105,10 @@ static void _send_device_list()
     size = json_dumpb(devices, buf->base, size, JSON_DECODE_ANY);
     json_decref(devices);
     buf->len = size;
-    req.data = buf;
+    req = calloc(1, sizeof(uv_write_t));
+    req->data = buf;
 
-    uv_write(&req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
+    uv_write(req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
 }
 
 static void _open_network(void)
