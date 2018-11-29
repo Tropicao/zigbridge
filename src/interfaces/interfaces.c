@@ -77,7 +77,6 @@ static char *event_strings [ZG_EVENT_GUARD] = {
 static SubmoduleAPI _submodules[] = {
     {zg_ipc_init, zg_ipc_shutdown},
     {zg_tcp_init, zg_tcp_shutdown},
-    {zg_http_server_init, zg_http_server_shutdown}
 };
 
 static int _nb_submodules = sizeof(_submodules)/sizeof(SubmoduleAPI);
