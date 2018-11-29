@@ -139,6 +139,7 @@ static void _client_answer_cb(uv_write_t *req __attribute__((unused)), int statu
         ERR("Client answer has failed");
     }
     _free_http_answer(msg);
+    free(req);
 }
 
 static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
@@ -151,7 +152,7 @@ static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
     if(!_client_handle)
         return;
 
-    uv_write_t req;
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
     msg = _build_http_answer(obj);
     if(!obj ||!msg)
     {
@@ -162,9 +163,9 @@ static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
     }
 
     _dump_http_answer(msg);
-    req.data = msg;
+    req->data = msg;
     DBG("Sending answer to HTTP client");
-    if(uv_write(&req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
+    if(uv_write(req, (uv_stream_t *)_client_handle, msg, HTTP_FIELD_MAX, _client_answer_cb) != 0)
     {
         ERR("Error writing to client");
     }
@@ -196,10 +197,10 @@ static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *a
 
     if(url.field_set & (1 << UF_PATH) && url.field_data[UF_PATH].len > 0)
     {
-        DBG("Found URL path : %.*s", url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off);
+        DBG("Found URL path : %.*s", url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off + 1);
 
         CALLOC_COMMAND_OBJ_RET(command_obj, 1);
-        memcpy(command_obj->command_string, at + url.field_data[UF_PATH].off + 1, url.field_data[UF_PATH].len);
+        memcpy(command_obj->command_string, at + url.field_data[UF_PATH].off + 1, url.field_data[UF_PATH].len - 1);
         answer_obj = zg_interfaces_process_command(&_interface, command_obj);
         _dispatch_answer(answer_obj);
         zg_interfaces_free_command_object(command_obj);

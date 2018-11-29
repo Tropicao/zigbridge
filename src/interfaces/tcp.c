@@ -90,7 +90,7 @@ static void _send_error()
 
 static void _send_device_list()
 {
-    uv_write_t req;
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
     size_t size;
     json_t *devices = zg_device_get_device_list_json();
 
@@ -104,9 +104,9 @@ static void _send_device_list()
     size = json_dumpb(devices, buf->base, size, JSON_DECODE_ANY);
     json_decref(devices);
     buf->len = size;
-    req.data = buf;
+    req->data = buf;
 
-    uv_write(&req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
+    uv_write(req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
 }
 
 static void _open_network(void)
@@ -127,7 +127,7 @@ static void _open_network(void)
 static void _start_touchlink(void)
 {
     uint8_t res;
-    uv_write_t req;
+    uv_write_t *req = calloc(1, sizeof(uv_write_t));
     uv_buf_t *buffer = NULL;
     char *msg = NULL;
 
@@ -140,10 +140,10 @@ static void _start_touchlink(void)
     buffer->base = calloc(strlen(msg)+1, sizeof(char));
     buffer->len = strlen(msg) + 1 ;
     strcpy(buffer->base, msg);
-    req.data = buffer;
+    req->data = buffer;
 
     INF("Sending touchlink status to IPC client");
-    if(uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
+    if(uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
         ERR("Cannot send touchlink status to IPC client");
 }
 
@@ -238,17 +238,25 @@ static void _new_connection_cb(uv_stream_t *s, int status)
 
 static void _send_event(uv_buf_t *buf)
 {
-    uv_write_t req;
-    uv_buf_t *local_buf = calloc(1, sizeof(uv_buf_t));
+    uv_write_t *req = NULL;
+    uv_buf_t *local_buf = NULL;
+
+    if(!buf || !(buf->base) || !(buf->len))
+    {
+        ERR("Event to dispatch is empty");
+        return;
+    }
+    local_buf = calloc(1, sizeof(uv_buf_t));
 
     local_buf->base = calloc(buf->len, sizeof(char));
     memcpy(local_buf->base, buf->base, buf->len);
     local_buf->len = buf->len;
-    req.data = local_buf;
+    req = calloc(1, sizeof(uv_write_t));
+    req->data = local_buf;
 
     DBG("Dispatching new event on TCP interface");
     if(_client_handle)
-        uv_write(&req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
+        uv_write(req,(uv_stream_t *) _client_handle, local_buf, 1, _allocated_req_sent);
 }
 
 /********************************

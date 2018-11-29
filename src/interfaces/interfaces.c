@@ -77,6 +77,7 @@ static char *event_strings [ZG_EVENT_GUARD] = {
 static SubmoduleAPI _submodules[] = {
     {zg_ipc_init, zg_ipc_shutdown},
     {zg_tcp_init, zg_tcp_shutdown},
+    {zg_http_server_init, zg_http_server_shutdown}
 };
 
 static int _nb_submodules = sizeof(_submodules)/sizeof(SubmoduleAPI);
@@ -279,8 +280,9 @@ void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data)
        if(interface->event_cb)
        {
            DBG("[%s] Dispatch event", interface->name);
-           interface->event_cb(buf); 
+           interface->event_cb(buf);
        }
     }
+    ZG_VAR_FREE(buf->base);
     ZG_VAR_FREE(buf);
 }
