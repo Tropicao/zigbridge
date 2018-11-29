@@ -463,10 +463,16 @@ static void _process_user_command(StdinCommand cmd)
  *             API              *
  *******************************/
 
-void zg_core_init(uint8_t reset_network)
+int zg_core_init(uint8_t reset_network)
 {
     _log_domain = zg_logs_domain_register("zg_core", ZG_COLOR_BLACK);
     INF("Initializing core application");
+
+    if(zg_device_init(_reset_network) != 0)
+    {
+        return 1;
+    }
+
     _reset_network = reset_network;
     _reset_network |= !zg_keys_check_network_key_exists();
     if(_reset_network)
@@ -482,13 +488,14 @@ void zg_core_init(uint8_t reset_network)
     zg_interfaces_init();
     zg_mt_init();
     zg_keys_init();
-    zg_device_init(_reset_network);
 
     if(_reset_network)
         _init_sm = zg_al_create(_init_states_reset, _init_reset_nb_states);
     else
         _init_sm = zg_al_create(_init_states_restart, _init_restart_nb_states);
     zg_al_continue(_init_sm);
+
+    return 0;
 }
 
 void zg_core_shutdown(void)

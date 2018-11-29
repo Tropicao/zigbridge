@@ -86,7 +86,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 
     if(zg_rpc_init() != 0)
         goto rpc_end;
-    zg_core_init(_reset_network);
+    if(zg_core_init(_reset_network) != 0)
+    {
+        ERR("General initialization failed, quitting...");
+        goto general_init_fail;
+    }
+
+
     loop = uv_default_loop();
     znp_fd = zg_rpc_get_fd();
     status = uv_poll_init(loop, &znp_poll, znp_fd);
@@ -113,6 +119,7 @@ main_end:
     uv_poll_stop(&user_poll);
     uv_poll_stop(&znp_poll);
     zg_core_shutdown();
+general_init_fail:
 rpc_end:
     zg_rpc_shutdown();
     zg_conf_shutdown();

@@ -460,14 +460,23 @@ static json_t *_get_device_list_json(void)
  *             API              *
  *******************************/
 
-void zg_device_init(uint8_t reset_device)
+int zg_device_init(uint8_t reset_device)
 {
     eina_init();
     _log_domain = zg_logs_domain_register("zg_devices", ZG_COLOR_LIGHTGREEN);
+    if(access(zg_conf_get_device_list_path(), W_OK) != 0)
+    {
+        ERR("Device file path is not accessible, abort device init");
+        eina_shutdown();
+        return 1;
+    }
+
     if(reset_device)
         _del_device_list();
     else
         _load_device_list();
+
+    return 0;
 }
 
 void zg_device_shutdown()
