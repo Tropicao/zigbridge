@@ -195,7 +195,7 @@ static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *a
         DBG("Found URL path : %.*s", url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off);
 
         CALLOC_COMMAND_OBJ_RET(command_obj, 1);
-        snprintf(command_obj->command_string, url.field_data[UF_PATH].len, at + url.field_data[UF_PATH].off + 1);
+        memcpy(command_obj->command_string, at + url.field_data[UF_PATH].off + 1, url.field_data[UF_PATH].len);
         answer_obj = zg_interfaces_process_command(&_interface, command_obj);
         _dispatch_answer(answer_obj);
         zg_interfaces_free_command_object(command_obj);
