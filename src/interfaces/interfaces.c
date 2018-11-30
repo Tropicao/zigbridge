@@ -277,7 +277,7 @@ void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data)
     buf->len = size;
     EINA_LIST_FOREACH(_interfaces, iterator, interface)
     {
-       if(interface->event_cb)
+       if( interface && interface->event_cb)
        {
            DBG("[%s] Dispatch event", interface->name);
            interface->event_cb(buf);

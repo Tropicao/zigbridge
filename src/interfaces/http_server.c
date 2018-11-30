@@ -64,7 +64,7 @@ static uv_tcp_t _server_handle;
 static uv_tcp_t *_client_handle = NULL;
 static http_parser_settings _hp_settings;
 static http_parser *_hp_parser = NULL;
-static ZgInterfacesInterface _interface;
+static ZgInterfacesInterface *_interface = NULL;
 
 /********************************
  *      Structures and data     *
@@ -201,7 +201,7 @@ static int _url_asked_cb(http_parser *_hp __attribute__((unused)), const char *a
 
         CALLOC_COMMAND_OBJ_RET(command_obj, 1);
         memcpy(command_obj->command_string, at + url.field_data[UF_PATH].off + 1, url.field_data[UF_PATH].len - 1);
-        answer_obj = zg_interfaces_process_command(&_interface, command_obj);
+        answer_obj = zg_interfaces_process_command(_interface, command_obj);
         _dispatch_answer(answer_obj);
         zg_interfaces_free_command_object(command_obj);
         zg_interfaces_free_answer_object(answer_obj);
@@ -329,13 +329,13 @@ ZgInterfacesInterface *zg_http_server_init()
     {
         ERR("Cannot start listening for new connection");
     }
-    memset(&_interface, 0, sizeof(_interface));
-    sprintf((char *)_interface.name, "HTTP");
+    _interface = calloc(1, sizeof(ZgInterfacesInterface));
+    sprintf((char *)_interface->name, "HTTP");
 
     INF("HTTP server started on address %s - port %d", zg_conf_get_http_server_address(), zg_conf_get_http_server_port());
     _init_count = 1;
 
-    return &_interface;
+    return _interface;
 }
 
 void zg_http_server_shutdown()
@@ -346,5 +346,6 @@ void zg_http_server_shutdown()
     }
     _init_count--;
     CLOSE_CLIENT(_client_handle);
+    ZG_VAR_FREE(_interface);
     INF("HTTP_SERVER module shut down");
 }

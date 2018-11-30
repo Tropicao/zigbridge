@@ -259,7 +259,7 @@ ZgInterfacesInterface *zg_ipc_init(void)
         ERR("Error listening on IPC socket");
         return NULL;
     }
-    memset(&_interface, 0, sizeof(_interface));
+    memset(&_interface, 0, sizeof(ZgInterfacesInterface));
     sprintf((char *)_interface.name, "IPC");
     _interface.event_cb = _send_event;
     INF("IPC started on socket %s", IPC_PIPENAME);

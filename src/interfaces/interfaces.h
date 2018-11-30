@@ -40,7 +40,7 @@ typedef enum
 
 
 /* Callback type used to dispatch an event on interfaces that support events */
-typedef void (*event_cb_t)(uv_buf_t *buf);
+typedef void (*event_cb_t)(uv_buf_t *);
 
 typedef struct
 {

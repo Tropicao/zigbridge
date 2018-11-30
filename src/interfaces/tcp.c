@@ -289,8 +289,9 @@ ZgInterfacesInterface *zg_tcp_init()
     if(uv_listen((uv_stream_t *)&_server_handle, MAX_PENDING_CONNECTTION, _new_connection_cb) != 0)
     {
         ERR("Cannot start listening for new connection");
+        return NULL;
     }
-    _interface = calloc(1, sizeof(_interface));
+    _interface = calloc(1, sizeof(ZgInterfacesInterface));
     sprintf((char *)_interface->name, "TCP");
     _interface->event_cb = _send_event;
 
