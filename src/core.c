@@ -468,15 +468,16 @@ int zg_core_init(uint8_t reset_network)
     _log_domain = zg_logs_domain_register("zg_core", ZG_COLOR_BLACK);
     INF("Initializing core application");
 
+    _reset_network = reset_network;
+    _reset_network |= !zg_keys_check_network_key_exists();
+    if(_reset_network)
+        zg_keys_network_key_del();
+
     if(zg_device_init(_reset_network) != 0)
     {
         return 1;
     }
 
-    _reset_network = reset_network;
-    _reset_network |= !zg_keys_check_network_key_exists();
-    if(_reset_network)
-        zg_keys_network_key_del();
     zg_stdin_register_command_cb(_process_user_command);
     zg_zha_register_device_ind_callback(_new_device_cb);
     zg_zha_register_button_state_cb(_button_change_cb);
