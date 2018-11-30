@@ -45,7 +45,7 @@ janssondep = dependency('jansson', version:'>=2.10')
 dep = [uvdep, iniparserdep, einadep, janssondep]
 
 # Build options
-cflags=['-Wall', '-Wextra', '-Werror']
+cflags=['-Wall', '-Wextra']
 
 executable('zigbridge',
     sources: src,
