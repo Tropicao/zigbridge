@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <libgen.h>
 #include "logs.h"
 #include "device.h"
 #include "utils.h"
@@ -462,11 +463,14 @@ static json_t *_get_device_list_json(void)
 
 int zg_device_init(uint8_t reset_device)
 {
+    const char *filepath = zg_conf_get_device_list_path();
+
     eina_init();
     _log_domain = zg_logs_domain_register("zg_devices", ZG_COLOR_LIGHTGREEN);
-    if(access(zg_conf_get_device_list_path(), W_OK) != 0)
+
+    if(access(dirname((char *)filepath), W_OK) != 0)
     {
-        ERR("Device file path is not accessible, abort device init");
+        ERR("Device file path %s is not accessible, abort device init (%s)", filepath, strerror(errno));
         eina_shutdown();
         return 1;
     }
