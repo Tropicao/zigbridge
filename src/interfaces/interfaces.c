@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <jansson.h>
 #include <Eina.h>
+#include <time.h>
 
 #include "interfaces.h"
 #include "logs.h"
@@ -233,6 +234,7 @@ void zg_interfaces_send_event(const char *event, json_t *data)
     }
 
     if(json_object_set_new(root, "type", json_string("event"))||
+            json_object_set_new(root, "timestamp", json_integer(time(NULL))) ||
             json_object_set_new(data, "type", json_string(event)) ||
             json_object_set_new(root, "data", data))
     {
