@@ -26,19 +26,6 @@ typedef enum
     ZG_INTERFACES_COMMAND_MAX_ID
 } ZgInterfacesCommandId;
 
-/* List of available events to send to external clients */
-typedef enum
-{
-    ZG_EVENT_NEW_DEVICE = 0,
-    ZG_EVENT_BUTTON_STATE,
-    ZG_EVENT_TEMPERATURE,
-    ZG_EVENT_PRESSURE,
-    ZG_EVENT_HUMIDITY,
-    ZG_EVENT_TOUCHLINK_FINISHED,
-    ZG_EVENT_GUARD, /* Keep this value last */
-} ZgInterfacesEvent;
-
-
 /* Callback type used to dispatch an event on interfaces that support events */
 typedef void (*event_cb_t)(uv_buf_t *);
 
@@ -83,7 +70,7 @@ ZgInterfacesAnswerObject *zg_interfaces_process_command(ZgInterfacesInterface *i
  * \param ZgInterfacesEvent the event to dispatch
  * \data Associated string data to attach to the event
  */
-void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data);
+void zg_interfaces_send_event(const char *event, json_t *data);
 
 void zg_interfaces_free_command_object(ZgInterfacesCommandObject *obj);
 

@@ -25,6 +25,12 @@
 #define GATEWAY_ADDR                0x0000
 #define GATEWAY_CHANNEL             11
 
+#define EVENT_STR_TEMPERATURE       "temperature"
+#define EVENT_STR_PRESSURE          "pressure"
+#define EVENT_STR_HUMIDITY          "humidity"
+#define EVENT_STR_BUTTON            "button"
+#define EVENT_STR_NEW_DEV           "new_device"
+
 /*** For demo purpose, pre-calculated values */
 #define X_RED       65535
 #define Y_RED       0
@@ -212,7 +218,7 @@ static void _send_event_new_device(DeviceId id)
     else
         return;
 
-    zg_interfaces_send_event(ZG_EVENT_NEW_DEVICE, root);
+    zg_interfaces_send_event(EVENT_STR_NEW_DEV, root);
     json_decref(root);
 }
 
@@ -287,7 +293,7 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "state", json_integer(state));
 
-    zg_interfaces_send_event(ZG_EVENT_BUTTON_STATE, root);
+    zg_interfaces_send_event(EVENT_STR_BUTTON, root);
     json_decref(root);
 }
 
@@ -323,7 +329,7 @@ static void _send_event_temperature(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "temperature", json_integer(temp));
 
-    zg_interfaces_send_event(ZG_EVENT_TEMPERATURE, root);
+    zg_interfaces_send_event(EVENT_STR_TEMPERATURE, root);
     json_decref(root);
 }
 
@@ -338,7 +344,7 @@ static void _send_event_pressure(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "pressure", json_integer(temp));
 
-    zg_interfaces_send_event(ZG_EVENT_PRESSURE, root);
+    zg_interfaces_send_event(EVENT_STR_PRESSURE, root);
     json_decref(root);
 }
 
@@ -353,7 +359,7 @@ static void _send_event_humidity(DeviceId id, uint16_t temp)
     json_object_set_new(root, "id", json_integer(id));
     json_object_set_new(root, "humidity", json_integer(temp));
 
-    zg_interfaces_send_event(ZG_EVENT_HUMIDITY, root);
+    zg_interfaces_send_event(EVENT_STR_HUMIDITY, root);
     json_decref(root);
 }
 

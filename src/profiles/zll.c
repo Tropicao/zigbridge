@@ -70,7 +70,7 @@
 #define ZLL_INFORMATION_FIELD                   0x12
 
 #define ZLL_IDENTIFY_DELAY_MS                   3000
-
+#define EVENT_STR_TOUCHLINK_END                 "touchlink_end"
 /********************************
  *          Local variables     *
  *******************************/
@@ -232,7 +232,7 @@ static void _send_ipc_event_touchlink_end()
     root = json_object();
     json_object_set_new(root, "status", json_string("finished"));
 
-    zg_interfaces_send_event(ZG_EVENT_TOUCHLINK_FINISHED, root);
+    zg_interfaces_send_event(EVENT_STR_TOUCHLINK_END, root);
     json_decref(root);
 }
 

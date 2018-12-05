@@ -63,15 +63,6 @@ static CommandIdEntry _command_id_table[] =
     {ZG_INTERFACES_COMMAND_GET_DEVICE_LIST, "device_list"}
 };
 
-static char *event_strings [ZG_EVENT_GUARD] = {
-    "new_device",
-    "button_state",
-    "event_temperature",
-    "event_pressure",
-    "event_humidity",
-    "event_touchlink"
-};
-
 /* This table defines all enabled submodules */
 /* This is the main entry ponit if you want to add a new interface */
 static SubmoduleAPI _submodules[] = {
@@ -219,7 +210,7 @@ void zg_interfaces_shutdown()
     INF("Interfaces module shut down");
 }
 
-void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data)
+void zg_interfaces_send_event(const char *event, json_t *data)
 {
     json_t *root = NULL;
     uv_buf_t *buf = NULL;
@@ -233,13 +224,7 @@ void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data)
         return;
     }
 
-    if(event >= ZG_EVENT_GUARD)
-    {
-        ERR("Invalid event");
-        return;
-    }
-
-    INF("Sending event %s to remote clients", event_strings[event]);
+    INF("Sending event \"%s\" to remote clients", event);
     root = json_object();
     if(!root)
     {
@@ -247,7 +232,8 @@ void zg_interfaces_send_event(ZgInterfacesEvent event, json_t *data)
         return;
     }
 
-    if(json_object_set_new(root, "event", json_string(event_strings[event]))||
+    if(json_object_set_new(root, "type", json_string("event"))||
+            json_object_set_new(data, "type", json_string(event)) ||
             json_object_set_new(root, "data", data))
     {
         ERR("Error encoding value into event");
