@@ -312,22 +312,11 @@ static void _send_ipc_event_button_state_change(DeviceId id, uint8_t state)
 
 static void _button_change_cb(uint16_t addr, uint8_t state)
 {
-    DeviceId id = 0;
+    DeviceId id;
 
-    INF("Button pressed, toggling the light");
-    if(_initialized)
-    {
-        id = zg_device_get_id(addr);
-        _send_ipc_event_button_state_change(id, state);
-        if(addr != 0xFFFD && state == 0)
-            zg_zha_switch_bulb_state(zg_device_get_short_addr(DEMO_DEVICE_ID));
-        else
-            WRN("Device is not installed, cannot switch light");
-    }
-    else
-    {
-        WRN("Core application has not finished initializing, cannot switch bulb state");
-    }
+    INF("Button pressed");
+    id = zg_device_get_id(addr);
+    _send_ipc_event_button_state_change(id, state);
 }
 
 static void _send_event_temperature(DeviceId id, uint16_t temp)
@@ -413,11 +402,20 @@ static void _process_command_touchlink()
 static void _process_command_switch_light()
 {
     uint16_t addr = 0xFFFD;
+    static int state = 0;
+    int ep_id = -1;
     if(_initialized)
     {
         addr = zg_device_get_short_addr(DEMO_DEVICE_ID);
         if(addr != 0xFFFD)
-            zg_zha_switch_bulb_state(addr);
+        {
+            ep_id = zg_device_zha_endpoint_get(addr);
+            if(ep_id != -1)
+            {
+                zg_zha_on_off_set(addr, ep_id, state);
+                state = !state;
+            }
+        }
         else
             WRN("Device is not installed, cannot switch light");
     }

@@ -63,8 +63,6 @@
 static int _init_count = 0;
 static int _log_domain = -1;
 
-static uint8_t _demo_bulb_state = 0x1;
-static uint16_t _pending_command_addr = 0xFFFD;
 static void (*_button_change_cb)(uint16_t short_addr, uint8_t state) = NULL;
 static void (*_temperature_cb)(uint16_t short_addr, int16_t temp) = NULL;
 static void (*_humidity_cb)(uint16_t short_addr, uint16_t humidity) = NULL;
@@ -192,11 +190,6 @@ static void _zha_visible_device_cb(uint16_t addr, uint64_t ext_addr)
 
 }
 
-static void _security_disabled_cb(void)
-{
-    zg_zha_switch_bulb_state(_pending_command_addr);
-}
-
 /********************************
  * Initialization state machine *
  *******************************/
@@ -264,35 +257,14 @@ void zg_zha_shutdown(void)
     zg_al_destroy(_init_sm);
 }
 
-void zg_zha_switch_bulb_state(uint16_t short_addr)
-{
-    static int sec_enabled = 0;
-
-    if(!sec_enabled)
-    {
-        INF("Re-enabling security before sending command");
-        _pending_command_addr = short_addr;
-        zg_mt_sys_nv_write_enable_security(_security_disabled_cb);
-        sec_enabled = 1;
-        return;
-    }
-
-    if(short_addr != 0xFFFD)
-    {
-        _demo_bulb_state = !_demo_bulb_state;
-        INF("Switch : Bulb 0x%4X - State %s", short_addr, _demo_bulb_state ? "ON":"OFF");
-        zg_zha_set_bulb_state(short_addr, _demo_bulb_state);
-    }
-}
-
-void zg_zha_set_bulb_state(uint16_t addr, uint8_t state)
+void zg_zha_on_off_set(uint16_t addr, uint8_t endpoint, uint8_t state)
 {
     uint8_t command = state ? COMMAND_ON:COMMAND_OFF;
 
     zg_aps_send_data(addr,
             0xABCD,
             ZHA_ENDPOINT,
-            0x0B,
+            endpoint,
             ZCL_CLUSTER_ON_OFF,
             command,
             NULL,

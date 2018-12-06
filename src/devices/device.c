@@ -637,6 +637,24 @@ json_t *zg_device_get_device_list_json(void)
     return _get_device_list_json();
 }
 
+int zg_device_zha_endpoint_get(uint16_t short_addr)
+{
+    DeviceData *data = _get_device_by_short_addr(short_addr);
+    Eina_List *iter;
+    EndpointData *ep_data;
+
+    if(!data)
+        return -1;
+    EINA_LIST_FOREACH(data->endpoints, iter, ep_data)
+    {
+        if(ep_data->profile == 0x0104)
+        {
+            return ep_data->num;
+        }
+    }
+    return -1;
+}
+
 
 
 

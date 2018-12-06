@@ -9,8 +9,7 @@ typedef void (*NewDeviceJoinedCb)(uint16_t short_addr, uint64_t ext_addr);
 
 uint8_t zg_zha_init(InitCompleteCb cb);
 void zg_zha_shutdown(void);
-void zg_zha_switch_bulb_state(uint16_t short_addr);
-void zg_zha_set_bulb_state(uint16_t addr, uint8_t state);
+void zg_zha_on_off_set(uint16_t addr, uint8_t endpoint, uint8_t state);
 void zg_zha_register_device_ind_callback(NewDeviceJoinedCb cb);
 void zg_zha_register_button_state_cb(void (*cb)(uint16_t short_addr, uint8_t state));
 void zg_zha_register_temperature_cb(void (*cb)(uint16_t short_addr, int16_t temp));
