@@ -44,6 +44,12 @@ You can then directly type json formatted command to those interfaces to interac
   *Example* :
     * Input : `{"command":"touchlink"}`
     * Output : `{"touchlink":"ok"}`
+* **On/Off** : used to toggle on/off a device. The procedure will return 0 if command has been sent, or 1 if device is.
+  The targeted device is identified by the "id" field
+  unknown
+  *Example* :
+    * Input : `{"command":"on_off", "data":{"id", 0, "state":"1"}}`
+    * Output : `{"on_off":"0"}`
 
 #### Events
 * **Button event** : event received when a button is installed and that button is toggled  

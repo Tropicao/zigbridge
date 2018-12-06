@@ -60,20 +60,6 @@ static void _allocated_req_sent(uv_write_t *req, int status __attribute__((unuse
  *    TCP messages callbacks    *
  *******************************/
 
-static void _send_version()
-{
-    uv_write_t req;
-    uv_buf_t buffer[] = {
-        {.base = TCP_DEFAULT_VERSION, .len=19}
-    };
-
-    if(!_client_handle)
-        return;
-
-    INF("Sending version to remote client");
-    uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
-}
-
 static void _send_error()
 {
     uv_write_t req;
@@ -86,6 +72,20 @@ static void _send_error()
 
     INF("Sending error to remote client");
     uv_write(&req,(uv_stream_t *) _client_handle, buffer, 1, NULL);
+}
+
+/*static void _send_version()
+{
+    uv_write_t req;
+    uv_buf_t buffer[] = {
+        {.base = TCP_DEFAULT_VERSION, .len=19}
+    };
+
+    if(!_client_handle)
+        return;
+
+    INF("Sending version to remote client");
+    uv_write(&req, (uv_stream_t *)_client_handle, buffer, 1, NULL);
 }
 
 static void _send_device_list()
@@ -146,16 +146,41 @@ static void _start_touchlink(void)
     if(uv_write(req, (uv_stream_t *)_client_handle, buffer, 1, _allocated_req_sent) <= 0)
         ERR("Cannot send touchlink status to IPC client");
 }
+*/
 
+static void _dispatch_answer(ZgInterfacesAnswerObject *obj)
+{
+    uv_write_t *req = NULL;
+    json_t *devices = zg_device_get_device_list_json();
+
+    if(!_client_handle || !obj || !(obj->data))
+    {
+        return;
+    }
+
+    INF("Sending command answer");
+    req = calloc(1, sizeof(uv_write_t));
+    uv_buf_t *buf = calloc(1, sizeof(uv_buf_t));
+    buf->base = calloc(obj->len, sizeof(char));
+    strncpy(buf->base, obj->data, obj->len);
+    json_decref(devices);
+    buf->len = obj->len;
+    DBG("Data : [%s] (%zd)", buf->base, buf->len);
+    req->data = buf;
+
+    uv_write(req,(uv_stream_t *) _client_handle, buf, 1, _allocated_req_sent);
+}
 static void _process_tcp_data(char *data, int len)
 {
    json_t *root;
    json_t *command;
    json_error_t error;
+   ZgInterfacesCommandObject *command_obj = NULL;
+   ZgInterfacesAnswerObject *answer_obj = NULL;
 
    if(!data || len <= 0)
    {
-      ERR("Cannot process TCP command : message is corrupted"); 
+      ERR("Cannot process TCP command : message is corrupted");
       _send_error();
       return;
    }
@@ -172,18 +197,14 @@ static void _process_tcp_data(char *data, int len)
    if(command && json_is_string(command))
    {
         INF("TCP server received command [%s]", json_string_value(command));
-        if(strcmp(json_string_value(command), "version") == 0)
-            _send_version();
-        else if(strcmp(json_string_value(command), "get_device_list") == 0)
-            _send_device_list();
-        else if(strcmp(json_string_value(command), "open_network") == 0)
-            _open_network();
-        else if(strcmp(json_string_value(command), "touchlink") == 0)
-            _start_touchlink();
-        else
-        {
-            _send_error();
-        }
+        CALLOC_COMMAND_OBJ_RET(command_obj);
+        strcpy(command_obj->command_string, json_string_value(json_object_get(root, "command")));
+        command_obj->data = json_object_get(root, "data");
+        command_obj->len = 0; /* Need to better define Command object */
+        answer_obj = zg_interfaces_process_command(_interface, command_obj);
+        _dispatch_answer(answer_obj);
+        zg_interfaces_free_command_object(command_obj);
+        zg_interfaces_free_answer_object(answer_obj);
    }
 }
 

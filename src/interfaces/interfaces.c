@@ -12,6 +12,7 @@
 #include "ipc.h"
 #include "tcp.h"
 #include "http_server.h"
+#include "zha.h"
 
 /********************************
  *          Constants           *
@@ -19,15 +20,17 @@
 
 #define CALLOC_ANSWER_RET_NULL(x)       do {\
                                             x = calloc(1, sizeof(ZgInterfacesAnswerObject));\
-                                            if(!x)\
+                                            if(!x){\
+                                                ERR("Cannot allocate answer");\
                                                 return NULL;\
-                                        } while(0)
+                                            }} while(0)
 
 #define ANSWER_DATA_VERSION             "{\"version\":\"0.4.0\"}"
 #define ANSWER_DATA_ERROR               "{\"status\":\"Unknown command\"}"
 #define ANSWER_DATA_OPEN_NETWORK_OK     "{\"open_network\":\"ok\"}"
 #define ANSWER_DATA_TOUCHLINK_OK        "{\"touchlink\":\"ok\"}"
 #define ANSWER_DATA_TOUCHLINK_KO        "{\"touchlink\":\"error\"}"
+#define ANSWER_DATA_ON_OFF_OK           "{\"on_off\":0}"
 /********************************
  *        Local types           *
  *******************************/
@@ -61,7 +64,8 @@ static CommandIdEntry _command_id_table[] =
     {ZG_INTERFACES_COMMAND_GET_VERSION, "version"},
     {ZG_INTERFACES_COMMAND_OPEN_NETWORK, "open_network"},
     {ZG_INTERFACES_COMMAND_TOUCHLINK, "touchlink"},
-    {ZG_INTERFACES_COMMAND_GET_DEVICE_LIST, "device_list"}
+    {ZG_INTERFACES_COMMAND_GET_DEVICE_LIST, "device_list"},
+    {ZG_INTERFACES_COMMAND_ON_OFF, "on_off"}
 };
 
 /* This table defines all enabled submodules */
@@ -118,6 +122,21 @@ static ZgInterfacesAnswerObject *_error_answer_get()
     return answer;
 }
 
+static ZgInterfacesAnswerObject *_on_off_answer_get(json_t *data)
+{
+    ZgInterfacesAnswerObject *answer = NULL;
+    uint16_t addr = zg_device_get_short_addr(json_integer_value(json_object_get(data, "id")));
+    int ep = zg_device_zha_endpoint_get(addr);
+
+    zg_zha_on_off_set(addr, ep, json_integer_value(json_object_get(data, "state")));
+
+    CALLOC_ANSWER_RET_NULL(answer);
+    answer->status = ep < 0 ? 1 : 0;
+    answer->data = ANSWER_DATA_ON_OFF_OK;
+    answer->len = strlen(ANSWER_DATA_ON_OFF_OK);
+    return answer;
+}
+
 /********************************
  *             API              *
  *******************************/
@@ -147,7 +166,11 @@ ZgInterfacesAnswerObject *zg_interfaces_process_command(ZgInterfacesInterface *i
         case ZG_INTERFACES_COMMAND_GET_VERSION:
             return _version_answer_get();
             break;
+        case ZG_INTERFACES_COMMAND_ON_OFF:
+            return _on_off_answer_get((json_t *)command->data);
+            break;
         default:
+            DBG("Unknown command %s", command->command_string);
             return _error_answer_get();
             break;
     }

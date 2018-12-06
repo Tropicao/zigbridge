@@ -9,7 +9,13 @@
 #define ZG_INTERFACES_MAX_INTERFACE_NAME_SIZE   32
 #define ZG_INTERFACES_MAX_COMMAND_STRING_LEN    128
 
-#define CALLOC_COMMAND_OBJ_RET(x, y)            do {\
+#define CALLOC_COMMAND_OBJ_RET(x)               do {\
+                                                    x = calloc(1, sizeof(ZgInterfacesCommandObject));\
+                                                    if(!x) {\
+                                                        fprintf(stderr, "Cannot create Command object\n");\
+                                                        return;\
+                                                }} while(0)
+#define CALLOC_COMMAND_OBJ_RET_VAL(x, y)        do {\
                                                     x = calloc(1, sizeof(ZgInterfacesCommandObject));\
                                                     if(!x) {\
                                                         fprintf(stderr, "Cannot create Command object\n");\
@@ -23,6 +29,7 @@ typedef enum
     ZG_INTERFACES_COMMAND_OPEN_NETWORK,
     ZG_INTERFACES_COMMAND_TOUCHLINK,
     ZG_INTERFACES_COMMAND_GET_DEVICE_LIST,
+    ZG_INTERFACES_COMMAND_ON_OFF,
     ZG_INTERFACES_COMMAND_MAX_ID
 } ZgInterfacesCommandId;
 
