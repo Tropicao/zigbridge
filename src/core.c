@@ -222,32 +222,44 @@ static void _send_event_new_device(DeviceId id)
     json_decref(root);
 }
 
+static void _start_or_restart_new_device_sm(uint16_t addr)
+{
+    if(_new_device_sm)
+    {
+        zg_sm_destroy(_new_device_sm);
+        _new_device_sm = NULL;
+    }
+
+    _new_device_sm = zg_sm_create(  "New device",
+            _new_device_states,
+            _new_device_nb_states,
+            _new_device_transitions,
+            _new_device_nb_transitions);
+    if(!_new_device_sm)
+    {
+        ERR("Abort new device learning");
+        return;
+    }
+    INF("Start learning new device properties");
+    _current_learning_device_addr = addr;
+    zg_sm_start(_new_device_sm);
+}
+
+
 static void _new_device_cb(uint16_t short_addr, uint64_t ext_addr)
 {
     DeviceId id = 0;
-    if(!zg_device_is_device_known(ext_addr))
+    if(!_new_device_sm && !zg_device_is_device_known(ext_addr))
     {
         INF("Seen device is a new device");
         id = zg_add_device(short_addr, ext_addr);
         _send_event_new_device(id);
-        if(_new_device_sm)
-        {
-            WRN("Already learning a new device, cannot learn newly visible device");
-            return;
-        }
-        _new_device_sm = zg_sm_create(  "New device",
-                                        _new_device_states,
-                                        _new_device_nb_states,
-                                        _new_device_transitions,
-                                        _new_device_nb_transitions);
-        if(!_new_device_sm)
-        {
-            ERR("Abort new device learning");
-            return;
-        }
-        INF("Start learning new device properties");
-        _current_learning_device_addr = short_addr;
-        zg_sm_start(_new_device_sm);
+        _start_or_restart_new_device_sm(short_addr);
+    }
+    else if(_new_device_sm && short_addr == _current_learning_device_addr)
+    {
+        INF("Restart learning procedure for device 0x%04X", short_addr);
+        _start_or_restart_new_device_sm(short_addr);
     }
     else
     {
