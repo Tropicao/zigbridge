@@ -261,6 +261,7 @@ void zg_zha_on_off_set(uint16_t addr, uint8_t endpoint, uint8_t state)
 {
     uint8_t command = state ? COMMAND_ON:COMMAND_OFF;
 
+    INF("Sending state %d to device 0x%04X on enpoint 0x%02X", command, addr, endpoint);
     zg_aps_send_data(addr,
             0xABCD,
             ZHA_ENDPOINT,
