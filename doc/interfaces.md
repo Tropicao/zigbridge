@@ -1,9 +1,8 @@
 # Zigbridge interfaces
 
-The zigbridge gateway offer various interfaces to communicate with Zigbee devices. There are currently 3 different interfaces :
+The zigbridge gateway offer various interfaces to communicate with Zigbee devices. There are currently 2 different interfaces :
 * an event-based Unix socket interface
 * an event-based TCP socket interfaces
-* a HTTP REST interface
 
 ## Devices
 In order to test integration, the following devices are needed :
@@ -59,7 +58,5 @@ You can then directly type json formatted command to those interfaces to interac
 * **Touchlink event** : event received when a touchlink has a new state to notify  
   *Example* : `{"event":"event_touchlink","data":{"status":"finished"}}`
 
-## HTTP interface
-The goal of the HTTP interface is to provide a REST API, to make Zigbridge easier to use in existing solution.
-*Example* : `GET /device_list HTTP/1.1` => return the list of device known by Zigbridge  
-However, this effort is still under progress, and will have lack of features by design (we cannot transmit events with HTTP, except by upgrading to websocket), so it is not the priority for now.
+## "Those interfaces are too difficult to use !""
+Even if HTTP interface has been the object of a quick implementation in Zigbridge, it has been removed to focus on basic interfaces (TCP, Unix). However, HTTP interface has not been completely left aside but relocated in another project : [zigbridge-api](https://github.com/HornWilly/zigbridge-api). The project is still under development but aims to provide a proper REST interface to Zigbridge.
