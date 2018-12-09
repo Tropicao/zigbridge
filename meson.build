@@ -3,8 +3,6 @@ project('Zigbridge' , 'c')
 # Sources
 src = ['src/main.c',
         'src/core.c',
-        'src/interfaces/http_parser/http_parser.c',
-        'src/interfaces/http_server.c',
         'src/interfaces/interfaces.c',
         'src/interfaces/ipc.c',
         'src/interfaces/tcp.c',
@@ -32,7 +30,6 @@ incdir = include_directories(  'src',
                                 'src/devices',
                                 'src/profiles',
                                 'src/interfaces',
-                                'src/interfaces/http_parser',
                                 'src/mt',
                                 'src/rpc')
 

@@ -11,7 +11,6 @@
 #include "utils.h"
 #include "ipc.h"
 #include "tcp.h"
-#include "http_server.h"
 #include "zha.h"
 
 /********************************
@@ -72,8 +71,7 @@ static CommandIdEntry _command_id_table[] =
 /* This is the main entry ponit if you want to add a new interface */
 static SubmoduleAPI _submodules[] = {
     {zg_ipc_init, zg_ipc_shutdown},
-    {zg_tcp_init, zg_tcp_shutdown},
-    {zg_http_server_init, zg_http_server_shutdown}
+    {zg_tcp_init, zg_tcp_shutdown}
 };
 
 static int _nb_submodules = sizeof(_submodules)/sizeof(SubmoduleAPI);
