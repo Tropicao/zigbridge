@@ -15,7 +15,7 @@ In order to build and flash the firmware onto the USB radio head, the following 
 * a CC2531 USB dongle
 * a [CC Debugger](http://www.ti.com/tool/CC-DEBUGGER) from Texas Instruments, to reflash the USB dongle with freshly built firmware
 * The [IAR Embedded Toolchain for 8051](https://www.iar.com/iar-embedded-workbench/#!?architecture=8051) : it is needed to build the Z-Stack based firmware
-* The [SmartFR Flash Programmer](http://www.ti.com/tool/FLASH-PROGRAMMER) from Texas Instruments to flash firmware onto USB dongle
+* The [SmartFR Flash Programmer](http://www.ti.com/tool/FLASH-PROGRAMMER) from Texas Instruments to flash firmware onto USB dongle. If you are using a Linux development host, you can fall back on [cc-tool project](https://github.com/AlexMekkering/cc-tool) to reflash the dongle.
 
 ## instructions
 * Download and install all software tools listed above
