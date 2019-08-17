@@ -1,12 +1,13 @@
 # Zigbridge
 
 ## Brief
-This software aims to provide a complete gateway solution to pilot devices on a
-Zigbee network. The gateway is designed to run on a Mac/Linux host equipped with a
+This software aims to provide a proof of concept of a generic gateway to pilot devices on a Zigbee network. The gateway is designed to run on a Mac/Linux host equipped with a
 CC2531 USB dongle.
 
 ## Current project state
-As you may see, this software is still under heavy development.
+
+**The project is in "deep sleep" state : it means that I do not spend time on it anymore, and even if it may change in the future, I do not plan to work on it for now. However, feel free to re-use/fork/upgrade current project. As an alternative, if you are searching for a "ready to use" solution, I strongly encourage you to take a look at more mature solutions, like for example [Zigate](https://zigate.fr/) or [Zigbee2MQTT](https://www.zigbee2mqtt.io/).**
+
 As of today, with the appropriate hardware, the gateway is able to :
 * create a network and open it on command
 * touchlink a Hue go (full touchlink process under rework to enable comptaibility with full ZLL range)
@@ -14,7 +15,7 @@ As of today, with the appropriate hardware, the gateway is able to :
 * receive command through a Unix or TCP Socket (toggle lamp, open network, start touchlink...)
 * send status through a Unix or TCP Socket (temperature, new button state, etc)
 
-The target for v1.0.0 is to be able to integrate it in a domotic solution to drive Zigbee devices in a home/appartment, with the following features :
+The target features to be able to integrate it in a domotic solution to drive Zigbee devices in a home/appartment would be the following :
 * detection and notification of available devices
 * devices installation
 * report of installed devices
@@ -68,4 +69,4 @@ with the EINA_LOG_LEVEL variable. Please see [Eina Log documentation](https://do
 
 ## I want to report an issue or a feature request !
 
-First of all, thank you for using this software ! Please feel free to fill an issue on the project Github and I will gladly take a look at it, even if it is only a suggestion. However, keep in mind that any development I do is conditioned by the availability of devices to test it.
+Please refer to section "Current project state" : I am currently not working on Zigbridge for now. You can still report your issue, but please do not take support for granted.
